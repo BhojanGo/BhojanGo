@@ -49,12 +49,12 @@ export function PayoutProvider({ country }: { country: CountrySummary }) {
     <section aria-label="Payouts" className="rounded-2xl border border-line bg-white p-6">
       <h2 className="m-0 text-h3">Payouts</h2>
       <p className="mt-1 text-small text-muted">
-        Who pays {country.name}&apos;s kitchens and delivery partners each week: their payout accounts are opened, and payout runs paid, with
+        Who pays {country.name}&apos;s restaurants and delivery partners each week: their payout accounts are opened, and payout runs paid, with
         this provider. Now: <b className="text-kohl">{payoutLabel(country.payout_provider)}</b>.
         {country.payout_provider === "none" && " The country can't open until one is chosen."}
       </p>
       <p className="mt-1 text-small text-muted" data-testid="payout-timezone">
-        Weeks run Monday to Sunday in <b className="text-kohl">{payZone}</b>, the payout time zone: the same week for every kitchen and
+        Weeks run Monday to Sunday in <b className="text-kohl">{payZone}</b>, the payout time zone: the same week for every restaurant and
         delivery partner in {country.name}. Times on orders and receipts follow each city&apos;s own zone.
       </p>
       {editable && (

@@ -57,13 +57,19 @@ async def require_open(db: AsyncSession, code: str) -> CountryInfo:
     return c
 
 
-def require_phone_in(country: CountryInfo, phone: str | None) -> None:
-    """A phone number for this country starts with its calling code (+91, +1)."""
+def require_phone_in(country: CountryInfo, phone: str | None) -> str | None:
+    """R38: a real phone number, as E.164 (shared/phone.py). Typed without a "+", it is read as this
+    country's (98765 43210 in India, (208) 555-0123 in the US); with one, any country's number is
+    fine (a US number for an India address). Only a number that isn't valid at all is refused
+    (422 PHONE_INVALID); clients show that in the person's language."""
     if phone is None:
-        return
-    digits = phone if phone.startswith("+") else f"+{phone}"
-    if not digits.startswith(country.phone_code):
-        raise _bad("PHONE_COUNTRY_MISMATCH", f"A phone number in {country.code} starts with {country.phone_code}")
+        return None
+    from shared.phone import normalize
+
+    e164 = normalize(phone, country.code) or (None if phone.startswith("+") else normalize(f"+{phone}"))
+    if e164 is None:
+        raise _bad("PHONE_INVALID", "That isn't a valid phone number")
+    return e164
 
 
 def require_currency_of(country: CountryInfo, currency: str) -> None:

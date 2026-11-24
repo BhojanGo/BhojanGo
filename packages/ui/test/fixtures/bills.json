@@ -38,7 +38,7 @@
    },
    {
     "code": "tax",
-    "label": "GST on platform fees",
+    "label": "GST on fees",
     "amount": "10.80",
     "funded_by": null,
     "detail": {
@@ -98,7 +98,7 @@
    },
    {
     "code": "tax",
-    "label": "GST on platform fees",
+    "label": "GST on fees",
     "amount": "15.84",
     "funded_by": null,
     "detail": {
@@ -162,7 +162,7 @@
    },
    {
     "code": "tax",
-    "label": "GST on platform fees",
+    "label": "GST on fees",
     "amount": "4.32",
     "funded_by": null,
     "detail": {
@@ -333,7 +333,7 @@
    },
    {
     "code": "tax",
-    "label": "GST on platform fees",
+    "label": "GST on fees",
     "amount": "4.72",
     "funded_by": null,
     "detail": {
@@ -418,7 +418,7 @@
    },
    {
     "code": "tax",
-    "label": "GST on platform fees",
+    "label": "GST on fees",
     "amount": "11.03",
     "funded_by": null,
     "detail": {
@@ -496,7 +496,7 @@
    },
    {
     "code": "tax",
-    "label": "GST on platform fees",
+    "label": "GST on fees",
     "amount": "11.70",
     "funded_by": null,
     "detail": {

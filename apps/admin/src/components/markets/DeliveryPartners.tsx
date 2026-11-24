@@ -85,7 +85,7 @@ export function DeliveryPartners({ country }: { country: CountrySummary }) {
           <input type="number" min={16} max={25} value={f.age} onChange={(e) => setF({ ...f, age: e.target.value })} className={input} />
         </label>
         <label className="text-small text-muted">
-          Example trip ({country.distance_unit}, kitchen to customer)
+          Example trip ({country.distance_unit}, restaurant to customer)
           <input type="number" min={0.5} max={20} step={0.5} value={f.distance} onChange={(e) => setF({ ...f, distance: e.target.value })} className={input} />
         </label>
         <div>

@@ -211,6 +211,9 @@ async def refund_items(db: AsyncSession, *, order_id: uuid.UUID, requests: list[
                     reason=reason, fault=fault, note=note, lines=lines, requested_by=actor_id, status="pending")
     db.add(refund)
     await db.flush()
+    from core_api.modules.pricing.service import offer_budget
+
+    await offer_budget.give_back_refund(db, order_id, minor, intent.amount)  # R38: its share of the offer cost
     # Through the provider (Stripe: a Refund of exactly this amount, idempotency key refund:<our id>).
     result = await gateway_by_name(intent.provider).refund(
         intent.provider_payment_id, minor, f"refund:{refund.id}",
@@ -247,6 +250,9 @@ async def refund_amount(db: AsyncSession, *, order_id: uuid.UUID, minor: int, re
                     reason=reason[:60], fault="goodwill", note=note, lines=[], requested_by=actor_id, status="pending")
     db.add(refund)
     await db.flush()
+    from core_api.modules.pricing.service import offer_budget
+
+    await offer_budget.give_back_refund(db, order_id, minor, intent.amount)  # R38: its share of the offer cost
     if intent.provider == "wallet":
         from core_api.modules.payments.repository.payment import WalletRepository
 

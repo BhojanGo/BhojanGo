@@ -37,7 +37,7 @@ appId: com.bhojango.app
 # R32: Spice Route takes pickup orders, so "How do you want it?" sits above the bill: scroll to its tax line
 - scrollUntilVisible:
     element:
-      text: "Tax"  # the tax line's payee (R8 onwards; was "GOVT")
+      text: "Government"  # the tax line's payee (R38; was "Tax", before R8 "GOVT")
     direction: DOWN
     timeout: 10000
 - assertVisible: "RESTAURANT"

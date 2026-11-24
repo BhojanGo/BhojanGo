@@ -24,7 +24,7 @@ test("each row says who gets the money", () => {
   ];
   assert.deepEqual(billRows(lines, "INR").map((r) => [r.label, r.payee, r.amount]), [
     ["Food", "Restaurant", "₹560.00"], ["Code BHOJAN10", "BhojanGo", "−₹50.00"], ["Packaging", "Restaurant", "₹10.00"],
-    ["Service fee", "BhojanGo", "₹11.20"], ["GST", "Tax", "₹30.72"], ["Tip", "Delivery partner", "₹20.00"],
+    ["Service fee", "BhojanGo", "₹11.20"], ["GST", "Government", "₹30.72"], ["Tip", "100% to your delivery partner", "₹20.00"],
   ]);
   assert.equal(billRows(lines, "INR")[1].accent, true);
 });
@@ -45,7 +45,7 @@ test("the delivery fee is BhojanGo's, not the delivery partner's: only the tip i
     { code: "delivery_fee", label: "Delivery · 4.2 km", amount: "35.00" },
     { code: "tip", label: "Tip for your delivery partner", amount: "20.00" },
   ];
-  assert.deepEqual(billRows(lines, "INR").map((r) => r.payee), ["BhojanGo", "Delivery partner"]);
+  assert.deepEqual(billRows(lines, "INR").map((r) => r.payee), ["BhojanGo", "100% to your delivery partner"]);
 });
 
 test("a line of 0 is not shown, and the total still counts every line (R12: Ada sales tax $0.00)", () => {
@@ -84,10 +84,10 @@ test("R29 fee model v2: who gets your money (food, delivery, tip, platform fee, 
   ];
   assert.deepEqual(billRows(lines, "USD").map((r) => [r.label, r.payee, r.amount]), [
     ["Food", "Restaurant", "$36.98"],
-    ["Delivery fee", "Delivery partner", "$3.99"],
+    ["Delivery fee", "100% to your delivery partner", "$3.99"],
     ["Platform fee", "BhojanGo", "$3.70"],
-    ["Idaho sales tax", "Tax", "$2.22"],
-    ["Tip for your delivery partner", "Delivery partner", "$2.00"],
+    ["Idaho sales tax", "Government", "$2.22"],
+    ["Tip for your delivery partner", "100% to your delivery partner", "$2.00"],
   ]);
   // A bill from before R29 (no platform fee line): the delivery fee was BhojanGo's.
   assert.equal(billRows([{ code: "delivery_fee", label: "Delivery fee", amount: "1.99" }], "USD")[0].payee, "BhojanGo");

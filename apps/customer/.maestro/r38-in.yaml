@@ -1,0 +1,16 @@
+# R38 as an India customer in Hyderabad: +91, "98765 43210", never +1; the bill with "GST on fees".
+appId: com.bhojango.app
+---
+- runFlow:
+    file: r38/bill-and-phone.yaml
+    env:
+      MARKET: "in"
+      LAT: "17.4483"
+      LNG: "78.3915"
+      COUNTRY: "IN"
+      PHONE: "9000000101"
+      EXAMPLE_RE: '\+91 98765 43210'
+      OTHER_RE: '.*\+1 \(.*'
+      KITCHEN: "spice-route-kitchen-madhapur"
+      DISH: "Veg Dum Biryani"
+      TAX_RE: "GST on fees"

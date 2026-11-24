@@ -175,10 +175,14 @@ BILL_LINES: dict[str, dict[str, str]] = {
 }
 
 
+# R38: bill labels renamed since orders were priced (stored lines keep the old words; customers read the new).
+RENAMED_LABELS = {"GST on platform fees": "GST on fees"}
+
+
 def bill_line_label(code: str | None, label: str, language: str = "en") -> str:
-    """Today's label for a bill line with this code, in ``language``; else ``label`` as stored."""
+    """Today's label for a bill line with this code, in ``language``; else ``label`` as stored (renamed ones: today's)."""
     texts = BILL_LINES.get(code or "")
-    return pick(texts, language) if texts else label
+    return pick(texts, language) if texts else RENAMED_LABELS.get(label, label)
 
 
 # ── sign-in code (SMS, core_api) ─────────────────────────────────────────────

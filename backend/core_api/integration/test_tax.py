@@ -91,7 +91,7 @@ async def test_hyderabad_bill_shows_each_gst_line(client: AsyncClient) -> None:
     order = await place(client, h, rid, cart, q, "IN")
     bill = (await client.get(f"/api/v1/pricing/orders/{order['id']}/bill", headers=h)).json()
     taxes = {t["label"]: t["detail"] for t in bill["taxes"]}
-    assert taxes["GST on food"]["rate_percent"] == "5" and taxes["GST on platform fees"]["rate_percent"] == "18"
+    assert taxes["GST on food"]["rate_percent"] == "5" and taxes["GST on fees"]["rate_percent"] == "18"
     food_base = sum(Decimal(ln["amount"]) for ln in bill["lines"] if ln["code"] in ("food", "packaging"))
     # R16: only a discount the kitchen funds lowers India's GST base (the platform's doesn't, by default)
     food_base += sum(Decimal(ln["amount"]) for ln in bill["lines"]

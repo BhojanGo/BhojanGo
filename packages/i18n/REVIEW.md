@@ -603,3 +603,12 @@ Machine-translated on 2026-11-24 into all seven languages; **needs native review
 - Menu: `kitchen.too_far_pickup` ("Too far to deliver · Pickup available"), `kitchen.pickup_fee` ("Pickup · {pct}% fee").
 - Cart: `checkout.add_more` ("Add {amount} more to order from {restaurant}"), `checkout.minimum_is` ("Minimum order {amount}").
 - Search: `app.search.restaurants` ("Restaurants"), `app.search.dishes` ("Dishes").
+
+## Two-column bill, phone numbers by country, "GST on fees" (round 38)
+
+Machine-translated on 2026-11-24 into all seven languages; **needs native review**.
+
+- The bill: `bill.line_gst_fees` now "GST on fees" (was "GST on platform fees"); `bill.to_rider_full`
+  ("100% to your delivery partner") and `bill.government` ("Government"), said under a line's label.
+- Phone numbers: `common.phone_invalid` ("Enter a valid phone number, like {example}") and `common.phone_example`
+  ("For example {example}"). `{example}` is the country's own number ("+1 (208) 555-0123", "+91 98765 43210").

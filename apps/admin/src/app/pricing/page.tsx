@@ -235,7 +235,7 @@ function PreviewBox({ rule }: { rule: Rule }) {
       <h3 className="m-0 text-label">Preview: the last {count(p.data.days, "day")} with this draft</h3>
       {p.data.orders === 0 ? <p className="text-muted" data-testid="preview-summary">No delivered orders in this scope in the last {count(p.data.days, "day")}.</p> : (
         <>
-          <p data-testid="preview-summary">{count(p.data.orders, "order")} · commission {m(p.data.commission_now)} → {m(p.data.commission_new)} · kitchen payouts{" "}
+          <p data-testid="preview-summary">{count(p.data.orders, "order")} · commission {m(p.data.commission_now)} → {m(p.data.commission_new)} · restaurant payouts{" "}
             <b className={diff >= 0 ? "text-peacock-dark" : "text-chili"}>{signed(diff)}</b></p>
           <div className="table-scroll"><table className="w-full text-left"><thead className="text-caption text-muted"><tr><th className="py-1">Restaurant</th><th>Orders</th><th>Commission now</th><th>With this draft</th><th>Payout change</th></tr></thead>
             <tbody>{p.data.restaurants.map((x) => <tr key={x.name}><td>{x.name}</td><td>{x.orders}</td><td>{m(x.commission_now)}</td><td>{m(x.commission_new)}</td><td>{signed(Number(x.payout_difference))}</td></tr>)}</tbody></table></div>

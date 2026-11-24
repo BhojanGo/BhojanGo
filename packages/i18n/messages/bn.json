@@ -1,5 +1,7 @@
 {
   "common": {
+    "phone_example": "উদাহরণ: {example}",
+    "phone_invalid": "সঠিক ফোন নম্বর দিন, যেমন {example}",
     "brand": "BhojanGo",
     "operated_by": "BhojanGo পরিচালনা করে {name}।",
     "tagline": "আসল খাবার। ন্যায্য দাম।",
@@ -133,7 +135,9 @@
     "line_tip": "আপনার ডেলিভারি পার্টনারের জন্য টিপ",
     "exact_note": "পেমেন্টের আগে আপনার আসল বিলে প্রতিটি লাইনে সঠিক পরিমাণ দেখানো হয়।",
     "line_gst_food": "খাবারে GST",
-    "line_gst_fees": "প্ল্যাটফর্ম ফি-তে GST",
+    "line_gst_fees": "ফি-তে GST",
+    "to_rider_full": "100% আপনার ডেলিভারি পার্টনারের",
+    "government": "সরকার",
     "line_sales_tax": "{region} বিক্রয় কর",
     "line_sales_tax_plain": "বিক্রয় কর",
     "line_tax_included": "{tax} (দামের মধ্যে ধরা)",

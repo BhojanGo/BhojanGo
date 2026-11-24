@@ -1,0 +1,81 @@
+# R38 (run by r38-us.yaml and r38-in.yaml): item 2, the sign-in phone box follows the country (its code, a
+# placeholder and an example of its own; never the other country's code) and an invalid number is refused in
+# words; items 1 and 4, the cart's fair bill in two columns (who gets each line under its label: Restaurant,
+# 100% to your delivery partner, BhojanGo, Government) with "GST on fees" in India.
+appId: com.bhojango.app
+---
+- setLocation:
+    latitude: ${LAT}
+    longitude: ${LNG}
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 120000
+- tapOn:
+    id: "way-phone"
+- repeat:
+    while:
+      notVisible:
+        id: "phone-country-${COUNTRY}"
+    times: 6
+    commands:
+      - tapOn:
+          id: "phone-country-.*"
+- assertVisible:
+    id: "phone-example"
+    text: "For example ${EXAMPLE_RE}"
+- assertNotVisible:
+    text: "${OTHER_RE}"
+- tapOn:
+    id: "phone"
+- inputText: "12345678"
+- hideKeyboard
+- tapOn: "Send code"
+- assertVisible:
+    id: "phone-error"
+    text: "Enter a valid phone number, like ${EXAMPLE_RE}"
+- takeScreenshot: docs/screenshots/customer/r38-2-app-${MARKET}
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: ${PHONE}
+      COUNTRY: ${COUNTRY}
+- extendedWaitUntil:
+    visible:
+      id: "home"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "kitchen-card-${KITCHEN}"
+    direction: DOWN
+    timeout: 30000
+    visibilityPercentage: 50
+- tapOn:
+    id: "kitchen-card-${KITCHEN}"
+- scrollUntilVisible:
+    element:
+      text: "${DISH}"
+    direction: DOWN
+    timeout: 30000
+- tapOn: "${DISH}"
+- tapOn:
+    id: "add-to-bag"
+- tapOn:
+    text: "View cart.*"
+- extendedWaitUntil:
+    visible: "The fair bill"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "Government"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "100% to your delivery partner"
+- assertVisible: "BhojanGo"
+- assertVisible:
+    id: "bill-amount"
+- assertVisible: "${TAX_RE}"
+- assertNotVisible: "GST on platform fees"
+- takeScreenshot: docs/screenshots/customer/r38-1-app-${MARKET}
+- takeScreenshot: docs/screenshots/customer/r38-4-app-${MARKET}

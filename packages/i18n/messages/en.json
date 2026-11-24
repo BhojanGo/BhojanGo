@@ -1,5 +1,7 @@
 {
   "common": {
+    "phone_example": "For example {example}",
+    "phone_invalid": "Enter a valid phone number, like {example}",
     "brand": "BhojanGo",
     "operated_by": "BhojanGo is operated by {name}.",
     "tagline": "Real food. Fair prices.",
@@ -133,7 +135,9 @@
     "line_tip": "Tip for your delivery partner",
     "exact_note": "Your real bill shows exact amounts, line by line, before you pay.",
     "line_gst_food": "GST on food",
-    "line_gst_fees": "GST on platform fees",
+    "line_gst_fees": "GST on fees",
+    "to_rider_full": "100% to your delivery partner",
+    "government": "Government",
     "line_sales_tax": "{region} sales tax",
     "line_sales_tax_plain": "Sales tax",
     "line_tax_included": "{tax} (included in prices)",

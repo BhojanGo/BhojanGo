@@ -1,8 +1,7 @@
 // CustomerSignIn.html: Phone and Email as two equal ways in (round 8, D5). Phone: a code by
 // SMS, no password. Email: a password, an email code, or a new account (EmailSignIn).
 import {
-  Button, codeSendErrorText, color, e164, EmailSignIn, errorMessage, field, LanguagePill, LoadError, LogoMark, type MarketCountry, PhoneCountryButton, radius,
-  SafeAreaView, SignInLegal, SignInWays, type SignInWay, space, Txt, type, useCountry, useI18n, useSession,
+  Button, codeSendErrorText, color, EmailSignIn, errorMessage, field, LanguagePill, LoadError, LogoMark, type MarketCountry, PhoneCountryButton, phoneExample, phonePlaceholder, radius, SafeAreaView, SignInLegal, type SignInWay, SignInWays, space, toE164, Txt, type, useCountry, useI18n, useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -29,12 +28,18 @@ export default function SignIn() {
     if (!country) return;
     setBusy(true);
     setError(null);
-    const phone = e164(country.phone_code, number);
+    // R38: a real number for the country (or any country's, typed with +), sent as E.164
+    const phone = toE164(number, country.code);
+    if (!phone) {
+      setError(t("common.phone_invalid", { example: phoneExample(country.code) }));
+      setBusy(false);
+      return;
+    }
     try {
       await sendCode(phone, country.code);
       router.push({ pathname: "/code", params: { phone, country: country.code } });
     } catch (e) {
-      setError(codeSendErrorText(e, t, errorMessage((e as { body?: unknown }).body, t("signin.send_failed"))));
+      setError(codeSendErrorText(e, t, errorMessage((e as { body?: unknown }).body, t("signin.send_failed")), country.code));
     } finally {
       setBusy(false);
     }
@@ -73,13 +78,14 @@ export default function SignIn() {
                     value={number}
                     onChangeText={setNumber}
                     keyboardType="phone-pad"
-                    placeholder={t("signin.mobile")}
+                    placeholder={phonePlaceholder(country?.code)}
                     placeholderTextColor={color.muted}
-                    maxLength={14}
+                    maxLength={20}
                     style={[field.bodyLg, styles.number]}
                   />
                 </View>
-                {error ? <Text style={[type.small, { color: color.chili }]}>{error}</Text> : null}
+                {country ? <Text testID="phone-example" style={[type.small, { color: color.muted }]}>{t("common.phone_example", { example: phoneExample(country.code) })}</Text> : null}
+                {error ? <Text testID="phone-error" style={[type.small, { color: color.chili }]}>{error}</Text> : null}
                 <Button title={busy ? t("signin.sending") : t("signin.send_code")} size="lg" block loading={busy}
                   disabled={!country || digits.length < 6 || digits.length > 15} onPress={send} />
               </>

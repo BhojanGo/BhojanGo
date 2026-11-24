@@ -392,8 +392,8 @@ async def test_change_password_needs_the_current_one_and_signs_out_other_devices
 
 
 async def test_a_phone_account_sets_a_first_password_after_linking_an_email(client, db_session, audit_log) -> None:
-    await client.post("/api/v1/auth/send-otp", json={"phone": "+9190000555", "country": "IN"})
-    t = (await client.post("/api/v1/auth/phone", json={"phone": "+9190000555", "otp": "123456", "country": "IN"})).json()
+    await client.post("/api/v1/auth/send-otp", json={"phone": "+919000000555", "country": "IN"})
+    t = (await client.post("/api/v1/auth/phone", json={"phone": "+919000000555", "otp": "123456", "country": "IN"})).json()
     r = await client.post("/api/v1/me/password", headers=bearer(t), json={"new_password": NEW_PW})
     assert r.status_code == 409 and r.json()["detail"]["code"] == "EMAIL_REQUIRED"
 
@@ -415,19 +415,19 @@ async def test_a_phone_account_sets_a_first_password_after_linking_an_email(clie
 
 async def test_an_email_or_phone_on_another_account_cannot_be_linked(client, db_session) -> None:
     taken_email = uniq("taken")
-    await make_user(db_session, taken_email, phone="+9190000666")
+    await make_user(db_session, taken_email, phone="+919000000666")
     me = uniq("me")
     await make_user(db_session, me)
     t = (await client.post("/api/v1/auth/login", json={"email": me, "password": PW})).json()
     r = await client.post("/api/v1/me/email", headers=bearer(t), json={"email": taken_email.upper()})
     assert r.status_code == 409 and r.json()["detail"]["code"] == "EMAIL_IN_USE"
     assert taken_email not in r.text and "Test Person" not in r.text
-    r = await client.post("/api/v1/me/phone", headers=bearer(t), json={"phone": "+9190000666", "country": "IN"})
+    r = await client.post("/api/v1/me/phone", headers=bearer(t), json={"phone": "+919000000666", "country": "IN"})
     assert r.status_code == 409 and r.json()["detail"]["code"] == "PHONE_IN_USE"
     # A free number links with its SMS code.
-    assert (await client.post("/api/v1/me/phone", headers=bearer(t), json={"phone": "+9190000667", "country": "IN"})).status_code == 202
-    r = await client.post("/api/v1/me/phone/verify", headers=bearer(t), json={"phone": "+9190000667", "code": "123456"})
-    assert r.status_code == 200 and r.json()["phone"] == "+9190000667" and r.json()["is_phone_verified"]
+    assert (await client.post("/api/v1/me/phone", headers=bearer(t), json={"phone": "+919000000667", "country": "IN"})).status_code == 202
+    r = await client.post("/api/v1/me/phone/verify", headers=bearer(t), json={"phone": "+919000000667", "code": "123456"})
+    assert r.status_code == 200 and r.json()["phone"] == "+919000000667" and r.json()["is_phone_verified"]
 
 
 async def test_replacing_an_email_tells_the_old_address(client, db_session, outbox) -> None:
@@ -587,9 +587,9 @@ async def test_admin_rights_need_a_second_step_token(client, db_session) -> None
 
 async def test_phone_and_email_code_sign_in_also_ask_admins_for_the_second_step(client, db_session) -> None:
     email = uniq("ops")
-    await make_user(db_session, email, phone="+9190000777", roles=[("viewer", "IN")])
-    await client.post("/api/v1/auth/send-otp", json={"phone": "+9190000777", "country": "IN"})
-    r = await client.post("/api/v1/auth/phone", json={"phone": "+9190000777", "otp": "123456", "country": "IN"})
+    await make_user(db_session, email, phone="+919000000777", roles=[("viewer", "IN")])
+    await client.post("/api/v1/auth/send-otp", json={"phone": "+919000000777", "country": "IN"})
+    r = await client.post("/api/v1/auth/phone", json={"phone": "+919000000777", "otp": "123456", "country": "IN"})
     assert r.json()["mfa_required"] is True and "access_token" not in r.json()
     await client.post("/api/v1/auth/email/code", json={"email": email})
     r = await client.post("/api/v1/auth/email/verify", json={"email": email, "code": "123456"})

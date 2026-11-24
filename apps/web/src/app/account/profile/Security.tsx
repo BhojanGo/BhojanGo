@@ -4,7 +4,7 @@
 // (every other device is signed out). An email or number on another account can't be
 // added, and the page says so without saying whose it is.
 import { unwrap, type CoreSchemas } from "@bhojango/api-client";
-import { formatPhone } from "@bhojango/i18n";
+import { formatPhone, phoneExample, phonePlaceholder, toE164 } from "@bhojango/i18n";
 import { useCallback, useEffect, useId, useState } from "react";
 
 import { api, useSession } from "@/lib/client";
@@ -210,15 +210,21 @@ function LinkPhone({ countries, replacing, onDone, onCancel }: { countries: Coun
   const [cc, setCc] = useState(countries.find((c) => c.code === hereCode)?.code ?? countries[0]?.code ?? "");
   const [number, setNumber] = useState("");
   const [sent, setSent] = useState(false);
+  const [bad, setBad] = useState(false);
   const [code, setCode] = useState("");
   const country = countries.find((c) => c.code === cc) ?? null;
   const digits = number.replace(/\D/g, "");
-  const phone = country ? `${country.phone_code}${digits}` : "";
+  const phone = (country && toE164(number, country.code)) || "";  // R38: E.164 of a real number
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!sent) {
       if (!country || digits.length < 6 || digits.length > 15) return;
+      if (!phone) {
+        setBad(true);
+        return;
+      }
+      setBad(false);
       if (await run(async () => { unwrap(await api.core.POST("/api/v1/me/phone", { body: { phone, country: country.code, language: lang() } })); })) setSent(true);
       return;
     }
@@ -238,8 +244,9 @@ function LinkPhone({ countries, replacing, onDone, onCancel }: { countries: Coun
           </label>
           <label htmlFor={id} className="min-w-[200px] flex-grow text-label text-muted">
             {t("signin.mobile")}
-            <input id={id} type="tel" inputMode="tel" autoComplete="tel-national" autoFocus value={number}
-              onChange={(e) => setNumber(e.target.value.replace(/[^\d ()-]/g, ""))} className={input} />
+            <input id={id} type="tel" inputMode="tel" autoComplete="tel-national" autoFocus value={number} data-testid="link-phone"
+              placeholder={phonePlaceholder(country?.code)} onChange={(e) => setNumber(e.target.value.replace(/[^\d +()-]/g, ""))} className={input} />
+            {bad && country ? <span role="alert" className="mt-1 block text-small text-[#8C1D18]">{t("common.phone_invalid", { example: phoneExample(country.code) })}</span> : null}
           </label>
         </div>
       ) : (

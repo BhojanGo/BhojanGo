@@ -20,7 +20,7 @@ appId: com.bhojango.rider
 # R22: the number in its country's format, not "+12085550291".
 - assertVisible:
     id: "account-phone"
-    text: '\+1 208-555-0291 · .*'
+    text: '\+1 \(208\) 555-0291 · .*'
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: stack-rider-account-phone

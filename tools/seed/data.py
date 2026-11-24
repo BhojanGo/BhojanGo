@@ -532,8 +532,8 @@ RULES = [
      # R16: a discount the platform funds doesn't lower the GST base (to confirm with a CA).
      {"label": "GST on food", "rate_percent": 5, "target_lines": ["food", "packaging"], "collected_by": "platform",
       "platform_discounts_reduce_base": False, "ca_confirmed": False}),
-    ("tax", "rate_on_lines", "gst_fees", "GST on platform fees", "country", "IN",
-     {"label": "GST on platform fees", "rate_percent": 18,
+    ("tax", "rate_on_lines", "gst_fees", "GST on fees", "country", "IN",
+     {"label": "GST on fees", "rate_percent": 18,
       "target_lines": ["delivery_fee", "platform_fee", "service_fee", "surge", "small_order_fee", "late_night_fee"], "collected_by": "platform",
       "platform_discounts_reduce_base": False, "ca_confirmed": False}),
     # R16: GST on our commission (deducted from the kitchen's payout, owed by us) and TDS under section

@@ -195,7 +195,7 @@ async def apply(request: Request, data: KitchenSignUp, db: DB) -> MessageRespons
     await _check_password(data.password, email)
     city, region, country = await kitchen_city(db, data.city_code)
     info = await countries.require_open(db, country.code)
-    countries.require_phone_in(info, data.phone)
+    data.phone = countries.require_phone_in(info, data.phone) or data.phone  # R38: E.164
     wanted = f"{data.language}-{country.code}" if data.language else None
     locale = wanted if wanted in info.locales else info.default_locale
     message = await EmailAuthService(db).start_sign_up(

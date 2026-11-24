@@ -124,7 +124,7 @@ async def test_seed_phones_keep_the_local_fixed_code(client: AsyncClient, verify
 
     monkeypatch.setattr(twilio_verify, "start", never)
     monkeypatch.setattr(twilio_verify, "check", never)
-    phone = "+120855500999"
+    phone = "+12085550999"
     assert (await client.post("/api/v1/auth/send-otp", json={"phone": phone, "country": "US"})).status_code == 200
     r = await client.post("/api/v1/auth/phone", json={"phone": phone, "otp": "123456", "country": "US"})
     assert r.status_code == 200

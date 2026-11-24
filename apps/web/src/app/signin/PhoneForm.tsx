@@ -4,6 +4,7 @@
 import { errorMessage } from "@bhojango/api-client";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
+import { phoneExample, phonePlaceholder, toE164 } from "@bhojango/i18n";
 
 import { Chevron } from "@/components/Icons";
 import { useSession } from "@/lib/client";
@@ -24,19 +25,24 @@ export function PhoneForm({ countries, initial, next }: { countries: Country[]; 
   const helpId = useId();
   const country = countries.find((c) => c.code === code) ?? null;
   const digits = number.replace(/\D/g, "");
-  const ok = !!country && digits.length >= 6 && digits.length <= 15;
+  const ok = !!country && digits.length >= 6 && digits.length <= 15;  // enough to try; R38: send() checks it's a real number
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!country || !ok) return;
     setBusy(true);
     setError(null);
-    const phone = `${country.phone_code}${digits}`;
+    const phone = toE164(number, country.code);  // R38: E.164, any country's number when typed with +
+    if (!phone) {
+      setError(t("common.phone_invalid", { example: phoneExample(country.code) }));
+      setBusy(false);
+      return;
+    }
     try {
       await sendCode(phone, country.code);
       router.push(`/signin/code?${new URLSearchParams({ phone, country: country.code, next })}`);
     } catch (err) {
-      setError(codeSendError(err, t, errorMessage((err as { body?: unknown }).body, t("signin.send_failed"))));
+      setError(codeSendError(err, t, errorMessage((err as { body?: unknown }).body, t("signin.send_failed")), country.code));
       setBusy(false);
     }
   }
@@ -67,11 +73,12 @@ export function PhoneForm({ countries, initial, next }: { countries: Country[]; 
             autoFocus
             aria-describedby={helpId}
             value={number}
-            onChange={(e) => setNumber(e.target.value.replace(/[^\d ()-]/g, ""))}
+            placeholder={phonePlaceholder(country?.code)}
+            onChange={(e) => setNumber(e.target.value.replace(/[^\d +()-]/g, ""))}
             className="h-full min-w-0 flex-grow bg-transparent px-4 outline-none"
           />
         </span>
-        <p id={helpId} className="m-0 mt-[6px] text-small text-muted">{t("signin.help")}</p>
+        <p id={helpId} className="m-0 mt-[6px] text-small text-muted">{t("signin.help")}{country ? <span data-testid="phone-example" className="block">{t("common.phone_example", { example: phoneExample(country.code) })}</span> : null}</p>
       </div>
       {error && <p role="alert" className="m-0 mt-3 text-label text-[#8C1D18]">{error}</p>}
       <button type="submit" disabled={!ok || busy} className="mt-5 h-14 w-full rounded-full bg-[#0B5D66] px-[22px] text-label text-white hover:bg-[#083F46] disabled:bg-[#8FB3B7]">

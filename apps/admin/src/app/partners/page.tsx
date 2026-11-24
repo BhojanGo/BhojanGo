@@ -228,7 +228,7 @@ function Applications({ scope }: { scope: string }) {
           <section aria-label="Documents" className="space-y-2 rounded-xl bg-porcelain p-4 text-small">
             <h3 className="m-0 text-label">Documents{country ? ` · what ${country.name} asks for` : ""}</h3>
             {country && marketDocs(country.settings).length === 0
-              ? <p className="text-muted">No documents are set for {country.name}. Add them in Markets ▸ {country.name} ▸ Documents kitchens need.</p> : null}
+              ? <p className="text-muted">No documents are set for {country.name}. Add them in Markets ▸ {country.name} ▸ Documents restaurants need.</p> : null}
             <dl className="grid gap-2 sm:grid-cols-2" data-testid="application-docs">
               {docs.map((d) => (
                 <div key={d.key}><dt className="font-bold">{d.label}</dt>

@@ -23,6 +23,11 @@ an order is placed (QuoteService.attach), under a row lock:
     at 100%: spent in full, or too little left to pay for the offer just given again
     (the offers have stopped).
 
+R38: an order that is cancelled (by anyone, or because its payment failed and its time to pay ran
+out) or refunded in full gives its whole offer cost back to the pool and month it was spent from; a
+partial refund gives back the same share of it (refund / amount paid). ``platform_offer_returns``
+keeps what each order has given back, so nothing is returned twice.
+
 Restaurant-funded offers are not affected: they have their own weekly caps.
 """
 from dataclasses import dataclass
@@ -192,3 +197,52 @@ async def _alert(db: AsyncSession, pool: Pool, month: date, threshold: int, used
         await db.execute(insert(OpsAlert).values(fingerprint=fp, **values))
     logger.warning("platform_offer_budget_alert", pool=pool.key, month=month.isoformat(), threshold=threshold,
                    spent=str(used), budget=str(pool.monthly))
+
+
+def platform_cost(lines: list[dict]) -> Decimal:
+    """What an order's BhojanGo-funded offers took off it (never the review account's line)."""
+    return -sum((Decimal(str(ln["amount"])) for ln in lines
+                 if ln.get("code") == "promotion" and ln.get("funded_by") == "platform"
+                 and not (ln.get("detail") or {}).get("review")), ZERO)
+
+
+async def give_back(db: AsyncSession, order_id, share: Decimal | None = None) -> Decimal:  # type: ignore[no-untyped-def]
+    """Return an order's offer cost to its budget: all that is left (``share`` None: cancelled, payment
+    failed or expired, refunded in full) or ``share`` (0-1) of the cost (a partial refund). Returns
+    what was given back."""
+    from core_api.modules.pricing.models import OrderPricingSnapshot, PlatformOfferReturn, PlatformOfferSpend
+
+    snap = (await db.execute(select(OrderPricingSnapshot).where(OrderPricingSnapshot.order_id == order_id))).scalar_one_or_none()
+    if snap is None:
+        return ZERO
+    cost = platform_cost(snap.lines or [])
+    where = (snap.context or {}).get("offer_pool") or {}
+    if cost <= 0 or not where.get("key") or not where.get("month"):
+        return ZERO
+    month = date.fromisoformat(where["month"])
+    ret = await db.get(PlatformOfferReturn, order_id, with_for_update=True)
+    if ret is None:
+        ret = PlatformOfferReturn(order_id=order_id, pool=where["key"], month=month, returned=ZERO)
+        db.add(ret)
+    left = cost - Decimal(ret.returned or 0)
+    amount = left if share is None else min(left, (cost * share).quantize(Decimal("0.01")))
+    if amount <= 0:
+        return ZERO
+    spend = await db.get(PlatformOfferSpend, (where["key"], month), with_for_update=True)
+    if spend is not None:
+        spend.spent = max(Decimal(spend.spent) - amount, ZERO)
+        if amount == left:
+            spend.orders = max(spend.orders - 1, 0)  # all of the offer came back: it no longer counts as given
+    ret.returned = Decimal(ret.returned or 0) + amount
+    await db.flush()
+    logger.info("platform_offer_budget_returned", order_id=str(order_id), pool=where["key"], amount=str(amount))
+    return amount
+
+
+async def give_back_refund(db: AsyncSession, order_id, refund_minor: int, paid_minor: int) -> Decimal:  # type: ignore[no-untyped-def]
+    """A refund of ``refund_minor`` of ``paid_minor``: the same share of the offer cost (what is left of
+    it when the order is now refunded in full)."""
+    if refund_minor <= 0 or paid_minor <= 0:
+        return ZERO
+    share = Decimal(refund_minor) / Decimal(paid_minor)
+    return await give_back(db, order_id, None if share >= 1 else share)

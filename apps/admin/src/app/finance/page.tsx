@@ -170,7 +170,7 @@ function FinancePage() {
           // R25: an invoice never prints a placeholder for the supplier; the API refuses it until this is filled in.
           <p role="alert" data-testid="legal-name-missing" className="mt-2 rounded-xl bg-kesar-tint px-3 py-2 text-small text-kesar-ink">
             <b>Commission tax invoices can&apos;t be issued:</b> the legal entity name for {weeks.data.country_name ?? target} is missing in Markets.
-            Kitchens asking for their invoice are told it isn&apos;t ready yet.{" "}
+            Restaurants asking for their invoice are told it isn&apos;t ready yet.{" "}
             <Link href={`/markets/${target}`} className="font-bold text-kesar-ink underline">Set it in Markets</Link>
           </p>
         ) : null}
@@ -267,7 +267,7 @@ function FinancePage() {
       {collect.data && collect.data.length > 0 ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Restaurants to collect from" data-testid="to-collect">
           <h2 className="m-0 mb-1 text-h3">Restaurants to collect from</h2>
-          <p className="mb-3 text-small text-muted">These kitchens&apos; statements have been below zero for {COLLECT_AFTER_WEEKS} weeks or more in a row: their sales haven&apos;t covered the refunds and offers they owe. Nothing is charged automatically; agree with the kitchen how it pays. Until then each week&apos;s sales keep coming off the balance.</p>
+          <p className="mb-3 text-small text-muted">These restaurants&apos; statements have been below zero for {COLLECT_AFTER_WEEKS} weeks or more in a row: their sales haven&apos;t covered the refunds and offers they owe. Nothing is charged automatically; agree with the restaurant how it pays. Until then each week&apos;s sales keep coming off the balance.</p>
           <div className="table-scroll"><table className="table-stack w-full text-left text-small tabular-nums [&_td]:pr-3 [&_th]:pr-3">
             <thead className="text-caption text-muted"><tr><th className="py-2">Restaurant</th><th>Owes</th><th>Weeks below zero</th><th>Since</th><th>Latest statement</th></tr></thead>
             <tbody className="divide-y divide-line">

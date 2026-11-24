@@ -623,6 +623,28 @@ Migration `0051_platform_offer_budget` (one new table, `platform_offer_spend`; n
 - **Fixed on the way:** the "Who gets your money" example for a city with no paid orders yet counted the card
   fee as tax (the simulator's split left it out).
 
+## Two-column bill, phone numbers by country, offer budget refunds (round 38, 2026-11-24)
+
+Migration `0052_offer_budget_returns` (one new table, `platform_offer_returns`; no data written).
+
+- **The bill in two columns everywhere** (checkout, cart, order details, receipts on the website and in the app, the
+  receipt PDF, the example bills): the label on the left with who gets it under it ("Restaurant", "100% to your
+  delivery partner", "BhojanGo", "Government"; an offer says who pays), the amount on the right, never wrapped. Checked
+  at 1440, 390 and 360 px (Playwright) and in the app (Maestro). Emails carry only the total, no lines.
+- **Phone numbers by country** with libphonenumber-js (`packages/i18n/phone.js`, replacing R22's own table) and
+  `phonenumbers` (`backend/shared/phone.py`): validated, stored as E.164, shown "+1 (208) 555-0123" / "+91 98765
+  43210"; placeholders and examples follow the country (the address's, else the market's); a real number from
+  another country is accepted (PHONE_COUNTRY_MISMATCH is gone; an invalid number is PHONE_INVALID, worded in the
+  person's language). Sign-in (website and the three apps), the account's phone, delivery partner and restaurant
+  sign-up, the waiting list, admin views.
+- **Offer budget refunds:** a cancelled order (also one whose payment failed and expired) or a full refund gives its
+  BhojanGo-funded offer cost back to the budget it came from; a partial refund gives back its share.
+- **"GST on fees"** (was "GST on platform fees") in 8 languages, app, website and receipts; older orders read the new
+  label too.
+- **Admin wording:** no "kitchen" in the console's words ("paid by the restaurant"); `wording_scan.py` now also reads
+  text between JSX expressions and strings inside template literals, so it really covers the admin app: 0.
+- **Boise launch readiness** rewritten: [launch/boise-readiness.md](launch/boise-readiness.md).
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

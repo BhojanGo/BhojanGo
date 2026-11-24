@@ -99,7 +99,7 @@ export function describe(template: string, params: P, units: Units): string {
     case "late_night_fee": return `${m(p.amount, cur)} during ${window(p.window)}`;
     case "rate_on_lines": case "rate":
       return `${String(p.label ?? "Tax")}: ${n(p.rate_percent)}% on ${((p.target_lines as string[]) ?? []).map((l) => LINE_NAMES[l] ?? l).join(", ")}`
-        + ` · collected by ${p.collected_by === "restaurant" ? "the kitchen" : "BhojanGo"}${p.inclusive ? " · included in prices" : ""}`
+        + ` · collected by ${p.collected_by === "restaurant" ? "the restaurant" : "BhojanGo"}${p.inclusive ? " · included in prices" : ""}`
         // R17: who funds a discount decides whether it lowers the tax base (R16)
         + (p.platform_discounts_reduce_base === false ? " · discounts BhojanGo pays for don't reduce it" : "");
     case "commission_tax": return `${String(p.label ?? "Tax on commission")}: ${n(p.rate_percent)}% of BhojanGo's commission, taken from the restaurant's payout`;
@@ -157,7 +157,7 @@ export function describe(template: string, params: P, units: Units): string {
       const what = template === "free_delivery" ? "Free delivery" : template === "flat_off" || template === "referral" ? `${m(p.amount, cur)} off`
         : `${n(p.percent)}% off${p.max_discount != null ? `, up to ${m(p.max_discount, cur)}` : ""}`;
       const who = template === "first_order" ? " a first order" : template === "referral" ? " for a referral" : "";
-      const bits = [`${what}${who}`, `paid by ${p.funded_by === "restaurant" ? "the kitchen" : "BhojanGo"}`];
+      const bits = [`${what}${who}`, `paid by ${p.funded_by === "restaurant" ? "the restaurant" : "BhojanGo"}`];
       if (Number(p.min_subtotal) > 0) bits.push(`on ${m(p.min_subtotal, cur)} of food or more`);
       if (p.code) bits.push(`with code ${String(p.code)}`);
       if (p.budget_cap != null) bits.push(`budget ${m(p.budget_cap, cur)}`);

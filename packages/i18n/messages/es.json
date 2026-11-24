@@ -1,5 +1,7 @@
 {
   "common": {
+    "phone_example": "Por ejemplo {example}",
+    "phone_invalid": "Escribe un número de teléfono válido, como {example}",
     "brand": "BhojanGo",
     "operated_by": "BhojanGo es operado por {name}.",
     "tagline": "Comida de verdad. Precios justos.",
@@ -133,7 +135,9 @@
     "line_tip": "Propina para tu repartidor",
     "exact_note": "Tu cuenta real muestra los montos exactos, línea por línea, antes de pagar.",
     "line_gst_food": "GST sobre la comida",
-    "line_gst_fees": "GST sobre las tarifas de la plataforma",
+    "line_gst_fees": "GST sobre las tarifas",
+    "to_rider_full": "100% para tu repartidor",
+    "government": "Gobierno",
     "line_sales_tax": "Impuesto sobre las ventas de {region}",
     "line_sales_tax_plain": "Impuesto sobre las ventas",
     "line_tax_included": "{tax} (incluido en los precios)",

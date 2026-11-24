@@ -248,7 +248,7 @@ function cuisineName(t, name) {
 // Bill lines the catalog names (bill.line_<code>).
 const BILL_LINES = new Set(["food", "packaging", "delivery_fee", "platform_fee", "service_fee", "small_order_fee", "surge", "late_night_fee", "tip"]);
 // Tax rules' names (Markets / the tax provider) the catalog translates (R27); others show as named.
-const TAX_LINES = { "GST on food": "bill.line_gst_food", "GST on platform fees": "bill.line_gst_fees", "Sales tax": "bill.line_sales_tax_plain" };
+const TAX_LINES = { "GST on food": "bill.line_gst_food", "GST on platform fees": "bill.line_gst_fees", "GST on fees": "bill.line_gst_fees", "Sales tax": "bill.line_sales_tax_plain" };
 
 /**
  * A fair-bill line's name in the person's language (R27): the engine's own lines by code,
@@ -273,11 +273,11 @@ function billLineLabel(t, line) {
   return inc ? t("bill.line_tax_included", { tax: out }) : out;
 }
 
-const { formatPhone } = require("./phone.js");
+const { formatPhone, parsePhone, toE164, isValidPhone, callingCode, phonePlaceholder, phoneExample, formatAsYouType } = require("./phone.js");
 const { opensWhen, opensLabel, wallClock } = require("./hours.js");
 
 module.exports = {
-  formatPhone, opensWhen, opensLabel, wallClock,
+  formatPhone, parsePhone, toE164, isValidPhone, callingCode, phonePlaceholder, phoneExample, formatAsYouType, opensWhen, opensLabel, wallClock,
   LANGUAGES, DEFAULT_LANGUAGE, languageOf, languagesFor, languageList, pickLanguage, chooseLanguage, detectCountry,
   resolveLocation, formatLocale, dateLocale, createTranslator, pluralSelector, cuisineKey, cuisineName, billLineLabel,
 };

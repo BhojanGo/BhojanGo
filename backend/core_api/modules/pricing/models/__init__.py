@@ -45,7 +45,7 @@ class PromotionSpend(Base):
     )
 
 
-__all__ = ["OrderPricingSnapshot", "PlatformOfferSpend", "PromotionSpend", "PromotionSpendWeek"]
+__all__ = ["OrderPricingSnapshot", "PlatformOfferReturn", "PlatformOfferSpend", "PromotionSpend", "PromotionSpendWeek"]
 
 
 class PromotionSpendWeek(Base):
@@ -74,6 +74,21 @@ class PlatformOfferSpend(Base):
     spent: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal("0"))
     orders: Mapped[int] = mapped_column(nullable=False, default=0)
     alerted: Mapped[int] = mapped_column(nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )
+
+
+class PlatformOfferReturn(Base):
+    """R38: how much of an order's BhojanGo-funded offer cost went back to its budget (cancelled, payment
+    failed or expired, refunded in full or in part), so nothing is given back twice."""
+
+    __tablename__ = "platform_offer_returns"
+
+    order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    pool: Mapped[str] = mapped_column(String(40), nullable=False)
+    month: Mapped[date] = mapped_column(Date, nullable=False)
+    returned: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal("0"))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )

@@ -1,5 +1,7 @@
 {
   "common": {
+    "phone_example": "ಉದಾಹರಣೆ: {example}",
+    "phone_invalid": "ಸರಿಯಾದ ಫೋನ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ, ಉದಾ. {example}",
     "brand": "BhojanGo",
     "operated_by": "BhojanGo ಅನ್ನು {name} ನಡೆಸುತ್ತದೆ.",
     "tagline": "ನಿಜವಾದ ಊಟ. ನ್ಯಾಯಯುತ ಬೆಲೆ.",
@@ -133,7 +135,9 @@
     "line_tip": "ನಿಮ್ಮ ಡೆಲಿವರಿ ಪಾರ್ಟ್ನರ್‌ಗೆ ಟಿಪ್",
     "exact_note": "ನೀವು ಪಾವತಿಸುವ ಮೊದಲೇ ನಿಮ್ಮ ನಿಜವಾದ ಬಿಲ್ ಪ್ರತಿ ಸಾಲಿನಲ್ಲೂ ನಿಖರ ಮೊತ್ತವನ್ನು ತೋರಿಸುತ್ತದೆ.",
     "line_gst_food": "ಊಟದ ಮೇಲೆ GST",
-    "line_gst_fees": "ಪ್ಲಾಟ್‌ಫಾರ್ಮ್ ಶುಲ್ಕಗಳ ಮೇಲೆ GST",
+    "line_gst_fees": "ಶುಲ್ಕಗಳ ಮೇಲೆ GST",
+    "to_rider_full": "100% ನಿಮ್ಮ ಡೆಲಿವರಿ ಪಾರ್ಟ್ನರ್‌ಗೆ",
+    "government": "ಸರ್ಕಾರ",
     "line_sales_tax": "{region} ಮಾರಾಟ ತೆರಿಗೆ",
     "line_sales_tax_plain": "ಮಾರಾಟ ತೆರಿಗೆ",
     "line_tax_included": "{tax} (ಬೆಲೆಯಲ್ಲಿ ಸೇರಿದೆ)",
