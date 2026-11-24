@@ -25,14 +25,16 @@ appId: com.bhojango.app
     visible:
       id: "home"
     timeout: 30000
+# (the card's status line; "Pickup only" is text inside it)
 - scrollUntilVisible:
     element:
-      id: "kitchen-card-spice-route-kitchen-madhapur"
+      id: "card-status"
+      text: "Pickup only"
     direction: DOWN
     timeout: 30000
-    visibilityPercentage: 50
+    centerElement: true
 - assertVisible:
-    id: "pickup-only"
+    id: "card-status"
     text: "Pickup only"
 - takeScreenshot: docs/screenshots/customer/r36-pickup-only-card
 - tapOn:
@@ -70,7 +72,7 @@ appId: com.bhojango.app
       id: "kitchen-card-charminar-chai-house-old-city"
     timeout: 20000
 - assertVisible:
-    id: "closed"
+    id: "card-status"
     text: "Closed.*"
 - tapOn:
     id: "kitchen-card-charminar-chai-house-old-city"

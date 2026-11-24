@@ -49,10 +49,9 @@ appId: com.bhojango.app
       text: "Salmon Poke Bowl"
     direction: DOWN
     timeout: 20000
+# the "+" on the photo's bottom-right corner (dish-on-photo holds just that button)
 - tapOn:
-    id: "dish-add-.*"
-    childOf:
-      id: "dish-on-photo"
+    id: "dish-on-photo"
 - extendedWaitUntil:
     visible:
       id: "dish-stepper-.*"
