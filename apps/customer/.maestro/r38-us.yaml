@@ -9,8 +9,8 @@ appId: com.bhojango.app
       LNG: "-116.2100"
       COUNTRY: "US"
       PHONE: "2085550101"
-      EXAMPLE_RE: "\+1 \(208\) 555-0123"
-      OTHER_RE: ".*\+91.*"
+      EXAMPLE_RE: '\+1 \(208\) 555-0123'
+      OTHER_RE: '.*\+91.*'
       KITCHEN: "boise-bowl-co-hyde-park"
       DISH: "Teriyaki Chicken Bowl"
       TAX_RE: ".*sales tax.*"
