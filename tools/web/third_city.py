@@ -398,7 +398,8 @@ def approve(page, m: dict) -> None:  # type: ignore[no-untyped-def]
     # R39: where a food permit is required, it is approved first (Food permits to review)
     permits = page.get_by_role("region", name="Food permits to review")
     row = permits.get_by_test_id("permit-row").filter(has_text=m["kitchen"])
-    if row.count():
+    if m["country"] == "US":  # the US asks for one (Markets food_permit_required, from the seed)
+        expect(row).to_be_visible(timeout=15000)
         row.get_by_role("button", name="Approve permit").click()
         expect(permits.get_by_role("status")).to_contain_text(f"{m['kitchen']}: permit approved", timeout=15000)
     apps = page.get_by_role("region", name="Restaurants applying")
