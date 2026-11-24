@@ -17,6 +17,7 @@ import { riderFirstName } from "@/lib/contract";
 import { useFormat, useLanguage, useT } from "@/lib/i18n";
 import type { BillLine } from "@/lib/server";
 import { slugify } from "../../../[country]/[city]/[kitchen]/data";
+import { mergeChat } from "@/lib/chatMerge";
 
 type Order = CoreSchemas["OrderResponse"];
 type Pt = [number, number];
@@ -416,7 +417,8 @@ function Messages({ orderId, rider }: { orderId: string; rider: string }) {
       return fetchChat(orderId, language).then((c) => {
         if (!alive || !c || n !== latest) return;
         c.messages.forEach((m) => seen.current.add(m.id));
-        setChat(c);
+        // R35: merged, never replaced: a fetch that started before a send must not drop it
+        setChat((prev) => mergeChat(c, prev));
       });
     };
     void refresh();

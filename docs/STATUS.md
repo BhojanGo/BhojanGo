@@ -558,6 +558,24 @@ No migration.
 - `packages/i18n/REVIEW.md`: the round 33 cart strings and the new `track.ready_in_about` are listed as needing
   native review.
 
+## Live chat race fixed, list screens captured (round 35, 2026-11-24)
+
+No migration.
+
+- **Live chat, 1 in 50 rounds failed (several branches).** Cause: the chat list is refreshed by fetches (a poll,
+  a status change, a quick message). A fetch that started before the customer pressed Send could finish after the
+  sent message was on screen; it replaced the whole list, and the message was already marked as seen, so it
+  vanished until the next 20 s poll (the check waits 10 s; the CI screenshot showed the input cleared, no error,
+  the message missing). Fix: a fetch is merged into what's shown (messages are never deleted); a closed chat still
+  replaces it, and after a block only my own messages carry over. Same fix in the apps' shared chat hook
+  (`packages/mobile-core/src/chat.tsx`). Proof: the live chat check 200 rounds in a row, 200/200.
+- **List screens (before any redesign):** home list, search, menus and cart on the website (desktop and phone)
+  and the customer app, Boise and Hyderabad, with a long name, too far to deliver, closed, and a pickup
+  restaurant that is too far to deliver (`qa-artifacts/r35/lists/`, local stack). Findings: there is no
+  "pickup only" state (delivery can't be switched off; a too-far restaurant that takes pickup only shows "Too far
+  to deliver" on the website and nothing at all on the app's menu); the website's search page at phone width is
+  wider than the screen (515 px at 390); a cart under the area's minimum shows the minimum note instead of the bill.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.
