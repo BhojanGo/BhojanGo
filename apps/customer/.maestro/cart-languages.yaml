@@ -18,6 +18,7 @@ appId: com.bhojango.app
       id: "kitchen-card-boise-bowl-co-hyde-park"
     direction: DOWN
     timeout: 30000
+    visibilityPercentage: 50  # R34: as the last card, the floating tab bar always covers part of it
 - tapOn:
     id: "kitchen-card-boise-bowl-co-hyde-park"
 - extendedWaitUntil:
@@ -72,6 +73,7 @@ appId: com.bhojango.app
       id: "kitchen-card-boise-bowl-co-hyde-park"
     direction: DOWN
     timeout: 30000
+    visibilityPercentage: 50  # R34: as the last card, the floating tab bar always covers part of it
 - tapOn:
     id: "kitchen-card-boise-bowl-co-hyde-park"
 - extendedWaitUntil:
