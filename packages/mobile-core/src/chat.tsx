@@ -13,6 +13,7 @@ import { unwrap, type CoreSchemas } from "@bhojango/api-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 
+import { mergeChat } from "./chatMerge";
 import { useI18n } from "./i18n";
 import { api, liveSocket } from "./session";
 import { color, dark, radius } from "./ui/theme";
@@ -48,7 +49,8 @@ export function useQuickMessages(orderId: string | undefined) {
     c.messages.forEach((m) => seen.current.add(m.id));
     blockedRef.current = !!c.blocked;
     meRef.current = c.me;
-    setChat(c);
+    // R35: merged, never replaced: a fetch that started before a send must not drop it
+    setChat((prev) => mergeChat(c, prev));
   }, []);
   // Fetches can finish out of order (a poll, a status change, a quick message): only
   // the newest one applies, so an older list never replaces a newer one.
