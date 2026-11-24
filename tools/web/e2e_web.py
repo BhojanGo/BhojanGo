@@ -1782,13 +1782,15 @@ with sync_playwright() as p:
             _assert(who in WHO, ("who gets it", who))
             amount = row.get_by_test_id("bill-amount")
             box = amount.bounding_box()
-            fits = amount.evaluate("e => { const s = getComputedStyle(e); const lh = parseFloat(s.lineHeight) || parseFloat(s.fontSize) * 1.4;"
-                                   " return e.scrollWidth <= e.clientWidth + 1 && e.getBoundingClientRect().height < lh * 1.6 }")
+            # the amount's text sits on one line (its line boxes share one top), and nothing is cut off
+            fits = amount.evaluate("e => { const r = document.createRange(); r.selectNodeContents(e);"
+                                   " const tops = new Set([...r.getClientRects()].map((x) => Math.round(x.top)));"
+                                   " return tops.size === 1 && e.scrollWidth <= e.clientWidth + 1 }")
             _assert(fits and box["x"] + box["width"] <= width + 0.5, ("an amount wraps or is cut off", amount.inner_text(), box))
         text = pg.locator("body").inner_text()
         if market == "in":
             _assert("GST on fees" in text and "GST on platform fees" not in text, "the GST line on fees")
-        _assert("The fair bill" in text, "the section title")
+        _assert("the fair bill" in text.lower(), "the section title")  # styled in capitals, written "The fair bill"
         no_sideways_scroll_at(pg, width)
 
     for market, (where, phone, country, path, dish, code, placeholder, example) in R38.items():
@@ -1819,8 +1821,17 @@ with sync_playwright() as p:
 
         # Item 1 and 4: the bill at checkout, signed in, one dish in the cart
         pg.set_viewport_size({"width": 1440, "height": 900})
-        pg.goto(f"{base}/signin", wait_until="networkidle")
-        sign_in(pg, phone, country)
+        # signed in for real (sign-in is limited per minute and this suite signs in often: wait and try again once)
+        for attempt in range(2):
+            pg.goto(f"{base}/signin", wait_until="networkidle")
+            try:
+                sign_in(pg, phone, country)
+                expect(pg).not_to_have_url(re.compile(r"/signin"), timeout=20000)
+                break
+            except Exception:  # noqa: BLE001
+                if attempt:
+                    raise
+                pg.wait_for_timeout(65000)
         pg.wait_for_load_state("networkidle")
         pg.evaluate("localStorage.removeItem('bhojango-bag')")
         pg.goto(base + path, wait_until="networkidle")
