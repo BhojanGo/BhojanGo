@@ -113,7 +113,7 @@ export function Disputes({ country }: { country: string }) {
               const body = new FormData();
               body.append("note", note);
               if (file) body.append("file", file);
-              void act(async () => { await adminApi.post(`/user/finance/disputes/${d.id}/evidence`, body); setNote(""); setFile(null); }, "Evidence added.");
+              void act(async () => { await adminApi.post(`/user/finance/disputes/${d.id}/evidence`, body, { headers: { "Content-Type": "multipart/form-data" } }); setNote(""); setFile(null); }, "Evidence added.");
             }}>
               <textarea aria-label="Note for the bank" value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={4000}
                 placeholder="What happened, in plain words (the bank reads this)" className="w-full rounded-xl border border-line bg-white p-3" />
