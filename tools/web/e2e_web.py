@@ -924,11 +924,25 @@ with sync_playwright() as p:
         expect(steps.locator("li b")).to_have_text(["Placed", "Preparing", "Ready for pickup", "Picked up"]),
         expect(pk.get_by_test_id("delivery-steps")).to_have_count(0),
         expect(steps).not_to_contain_text("On the way")))
-    for st in ("accepted", "preparing", "ready"):
+    # R34: a pickup order never "arrives": "Ready in about N min" until it's ready
+    hero_label, hero = pk.locator("[data-testid=eta-label]:visible"), pk.locator("[data-testid=eta]:visible")
+    for st in ("accepted", "preparing"):
         api("PUT", f"/orders/{po['id']}/status", partner, {"status": st})
+    pk.reload(wait_until="networkidle")
+    check("pickup tracking before ready: 'Ready in about N min', never 'Arriving'", lambda: (
+        expect(hero_label).to_have_text("Ready in about", timeout=20000),
+        expect(hero).to_have_text(re.compile(r"^\d+ min$")),
+        expect(pk.get_by_text("Arriving", exact=True)).to_have_count(0)))
+    shot(pk, "14a-pickup-ready-in")
+    api("PUT", f"/orders/{po['id']}/status", partner, {"status": "ready"})
+    street = api("GET", f"/orders/{po['id']}", customer)["pickup_address"]["street"]
     check("pickup tracking: ready, the code shown, live", lambda: (
         expect(steps.locator("li[aria-current=step] b")).to_have_text("Ready for pickup", timeout=20000),
         expect(pk.get_by_test_id("pickup-code")).to_be_visible()))
+    check("pickup tracking when ready: 'Ready for pickup' with the restaurant's address, no minutes", lambda: (
+        expect(hero).to_have_text("Ready for pickup", timeout=20000),
+        expect(hero.locator("xpath=..")).to_contain_text(street),
+        expect(pk.get_by_text("Arriving", exact=True)).to_have_count(0)))
     shot(pk, "14b-pickup-steps-ready")
     code = api("GET", f"/orders/{po['id']}", customer)["pickup_code"]
     api("POST", f"/orders/{po['id']}/pickup", partner, {"code": code})

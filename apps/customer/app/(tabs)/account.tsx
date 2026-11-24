@@ -55,7 +55,7 @@ export default function Account() {
 
         <Section style={{ paddingVertical: space[2] }}>
           <MenuRow testID="account-addresses" icon="pin" label={t("account.nav.addresses")} href="/account/addresses" />
-          <MenuRow testID="account-payments" icon="bag" label={t("account.nav.payments")} href="/account/payments" />
+          <MenuRow testID="account-payments" icon="card" label={t("account.nav.payments")} href="/account/payments" />
           <MenuRow testID="account-notifications" icon="message" label={t("account.nav.notifications")} href="/account/notifications" />
           <MenuRow testID="account-favourites" icon="star" label={t("account.nav.favourites")} href="/favourites" />
           <MenuRow testID="account-language" icon="map" label={t("header.language")} value={languageValue} href="/account/language" />

@@ -38,8 +38,9 @@ appId: com.bhojango.app
 - takeScreenshot: docs/screenshots/customer/46-language-switched
 - tapOn:
     id: "language-en"
+# R34: switching language restarts the app's screen; on an emulator with a dev build that takes over 5 s
 - extendedWaitUntil:
     visible:
       id: "language-title"
       text: "Language"
-    timeout: 5000
+    timeout: 20000

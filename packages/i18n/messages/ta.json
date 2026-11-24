@@ -498,6 +498,7 @@
     "status": "ஆர்டர் நிலை",
     "order": "உங்கள் ஆர்டர்",
     "arriving": "வந்துகொண்டிருக்கிறது",
+    "ready_in_about": "தயாராக சுமார்",
     "minutes": {
       "one": "{count} நிமி",
       "other": "{count} நிமி"

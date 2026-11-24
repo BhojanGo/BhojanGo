@@ -8,7 +8,7 @@ const PATHS = {
   chevron: "M6 9l6 6 6-6",
   search: "M11 4a7 7 0 1 1 0 14 7 7 0 0 1 0-14zM20 20l-4.3-4.3",
   home: "M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z",
-  orders: "M6 3h12l1 18H5zM9 7a3 3 0 0 0 6 0",
+  orders: "M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3",  // R34: a receipt, not a shopping bag
   account: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0",
   star: "M12 3l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z",
   phone: "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z",
@@ -16,8 +16,9 @@ const PATHS = {
   arrow: "M5 12h14M13 6l6 6-6 6",
   check: "M5 12l5 5 9-10",
   alert: "M12 8v5M12 17h.01M10.3 3.9L2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z",
-  bag: "M5 8h14l-1 13H6zM9 8V6a3 3 0 0 1 6 0v2",
+  cart: "M2 3h3l2.6 12.4a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L21 7H6M10 20.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zM18 20.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z",  // R34: a cart (was a shopping bag)
   map: "M9 4l-6 3v13l6-3 6 3 6-3V4l-6 3zM9 4v13M15 7v13",
+  card: "M3 6h18v12H3zM3 10h18M7 15h4",
 } as const;
 
 export type IconName = keyof typeof PATHS;

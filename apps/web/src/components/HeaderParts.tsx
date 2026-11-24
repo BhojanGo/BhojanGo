@@ -8,7 +8,7 @@ import { useCallback, useState } from "react";
 import { api, useBag, useHydrated, useSession } from "@/lib/client";
 import { useLanguage, usePrefs, useT } from "@/lib/i18n";
 import { AddressDialog } from "./AddressDialog";
-import { BagIcon, Chevron, Globe, Pin, Search } from "./Icons";
+import { CartIcon, Chevron, Globe, Pin, Search } from "./Icons";
 import { MenuRow, Popover } from "./Popover";
 
 /**
@@ -114,7 +114,7 @@ export function BagButton() {
       title={restaurant?.name}
       className="flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#111418] px-[18px] text-label text-white hover:text-white"
     >
-      <BagIcon color="#FFFFFF" />
+      <CartIcon color="#FFFFFF" />
       {t("common.bag_count", { count })}
     </Link>
   );

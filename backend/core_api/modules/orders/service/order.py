@@ -81,6 +81,15 @@ def delivery_eta(prep_minutes: int, pickup: tuple | None, dropoff: tuple | None,
     return start + timedelta(minutes=prep_minutes + ride + HANDOVER_MINUTES)
 
 
+def order_eta(fulfillment: str | None, prep_minutes: int, pickup: tuple | None, dropoff: tuple | None,
+              start: datetime) -> datetime:
+    """R34: a pickup order's estimate is when it'll be READY (prep time only: no ride, no handover);
+    a delivery order's is when it arrives at the door."""
+    if fulfillment == "pickup":
+        return start + timedelta(minutes=prep_minutes)
+    return delivery_eta(prep_minutes, pickup, dropoff, start)
+
+
 async def business_rules(db: AsyncSession, order: Order | None = None, context: dict | None = None) -> dict:
     """The order's business rules (timeouts, cancel window) from the rule engine."""
     from core_api.modules.rules.service.resolver import Context
@@ -255,8 +264,7 @@ class OrderService:
             promo_code=data.promo_code,
             delivery_pin=delivery_pin(),
             loyalty_points_used=0,
-            estimated_delivery_time=(now + timedelta(minutes=prep) if fulfillment == "pickup"
-                                     else delivery_eta(prep, pickup, (drop.get("lat"), drop.get("lng")), now)),
+            estimated_delivery_time=order_eta(fulfillment, prep, pickup, (drop.get("lat"), drop.get("lng")), now),
         )
         try:
             await quotes.attach(q, order.id)
@@ -463,8 +471,8 @@ class OrderService:
         if new == "accepted":
             prep = data.prep_minutes or order.estimated_prep_minutes  # the kitchen picks "ready in" (P19)
             extra = {"restaurant_accepted_at": now, "accept_due_at": None, "estimated_prep_minutes": prep,
-                     "estimated_delivery_time": delivery_eta(
-                         prep, (order.pickup_lat, order.pickup_lng),
+                     "estimated_delivery_time": order_eta(
+                         order.fulfillment, prep, (order.pickup_lat, order.pickup_lng),
                          (order.delivery_lat, order.delivery_lng), now)}
         elif new == "ready":
             extra = {"actual_ready_at": now}

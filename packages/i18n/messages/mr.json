@@ -498,6 +498,7 @@
     "status": "ऑर्डरची स्थिती",
     "order": "तुमची ऑर्डर",
     "arriving": "पोहोचत आहे",
+    "ready_in_about": "तयार होण्यास सुमारे",
     "minutes": {
       "one": "{count} मिनिट",
       "other": "{count} मिनिटं"

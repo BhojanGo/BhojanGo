@@ -578,3 +578,19 @@ Machine-translated on 2026-11-23 into all seven languages; **needs native review
   `partner.orders.pickup_toggle` ("Customers can collect orders at your counter").
 - Worker messages (`backend/worker/app/services/messages.py`): `order_ready_for_pickup` (title and body with
   "pickup code {pin}") and `order_collected`.
+
+## Cart wording (round 33) and pickup countdown (round 34)
+
+Machine-translated on 2026-11-23 into all seven languages (es, hi, te, ta, kn, mr, bn); **needs native review**.
+Round 33 changed "bag" to "cart" in these 15 keys; round 34 added 1.
+
+- Cart (round 33): `common.bag` ("Cart"), `common.bag_count` ("Cart · {count}"), `kitchen.add_to_bag`
+  ("Add to cart · {price}"), `kitchen.new_bag_title`, `kitchen.new_bag_body`, `kitchen.keep_bag`,
+  `kitchen.new_bag_cleared`, `kitchen.start_new_bag`, `kitchen.your_bag` ("Your cart"), `kitchen.view_bag`
+  ("View cart"), `checkout.empty_title` ("Your cart is empty"), `account.receipt.unavailable`,
+  `account.receipt.reorder_failed`, `account.receipt.reorder.rest_added`, `app.payment_failed.back_to_bag`
+  ("Back to your cart").
+- Also in round 33, Hindi only: the cart wording in the help articles `order-again-and-receipts`,
+  `place-an-order` and `price-held-while-you-pay` (`tools/seed/help/hi/`).
+- Pickup tracking (round 34): `track.ready_in_about` ("Ready in about", shown above "N min" on a pickup order
+  until it's ready).

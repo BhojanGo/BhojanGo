@@ -157,7 +157,7 @@ export default function Home() {
       </ScrollView>
       {bagCount > 0 ? (
         <Pressable testID="bag-pill" accessibilityRole="button" accessibilityLabel={t("common.bag_count", { count: bagCount })} onPress={() => router.push("/bag")} style={[styles.bagPill, { bottom: above }]}>
-          <Icon name="bag" size={18} stroke={color.white} />
+          <Icon name="cart" size={18} stroke={color.white} />
           <Text style={[type.label, { color: color.white }]}>{t("common.bag_count", { count: bagCount })}</Text>
         </Pressable>
       ) : null}
