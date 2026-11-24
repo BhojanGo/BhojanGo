@@ -34,12 +34,12 @@ appId: com.bhojango.rider
     timeout: 15000
 - takeScreenshot: docs/screenshots/rider/02-code
 # R22: the stack flows (CODE_SHOT=true) check the number reads in its country's format
-# ("+1 208-555-0291") and keep the screen as stack-rider-code.
+# ("+1 (208) 555-0291") and keep the screen as stack-rider-code.
 - runFlow:
     when:
       true: ${CODE_SHOT == "true"}
     commands:
-      - assertVisible: '.*\+1 208-555-0291.*'
+      - assertVisible: '.*\+1 \(208\) 555-0291.*'
       - takeScreenshot: stack-rider-code
 - inputText: "123456"
 - extendedWaitUntil:

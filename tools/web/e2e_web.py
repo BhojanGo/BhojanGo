@@ -1368,13 +1368,13 @@ with sync_playwright() as p:
     us.get_by_role("complementary", name="Your cart").get_by_role("button", name="One more Teriyaki Chicken Bowl").click()
     us.get_by_role("complementary", name="Your cart").get_by_role("link", name="Go to checkout").click()
     url_is(us, r"/signin\?")
-    # R22: the code screen shows the number in its country's format ("+1 208-555-0101").
+    # R22: the code screen shows the number in its country's format ("+1 (208) 555-0101").
     us.get_by_label("Country code").select_option("US")
     us.get_by_role("textbox", name="Mobile number").fill(US_PHONE)
     us.get_by_role("button", name="Send code").click()
     url_is(us, r"/signin/code\?")
-    check("sign in (US): the code was sent to +1 208-555-0101", lambda:
-          expect(us.get_by_text("+1 208-555-0101", exact=True)).to_be_visible(timeout=15000))
+    check("sign in (US): the code was sent to +1 (208) 555-0101", lambda:
+          expect(us.get_by_text("+1 (208) 555-0101", exact=True)).to_be_visible(timeout=15000))
     shot(us, "20a-us-code")
     us.get_by_role("textbox", name="Digit 1").fill(OTP)
     us.get_by_role("button", name="Verify and continue").click()
@@ -1382,14 +1382,14 @@ with sync_playwright() as p:
     us_bill = us.get_by_role("complementary", name="Your order")
     check("US checkout: the fair bill in dollars with sales tax", lambda: (
         expect(us_bill.get_by_text("The fair bill")).to_be_visible(timeout=20000),
-        expect(us_bill.get_by_role("row", name=re.compile("Tax"))).not_to_have_count(0),
+        expect(us_bill.get_by_role("row", name=re.compile("sales tax"))).not_to_have_count(0),  # R38: its payee reads "Government"
         expect(us_bill.get_by_text(re.compile(r"^\$\d+\.\d{2}$")).first).to_be_visible(),
         expect(us_bill.get_by_text("₹")).to_have_count(0)))
     shot(us, "20-us-checkout")
     # R22: the account shows the number formatted (the side card and Sign-in and security).
     us.goto(base + "/account/profile", wait_until="networkidle")
-    check("account (US): the phone reads +1 208-555-0101, never the raw E.164", lambda: (
-        expect(us.get_by_text("+1 208-555-0101", exact=True).first).to_be_visible(timeout=15000),
+    check("account (US): the phone reads +1 (208) 555-0101, never the raw E.164", lambda: (
+        expect(us.get_by_text("+1 (208) 555-0101", exact=True).first).to_be_visible(timeout=15000),
         expect(us.get_by_text("+12085550101")).to_have_count(0)))
     shot(us, "20b-us-account-phone")
 
@@ -1767,7 +1767,7 @@ with sync_playwright() as p:
     # ── R38: the bill in two columns, phone numbers by country, "GST on fees"; a US (Boise) and an India
     # (Hyderabad) customer, at 1440 px (desktop), 390 px and 360 px (phones) ──
     MADHAPUR = ("Madhapur, Hyderabad", 17.4483, 78.3915, "IN", "IN-TG-HYD", "/in/hyderabad", "Madhapur")
-    R38 = {"us": (NORTH_END, "2085550101", "US", US_KITCHEN_PATH, "Teriyaki Chicken Bowl", "+1", "(208) 555-0123", "+1 (208) 555-0123"),
+    R38 = {"us": (NORTH_END, "2085550105", "US", US_KITCHEN_PATH, "Teriyaki Chicken Bowl", "+1", "(208) 555-0123", "+1 (208) 555-0123"),
            "in": (MADHAPUR, "9000000102", "IN", KITCHEN_PATH, "Veg Dum Biryani", "+91", "98765 43210", "+91 98765 43210")}
     WHO = {"Restaurant", "100% to your delivery partner", "BhojanGo", "Government", "Restaurant pays", "BhojanGo pays"}
 
@@ -1813,7 +1813,7 @@ with sync_playwright() as p:
                 _assert(("+91" not in body) if market == "us" else ("+1 (" not in body and "+1\n" not in body), f"the other country's code: {body[:300]}")
                 box.fill("12345 678")
                 pg.get_by_role("button", name="Send code").click()
-                expect(pg.get_by_role("alert")).to_have_text(f"Enter a valid phone number, like {example}")
+                expect(pg.locator("form").filter(has=box).get_by_role("alert")).to_have_text(f"Enter a valid phone number, like {example}")
             check(f"R38 phone {market} {width} px: {code} by default, placeholder {placeholder}, invalid refused", phone_box)
             shot(pg, f"r38-2-web{width}-{market}")
 
