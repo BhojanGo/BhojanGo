@@ -327,7 +327,7 @@ function RuleDetail({ rule, label, schema, onChanged }: { rule: Rule; label: str
           onSave={(p) => void run(() => adminApi.patch(`/user/rules/${rule.id}`, { params: p }), "Draft saved.", rule.id)} saveLabel="Save draft" />
       ) : <Params rule={rule} />}
       {isDraft && rule.family === "commission" && rule.template !== "payout_schedule" ? <PreviewBox rule={rule} /> : null}
-      {rule.family === "promotion" ? <OfferEconomics ruleId={rule.id} units={units(where)} paused={!!rule.paused_at} /> : null}
+      {rule.family === "promotion" ? <OfferEconomics ruleId={rule.id} units={units(where)} paused={!!rule.paused_at} live={state.key === "live"} /> : null}
       <div className="flex flex-wrap items-center gap-2">
         {isDraft && mayEdit && !editing ? (
           <>

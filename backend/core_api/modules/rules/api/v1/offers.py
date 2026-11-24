@@ -136,7 +136,7 @@ class Economics(BaseModel):
     monthly: Decimal | None
     spent: Decimal | None
     left: Decimal | None
-    running: bool  # BhojanGo-funded: the budget has room for it now
+    running: bool  # BhojanGo-funded: live, not paused, and the budget has room for it now
 
 
 def offer_cost(template: str, params: dict, food: Decimal, delivery: Decimal | None) -> Decimal | None:
@@ -237,5 +237,7 @@ async def economics(rule_id: uuid.UUID, admin: Viewer, db: DB) -> Economics:
         used, _ = await offer_budget.spent(db, pool.key, offer_budget.month_of(_month(tz)))
         left = max(pool.monthly - used, ZERO)
         out.pool, out.pool_name, out.monthly, out.spent, out.left = pool.key, pool.name, pool.monthly, used, left
-        out.running = left > 0 and (max_cost is None or max_cost <= left) and r.paused_at is None
+        now = datetime.now(UTC)
+        live = r.status == "published" and r.effective_from <= now and (r.effective_to is None or r.effective_to > now)
+        out.running = live and r.paused_at is None and left > 0 and (max_cost is None or max_cost <= left)
     return out

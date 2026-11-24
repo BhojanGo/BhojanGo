@@ -157,7 +157,7 @@ export function OfferBudgets({ country, scope, units }: { country: string; scope
   );
 }
 
-export function OfferEconomics({ ruleId, units, paused }: { ruleId: string; units: Units; paused: boolean }) {
+export function OfferEconomics({ ruleId, units, paused, live }: { ruleId: string; units: Units; paused: boolean; live: boolean }) {
   const q = useQuery({
     queryKey: ["offer-economics", ruleId],
     queryFn: async () => (await adminApi.get<Economics>(`/user/rules/offers/${ruleId}/economics`)).data,
@@ -189,7 +189,8 @@ export function OfferEconomics({ ruleId, units, paused }: { ruleId: string; unit
       ) : null}
       {platform ? (
         <p data-testid="offer-running" className={e.running ? "text-peacock-dark" : "text-chili"}>
-          {paused ? "Paused: customers don't see it." : e.running ? "Running: the budget can pay for it."
+          {paused ? "Paused: customers don't see it." : !live ? "Not live yet: once it is, it runs while the budget can pay for it."
+            : e.running ? "Running: the budget can pay for it."
             : Number(e.monthly ?? 0) === 0 ? "Not running: no offer budget here. Set one in BhojanGo offer budgets."
             : "Not running: this month's budget is used up."}
         </p>

@@ -365,7 +365,8 @@ with sync_playwright() as p:
         check("R37 an offer that can cost more than the platform fee: the warning", lambda: (
             expect(page.get_by_test_id("offer-cost-warning")).to_contain_text("can cost more than the platform fee", timeout=15000),
             expect(page.get_by_test_id("offer-cost")).to_contain_text("up to ₹100"),
-            expect(page.get_by_test_id("offer-budget")).to_contain_text("Hyderabad: ₹0.00 of ₹5,000.00")))
+            expect(page.get_by_test_id("offer-budget")).to_contain_text("Hyderabad: ₹0.00 of ₹5,000.00"),
+            expect(page.get_by_test_id("offer-running")).to_contain_text("Not live yet")))  # a draft
         page.screenshot(path=f"{OUT}/07h-offer-budget-warning.png", full_page=True)
     finally:
         api.delete(f"{CORE}/rules/{costly['id']}", headers=adm)
