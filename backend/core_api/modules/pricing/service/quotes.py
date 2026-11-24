@@ -258,6 +258,11 @@ class QuoteService:
                 "reason_code": avail.reason_code, "closed_note": avail.closed_note,
                 "opens_at": avail.next_open_at.isoformat() if avail.next_open_at else None,
                 "time_zone": avail.timezone, "delivery_hours": avail.delivery_hours, **tips})
+        # R36: the restaurant's own minimum never blocks the bill: the quote says how much is missing
+        # (``short_by``) and the order can't be placed until it's met (redeem). Zones have no minimum
+        # in the seeds any more; a zone minimum, if set, still refuses (MIN_ORDER).
+        minimum = Decimal(rest.minimum_order_amount or 0)
+        short_by = max(minimum - food, Decimal(0)).quantize(Decimal("0.01"))
         if where.min_order is not None and food < where.min_order:
             shown = format_money(where.min_order, country.currency, (country.locales or [None])[0], whole=True)
             raise QuoteError(f"The minimum order in {where.zone_name} is {shown}", code="MIN_ORDER", details={
@@ -289,6 +294,7 @@ class QuoteService:
             "items": [{"menu_item_id": ln.item_id, "name": ln.name, "quantity": ln.quantity,
                        "unit_price": str(ln.unit_price), "options": list(ln.options)} for ln in priced],
             "currency": result.currency, "total": str(result.total), "food_subtotal": str(result.food_subtotal),
+            "restaurant_minimum": str(minimum) if minimum > 0 else None, "short_by": str(short_by),
             "lines": [{**asdict(ln), "amount": str(ln.amount)} for ln in result.lines],
             "tax_calculation": next(({"provider": e.provider, "calculation_id": e.calculation_id}
                                      for e in (inputs.external_tax or [])), None),
@@ -317,6 +323,7 @@ class QuoteService:
             total=result.total, tax_pending=result.tax_pending, zone=where.zone_name or "", city=city.name,
             distance=distance, distance_unit=country.distance_unit, tip_presets=presets,
             fulfillment=req.fulfillment, pickup_address=pickup_address,
+            restaurant_minimum=minimum if minimum > 0 else None, short_by=short_by,
         )
 
     async def get(self, user_id: uuid.UUID, quote_id: uuid.UUID) -> dict:
@@ -342,6 +349,13 @@ class QuoteService:
             raise QuoteError("Your cart changed after it was priced; please review the new total")
         if q["total"] != claims["total"]:
             raise QuoteError("This quote has been tampered with")
+        if Decimal(q.get("short_by") or 0) > 0:  # R36: under the restaurant's own minimum
+            from shared.money import customer_money
+
+            more = customer_money(q["short_by"], q["currency"])
+            raise QuoteError(f"Add {more} more to order from {q['restaurant_name']}",
+                             code="BELOW_MINIMUM", details={"amount": q["restaurant_minimum"], "short_by": q["short_by"],
+                                                            "currency": q["currency"], "restaurant": q["restaurant_name"]})
         return q
 
     async def attach(self, q: dict, order_id: uuid.UUID) -> OrderPricingSnapshot:

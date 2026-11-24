@@ -23,10 +23,59 @@ sys.path.insert(0, str(HERE))
 import demo_guard  # noqa: E402
 import demo_history as h  # noqa: E402
 import demo_data  # noqa: E402
-from data import MARKETS  # noqa: E402
+from data import MARKETS, covers, dish_slug, menu_dishes  # noqa: E402
 from demo_data import DEMO, ORDERS  # noqa: E402
 
 NOW = datetime(2026, 11, 15, 18, 30)  # city local time
+
+
+def city_covers(key: str) -> dict[str, str | None]:
+    """A city's covers as the seeds give them: the base kitchens, then the demo kitchens (demo.py city_covers)."""
+    market = next(m for m in MARKETS if m["key"] == key)
+    kitchens = [(r["slug"], menu_dishes(r["menu"])) for r in market["restaurants"]]
+    kitchens += [(k["slug"], menu_dishes(k["menu"])) for k in DEMO.get(key, {"kitchens": []})["kitchens"]]
+    return covers(kitchens)
+
+
+def shared_covers(assigned: dict[str, str | None]) -> dict[str, list[str]]:
+    """Photo -> the kitchens that share it, for every photo used more than once (empty: all unique)."""
+    by_photo: dict[str, list[str]] = {}
+    for slug, photo in assigned.items():
+        if photo:
+            by_photo.setdefault(photo, []).append(slug)
+    return {p: ks for p, ks in by_photo.items() if len(ks) > 1}
+
+
+class CoverTests(unittest.TestCase):
+    """R36: every kitchen in a city has its own cover photo (one of its own dishes, from the credited
+    library), and no two kitchens in the same city share one."""
+
+    ROOT = HERE.parent.parent
+
+    def test_the_duplicate_check_fails_on_a_duplicate(self) -> None:
+        self.assertEqual(shared_covers({"a": "pad-thai", "b": "pad-thai", "c": None}), {"pad-thai": ["a", "b"]})
+        self.assertEqual(shared_covers({"a": "pad-thai", "b": "ramen"}), {})
+
+    def test_every_kitchen_has_a_cover_and_none_is_shared(self) -> None:
+        for m in MARKETS:
+            assigned = city_covers(m["key"])
+            with self.subTest(city=m["key"]):
+                self.assertEqual([s for s, p in assigned.items() if not p], [], "kitchens with no cover of their own")
+                self.assertEqual(shared_covers(assigned), {}, "kitchens in one city sharing a cover")
+
+    def test_each_cover_is_one_of_its_dishes_and_its_files_exist(self) -> None:
+        import json
+
+        library = set(json.loads((self.ROOT / "apps/web/src/content/photo-library.json").read_text(encoding="utf-8")))
+        menus = {r["slug"]: menu_dishes(r["menu"]) for m in MARKETS for r in m["restaurants"]}
+        menus |= {k["slug"]: menu_dishes(k["menu"]) for c in DEMO.values() for k in c["kitchens"]}
+        for m in MARKETS:
+            for slug, photo in city_covers(m["key"]).items():
+                with self.subTest(kitchen=slug):
+                    self.assertIn(photo, library)
+                    self.assertIn(photo, {dish_slug(d) for d in menus[slug]})
+                    for w in (400, 800, 1600):
+                        self.assertTrue((self.ROOT / f"apps/web/public/food/{photo}-{w}.webp").exists())
 
 
 class GuardTests(unittest.TestCase):

@@ -74,6 +74,8 @@ class QuoteOut(BaseModel):
     tip_presets: TipPresetsOut | None = Field(default=None, description="null: no tip buttons (no tip_presets rule)")
     fulfillment: str = "delivery"  # R32
     pickup_address: dict | None = Field(default=None, description="pickup: the restaurant's address (street, city, lat, lng)")
+    restaurant_minimum: Decimal | None = Field(default=None, description="R36: the restaurant's own minimum food subtotal (null: none)")
+    short_by: Decimal = Field(default=Decimal(0), description="R36: how much more food is needed to reach it (0: met); the order can't be placed until 0")
 
 
 class SplitOut(BaseModel):

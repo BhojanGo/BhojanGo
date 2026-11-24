@@ -118,7 +118,7 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
 
     tz = await d.timezone(order["market_city"])
     code = m.order_code(str(order["id"]))
-    total = m.money(order["total"], order["currency"])
+    total = m.to_customer_money(order["total"], order["currency"])  # R36: the customer's (whole rupees)
     eta = m.clock(p.get("estimated_delivery_time") or order["estimated_delivery_time"], tz)
     base = {"restaurant": order["restaurant_name"], "code": code, "eta": eta}
     customer = str(order["customer_id"])
@@ -132,7 +132,7 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
         if owner:
             items = sum(int(i.get("quantity", 1)) for i in (order["items"] or []))
             out.append(Outgoing(str(owner), "partner_new_order",
-                                {"code": code, "items": items, "total": total,
+                                {"code": code, "items": items, "total": m.money(order["total"], order["currency"]),
                                  "accept_by": m.clock(order["accept_due_at"], tz) or ""}, str(order["id"])))
         return out
     if kind == "order.status_changed":
@@ -156,12 +156,12 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
     if kind == "order.cancelled":
         refund = int(p.get("refund_amount") or 0)
         if refund:
-            return [to_customer("order_cancelled_refunded", refund=m.minor_to_money(refund, order["currency"]))]
+            return [to_customer("order_cancelled_refunded", refund=m.minor_to_customer_money(refund, order["currency"]))]
         return [to_customer("order_cancelled_unpaid")]
     if kind == "payment.failed":
         return [to_customer("payment_failed")]
     if kind == "payment.refunded" and p.get("items"):  # full refunds are told with the cancellation
-        return [to_customer("refund_items", amount=m.minor_to_money(p["amount"], p["currency"]))]
+        return [to_customer("refund_items", amount=m.minor_to_customer_money(p["amount"], p["currency"]))]
     return []
 
 

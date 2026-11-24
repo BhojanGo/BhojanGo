@@ -77,6 +77,11 @@ class Card(BaseModel):
     deliverable: bool = True
     free_delivery: bool
     offer: Offer | None
+    # R36: the restaurant takes pickup orders; "pickup only" when it can't deliver to this address but takes pickup
+    pickup_enabled: bool = False
+    pickup_only: bool = False
+    pickup_fee_percent: str | None = None  # the pickup platform fee, e.g. "5" ("Pickup · 5% fee")
+    minimum_order: str | None = None  # the restaurant's own minimum food subtotal (None: none)
 
 
 class Discover(BaseModel):
@@ -91,6 +96,87 @@ class Discover(BaseModel):
     restaurants: list[Card] = []
     cuisines: list[dict] = []  # [{name, count, photo?}]: cuisines with 2+ kitchens; photo omitted when none is left
     offers: list[Offer] = []
+    # R36: show the "Free delivery" filter only when a restaurant here funds a free-delivery offer itself
+    free_delivery_chip: bool = False
+
+
+class DishHit(BaseModel):
+    """R36: a dish whose name matches the search, with its restaurant (as the menu shows it)."""
+    id: str
+    name: str
+    price: str
+    photo_url: str | None
+    has_options: bool  # adding opens the dish (size, spice, add-ons) instead of adding straight away
+    restaurant_id: str
+    restaurant_slug: str
+    restaurant_name: str
+    restaurant_path: str
+    open_now: bool
+    deliverable: bool
+    pickup_only: bool
+
+
+class SearchOut(BaseModel):
+    q: str
+    restaurants: list[Card] = []  # name, cuisine or tag matches, in the list's order
+    dishes: list[DishHit] = []  # dish name matches, in the list's order of their restaurants, then the menu's
+
+
+SEARCH_DISHES_MAX = 60
+
+
+@router.get("/search", response_model=SearchOut)
+async def search(db: DB, viewer: Looker, q: str = Query(..., min_length=2, max_length=60),
+                 lat: float | None = Query(None, ge=-90, le=90), lng: float | None = Query(None, ge=-180, le=180),
+                 city: str | None = Query(None, pattern=r"^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$")) -> SearchOut:
+    """R36: restaurants by name, cuisine or tag, and dishes by name ("curry": every restaurant's curries),
+    for a point (or a whole city), among the kitchens /discover lists there."""
+    if city is None and (lat is None or lng is None):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Give lat and lng, or a city code")
+    from core_api.modules.catalog.models.menu import MenuItem
+    from core_api.modules.catalog.models.options import MenuItemOptionGroup
+    from core_api.modules.markets.service import review
+
+    hidden = await review.hidden_for(db, viewer)
+    if hidden.city(city):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="City not found")
+    d = await _discover(db, lat, lng, city, hide=hidden.codes, fresh=hidden.sees_review)
+    needle = " ".join(q.lower().split())
+    out = SearchOut(q=q)
+    if not d.served or not d.restaurants:
+        return out
+    out.restaurants = [c for c in d.restaurants if needle in c.name.lower()
+                       or any(needle in x.lower() for x in [*c.cuisine_types, *c.tags])]
+    cards = {c.id: c for c in d.restaurants}
+    rank = {c.id: i for i, c in enumerate(d.restaurants)}
+    like = "%" + needle.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_") + "%"
+    rows = (await db.execute(select(MenuItem).where(
+        MenuItem.restaurant_id.in_([uuid.UUID(i) for i in cards]), MenuItem.name.ilike(like),
+        MenuItem.deleted_at.is_(None), MenuItem.is_available.is_(True)))).scalars().all()
+    with_options = set((await db.execute(select(MenuItemOptionGroup.menu_item_id).where(
+        MenuItemOptionGroup.menu_item_id.in_([m.id for m in rows])))).scalars().all()) if rows else set()
+    rows = sorted(rows, key=lambda m: (rank[str(m.restaurant_id)], m.sort_order, m.name))[:SEARCH_DISHES_MAX]
+    for m in rows:
+        c = cards[str(m.restaurant_id)]
+        out.dishes.append(DishHit(
+            id=str(m.id), name=m.name, price=str(m.price), photo_url=m.image_url, has_options=m.id in with_options,
+            restaurant_id=c.id, restaurant_slug=c.slug, restaurant_name=c.name, restaurant_path=c.path,
+            open_now=c.open_now, deliverable=c.deliverable, pickup_only=c.pickup_only))
+    return out
+
+
+def list_order(c: "Card") -> tuple:
+    """R36: open and deliverable first, then pickup only (too far to deliver, takes pickup), then closed;
+    a kitchen that's too far and takes no pickup last. Nearest first within each."""
+    if c.open_now and c.deliverable:
+        group = 0
+    elif c.open_now and c.pickup_only:
+        group = 1
+    elif c.deliverable or c.pickup_only:
+        group = 2
+    else:
+        group = 3
+    return (group, c.distance if c.distance is not None else 0, c.name)
 
 
 def _offer(c, restaurant: dict | None) -> Offer:  # type: ignore[no-untyped-def]
@@ -178,6 +264,7 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
     local = now.astimezone(ZoneInfo(tz))
     facts = await _city_facts(db, city, region, country, zone_id, city_path, hide, now, fresh=fresh)
     cards: list[Card] = []
+    free_chip = False
     offers: dict[str, Offer] = {}
     road: dict[str, float] = {}
     if lat is not None and lng is not None:
@@ -223,8 +310,12 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
             closed_for_now=a.closed_for_now, not_taking_orders=a.no_tablet,
             eta_min=k.delivery_time_min, eta_max=k.delivery_time_max,
             distance=float(distance) if distance is not None else None, delivery_fee=fee, deliverable=deliverable,
-            free_delivery=f.free_delivery, offer=f.card_offer))
-    cards.sort(key=lambda c: (not c.deliverable, not c.open_now, c.distance if c.distance is not None else 0, c.name))
+            free_delivery=f.free_delivery, offer=f.card_offer,
+            pickup_enabled=bool(k.pickup_enabled), pickup_only=bool(k.pickup_enabled) and not deliverable,
+            pickup_fee_percent=f.pickup_fee_percent if k.pickup_enabled else None,
+            minimum_order=str(k.minimum_order_amount) if k.minimum_order_amount else None))
+        free_chip = free_chip or f.free_delivery_by_restaurant
+    cards.sort(key=list_order)
     cuisines: dict[str, int] = {}
     for c in cards:
         for name in c.cuisine_types:
@@ -233,6 +324,7 @@ async def _discover(db: AsyncSession, lat: float | None, lng: float | None, city
     photos = pick_cuisine_photos(names, _photo_candidates(names, facts.everyone, {c.id for c in cards},
                                                           facts.dish_photos))
     base.restaurants = cards
+    base.free_delivery_chip = free_chip
     base.cuisines = [{"name": n, "count": cuisines[n], **({"photo": photos[n]} if n in photos else {})} for n in names]
     base.offers = sorted(offers.values(), key=lambda o: (o.restaurant is not None, o.title))
     return base
@@ -280,6 +372,8 @@ class _KitchenFacts:
     offers: list  # [Offer], best first
     card_offer: Offer | None
     free_delivery: bool
+    free_delivery_by_restaurant: bool = False  # R36: a free-delivery offer the restaurant pays for
+    pickup_fee_percent: str | None = None  # R36: the pickup platform fee percent
 
 
 @dataclass(frozen=True)
@@ -329,6 +423,7 @@ async def _compute_facts(db: AsyncSession, city, region, country, zone_id, city_
     everyone = {k.id: SimpleNamespace(
         id=k.id, slug=k.slug, name=k.name, lat=k.lat, lng=k.lng, delivery_radius_km=k.delivery_radius_km,
         minimum_order_amount=k.minimum_order_amount, cuisine_types=list(k.cuisine_types or []), tags=list(k.tags or []),
+        pickup_enabled=bool(getattr(k, "pickup_enabled", False)),
         area=(k.address or {}).get("landmark") if isinstance(k.address, dict) else None, cover_url=k.cover_url,
         logo_url=k.logo_url, rating=k.rating, review_count=getattr(k, "review_count", 0) or 0,
         created_at=getattr(k, "created_at", None), delivery_time_min=k.delivery_time_min, delivery_time_max=k.delivery_time_max)
@@ -349,8 +444,13 @@ async def _compute_facts(db: AsyncSession, city, region, country, zone_id, city_
                   and c.template != "referral"]
         offers = [_offer(c, ref if c.scope_level == "restaurant" else None)
                   for c in sorted(promos, key=lambda c: (c.scope_level != "restaurant", c.template != "free_delivery"))]
+        pf = resolved.get("fee:pickup_platform_fee_pct") or resolved.get("fee:platform_fee_pct")
+        pct = Decimal(str(pf.params["percent"])).normalize() if pf and pf.params.get("percent") is not None else None
         kitchens.append(_KitchenFacts(k=everyone[k.id], a=a, resolved=resolved, offers=offers, card_offer=offers[0] if offers else None,
-                                      free_delivery=any(c.template == "free_delivery" for c in promos)))
+                                      free_delivery=any(c.template == "free_delivery" for c in promos),
+                                      free_delivery_by_restaurant=any(c.template == "free_delivery"
+                                                                      and c.params.get("funded_by") == "restaurant" for c in promos),
+                                      pickup_fee_percent=f"{pct:f}" if pct is not None else None))
     return _Facts(kitchens=kitchens, everyone=list(everyone.values()), shown=shown, dish_photos=dish_photos)
 
 

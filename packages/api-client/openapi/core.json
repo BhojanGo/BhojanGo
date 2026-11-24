@@ -1731,6 +1731,17 @@
             ],
             "title": "Logo Url"
           },
+          "minimum_order": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Order"
+          },
           "name": {
             "title": "Name",
             "type": "string"
@@ -1779,6 +1790,27 @@
               }
             ],
             "title": "Photo Url"
+          },
+          "pickup_enabled": {
+            "default": false,
+            "title": "Pickup Enabled",
+            "type": "boolean"
+          },
+          "pickup_fee_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pickup Fee Percent"
+          },
+          "pickup_only": {
+            "default": false,
+            "title": "Pickup Only",
+            "type": "boolean"
           },
           "rating": {
             "title": "Rating",
@@ -4137,6 +4169,11 @@
             ],
             "title": "Distance Unit"
           },
+          "free_delivery_chip": {
+            "default": false,
+            "title": "Free Delivery Chip",
+            "type": "boolean"
+          },
           "offers": {
             "default": [],
             "items": {
@@ -4195,6 +4232,82 @@
           "served"
         ],
         "title": "Discover",
+        "type": "object"
+      },
+      "DishHit": {
+        "description": "R36: a dish whose name matches the search, with its restaurant (as the menu shows it).",
+        "properties": {
+          "deliverable": {
+            "title": "Deliverable",
+            "type": "boolean"
+          },
+          "has_options": {
+            "title": "Has Options",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "open_now": {
+            "title": "Open Now",
+            "type": "boolean"
+          },
+          "photo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Url"
+          },
+          "pickup_only": {
+            "title": "Pickup Only",
+            "type": "boolean"
+          },
+          "price": {
+            "title": "Price",
+            "type": "string"
+          },
+          "restaurant_id": {
+            "title": "Restaurant Id",
+            "type": "string"
+          },
+          "restaurant_name": {
+            "title": "Restaurant Name",
+            "type": "string"
+          },
+          "restaurant_path": {
+            "title": "Restaurant Path",
+            "type": "string"
+          },
+          "restaurant_slug": {
+            "title": "Restaurant Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "price",
+          "photo_url",
+          "has_options",
+          "restaurant_id",
+          "restaurant_slug",
+          "restaurant_name",
+          "restaurant_path",
+          "open_now",
+          "deliverable",
+          "pickup_only"
+        ],
+        "title": "DishHit",
         "type": "object"
       },
       "Document": {
@@ -11390,6 +11503,24 @@
             "title": "Quote Id",
             "type": "string"
           },
+          "restaurant_minimum": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "R36: the restaurant's own minimum food subtotal (null: none)",
+            "title": "Restaurant Minimum"
+          },
+          "short_by": {
+            "default": "0",
+            "description": "R36: how much more food is needed to reach it (0: met); the order can't be placed until 0",
+            "title": "Short By",
+            "type": "string"
+          },
           "tax_pending": {
             "description": "True when an external tax provider still adds tax (US until P9)",
             "title": "Tax Pending",
@@ -14145,6 +14276,35 @@
           "period_end"
         ],
         "title": "RunCreate",
+        "type": "object"
+      },
+      "SearchOut": {
+        "properties": {
+          "dishes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DishHit"
+            },
+            "title": "Dishes",
+            "type": "array"
+          },
+          "q": {
+            "title": "Q",
+            "type": "string"
+          },
+          "restaurants": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Card"
+            },
+            "title": "Restaurants",
+            "type": "array"
+          }
+        },
+        "required": [
+          "q"
+        ],
+        "title": "SearchOut",
         "type": "object"
       },
       "SearchResults": {
@@ -17969,6 +18129,104 @@
           }
         },
         "summary": "Discover",
+        "tags": [
+          "Discover"
+        ]
+      }
+    },
+    "/api/v1/discover/search": {
+      "get": {
+        "description": "R36: restaurants by name, cuisine or tag, and dishes by name (\"curry\": every restaurant's curries),\nfor a point (or a whole city), among the kitchens /discover lists there.",
+        "operationId": "search_api_v1_discover_search_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 60,
+              "minLength": 2,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lat",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 90,
+                  "minimum": -90,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lat"
+            }
+          },
+          {
+            "in": "query",
+            "name": "lng",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 180,
+                  "minimum": -180,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lng"
+            }
+          },
+          {
+            "in": "query",
+            "name": "city",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Z]{2}-[A-Z0-9]{1,3}-[A-Z0-9]{2,5}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "City"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Search",
         "tags": [
           "Discover"
         ]

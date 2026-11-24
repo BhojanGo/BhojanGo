@@ -54,7 +54,7 @@ def box(lat: float, lng: float, d: float = 0.01) -> dict:
 async def test_locate(client: AsyncClient) -> None:
     r = (await client.get("/api/v1/markets/locate", params={"lat": MADHAPUR[0], "lng": MADHAPUR[1]})).json()
     assert r["serviceable"] and r["zone_name"] == "Madhapur" and r["city_code"] == "IN-TG-HYD"
-    assert r["currency"] == "INR" and r["min_order"] == "99.00" and r["status"] == "live"
+    assert r["currency"] == "INR" and r["min_order"] == "0.00" and r["status"] == "live"  # R36: no zone minimum
 
     r = (await client.get("/api/v1/markets/locate", params={"lat": BOISE_DOWNTOWN[0], "lng": BOISE_DOWNTOWN[1]})).json()
     assert r["serviceable"] and r["city_code"] == "US-ID-BOI" and r["status"] == "live"  # R27: Boise is live

@@ -18,7 +18,7 @@ from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from shared.money import format_money, paid_after_refunds
+from shared.money import customer_money, paid_after_refunds
 
 TIMEZONE = {"IN": "Asia/Kolkata", "US": "UTC"}
 WHO_FUNDS = {"restaurant": "the restaurant", "platform": "BhojanGo"}
@@ -48,7 +48,7 @@ FALLBACK_FONTS = ("NotoSansDevanagari", "NotoSansTelugu", "NotoSansTamil", "Noto
 def money(amount: Decimal | float | str, currency: str) -> str:
     """₹1,24,050.00 (Indian grouping) or $1,240.50; a currency without a symbol: "AED 12.00".
     The one backend formatter (shared.money), so the PDF reads like the app."""
-    return format_money(amount, currency)
+    return customer_money(amount, currency)  # R36: India in whole rupees, as the app and website show it
 
 
 def receipt_date(at: datetime, country: str) -> str:
