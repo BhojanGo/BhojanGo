@@ -106,7 +106,9 @@ export function describe(template: string, params: P, units: Units): string {
     case "payout_tds": return Number(p.rate_percent) > 0
       ? `${String(p.label ?? "TDS")}: ${n(p.rate_percent)}% of the restaurant's food and packaging sales, taken from its payout`
       : `${String(p.label ?? "TDS")}: none deducted (0%)`;
-    case "external": return "Worked out by Stripe Tax for the delivery address · collected by BhojanGo";
+    case "external": return "Worked out by Stripe Tax for the delivery address · collected by BhojanGo"
+      // R33: the state's taxable lines (Idaho: food and the platform fee; not the delivery fee or the tip)
+      + (Array.isArray(p.taxable_lines) ? ` · taxable: ${(p.taxable_lines as string[]).map((l) => LINE_NAMES[l] ?? l).join(", ")}; everything else isn't` : "");
     case "platform_fee_pct": return `${n(p.percent)}% of the food subtotal, paid by the customer to BhojanGo`;
     case "min_platform_fee": return `At least ${m(p.amount, cur)} (when the percentage comes to less)`;
     case "card_fee_estimate": {

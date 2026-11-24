@@ -17,16 +17,18 @@ appId: com.bhojango.app
     centerElement: true
 - tapOn:
     id: "kitchen-card-spice-route-kitchen-madhapur"
-- extendedWaitUntil:
-    visible: "Chicken Dum Biryani"
-    timeout: 30000
+- scrollUntilVisible:  # R33: wherever the menu lists it
+    element:
+      text: "Chicken Dum Biryani"
+    direction: DOWN
+    timeout: 40000
 - scrollUntilVisible:
     element: "Paneer Tikka"
 - tapOn: "Paneer Tikka"
 - tapOn:
     id: "add-to-bag"
 - tapOn:
-    text: "View bag.*"
+    text: "View cart.*"
 - extendedWaitUntil:
     visible:
       id: "fair-bill"

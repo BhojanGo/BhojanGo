@@ -84,7 +84,7 @@ The BhojanGo website uses only functional cookies and browser storage that it ne
 | bg_addr | The delivery address you picked, so prices and restaurants are right for it | 1 year |
 | bg_hint, bg_hint_city | The country and city suggested from your IP address | 1 year |
 | bhojango-session (browser storage) | Keeps you signed in | Until you sign out |
-| bhojango-bag (browser storage) | The dishes in your bag | Until you order or empty it |
+| bhojango-bag (browser storage) | The dishes in your cart | Until you order or empty it |
 
 If you use "Sign in with Google", Google's sign-in script is loaded on the sign-in page and Google's own privacy policy applies to it. Maps on the tracking page load map images from OpenFreeMap (OpenStreetMap data); no account details are sent with them.
 

@@ -13,7 +13,7 @@ Ordering takes a few taps on the BhojanGo app or website.
 
 1. **Tell us where.** Enter your delivery address. Restaurants, prices and delivery fees depend on where your food is going.
 2. **Pick a restaurant.** You'll see the restaurants that deliver to you and are open now, with the delivery fee on every card.
-3. **Add your dishes.** Choose any options, like size or extras, and add them to your bag. A bag holds dishes from one restaurant at a time.
+3. **Add your dishes.** Choose any options, like size or extras, and add them to your cart. A cart holds dishes from one restaurant at a time.
 4. **Check out.** Sign in if you haven't, confirm your address, add a promo code if you have one and choose a tip for your delivery partner if you'd like.
 5. **Check the bill.** The fair bill shows every line and who gets it, and the price is held while you pay.
 6. **Pay.** As soon as your payment is confirmed, the restaurant gets your order.
@@ -24,7 +24,7 @@ At checkout you can add instructions for your delivery partner, like which gate 
 
 ## Minimum order
 
-Some delivery areas have a minimum order. If your bag is below it, checkout tells you the minimum. Some cities also add a small order fee to very small orders; if so, it's shown on the bill.
+Some delivery areas have a minimum order. If your cart is below it, checkout tells you the minimum. Some cities also add a small order fee to very small orders; if so, it's shown on the bill.
 
 ## After you pay
 

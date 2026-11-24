@@ -560,3 +560,21 @@ Machine-translated on 2026-11-20 into all seven languages; needs native review.
 - New, BhojanGo Kitchen app Payouts: `partner.payouts.tax_invoice_not_ready` ("Your tax invoice for this week
   isn't ready yet: we're finishing our company details. Try again in a day or two."), shown when the invoice
   is refused because our legal name isn't set in Markets yet. It must not suggest the kitchen did anything wrong.
+
+## Pickup orders (round 32)
+
+Machine-translated on 2026-11-23 into all seven languages; **needs native review**. (Reported in round 32 as
+23 strings; exactly, it is these 22 keys plus the 2 worker messages below.)
+
+- Checkout (website and customer app): `checkout.how` ("How do you want it?"), `checkout.delivery`,
+  `checkout.pickup`, `checkout.pickup_at` ("Pick up at"), `checkout.open_in_maps`, `checkout.pickup_ready`
+  ("Ready around {time}"), `checkout.pickup_note` (no delivery fee; a pickup code to show at the counter).
+- Order tracking: `track.pickup_code`, `track.pickup_code_note` ("Show this code at the counter"),
+  `track.pickup_waiting`, `track.pickup_locked` (too many wrong codes; the restaurant calls support),
+  `track.collected` ("Picked up"), `track.s_pickup_ready` ("Ready for pickup").
+- BhojanGo Restaurant app: `partner.orders.pickup_badge` ("Customer pickup"), `partner.orders.enter_code`,
+  `partner.orders.hand_over`, `partner.orders.code_wrong`, `partner.orders.code_locked`,
+  `partner.orders.waiting_customer`, `partner.orders.pickup_on`, `partner.orders.pickup_off`,
+  `partner.orders.pickup_toggle` ("Customers can collect orders at your counter").
+- Worker messages (`backend/worker/app/services/messages.py`): `order_ready_for_pickup` (title and body with
+  "pickup code {pin}") and `order_collected`.

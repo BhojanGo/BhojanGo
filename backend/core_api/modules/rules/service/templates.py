@@ -148,6 +148,10 @@ class TaxExternal(_P):
 
     provider: Literal["stripe_tax"] = "stripe_tax"
     collected_by: Literal["platform"] = "platform"
+    # R33: which bill lines are taxable where this rule applies (set per state: Idaho taxes the food and the
+    # platform fee, a service charge, but not a separately stated delivery fee; tips are never a bill line here).
+    # Unset: every line is sent and the provider decides by its tax code. Lines not listed are sent as non-taxable.
+    taxable_lines: list[TaxLine] | None = Field(default=None, examples=[["food", "platform_fee"]])
 
 
 # ── Fee model v2 (R29): platform fee, its minimum, the card fee estimate ───────

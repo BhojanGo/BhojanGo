@@ -1,0 +1,109 @@
+# R33: the customer's order before paying is a "cart" (never "bag"), in English and in Spanish (a US language).
+# A Boise customer (seed phone +1 208 555 0101) adds a dish: "Add to cart", "View cart"; then the header's
+# language pill switches to Español on this phone only (nothing saved on the account): "Ver carrito". Back to
+# English at the end.
+appId: com.bhojango.app
+---
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: "2085550101"
+      COUNTRY: "US"
+- extendedWaitUntil:
+    visible:
+      id: "home"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "kitchen-card-boise-bowl-co-hyde-park"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "kitchen-card-boise-bowl-co-hyde-park"
+- extendedWaitUntil:
+    visible: "Teriyaki Chicken Bowl"
+    timeout: 20000
+- tapOn: "Teriyaki Chicken Bowl"
+- extendedWaitUntil:
+    visible:
+      id: "add-to-bag"
+    timeout: 20000
+- assertVisible: "Add to cart.*"
+- assertNotVisible: ".*[Bb]ag.*"
+- takeScreenshot: docs/screenshots/customer/r33-cart-add-en
+- tapOn:
+    id: "add-to-bag"
+- extendedWaitUntil:
+    visible: "View cart.*"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/customer/r33-cart-bar-en
+- tapOn:
+    text: "View cart.*"
+- extendedWaitUntil:
+    visible: "Your cart"
+    timeout: 20000
+- assertNotVisible: ".*[Bb]ag.*"
+- takeScreenshot: docs/screenshots/customer/r33-cart-en
+# Spanish, from the home's language pill (this phone only)
+- back
+- back
+- scrollUntilVisible:  # home keeps its scroll position
+    element:
+      id: "language-pill"
+    direction: UP
+    timeout: 30000
+- tapOn:
+    id: "language-pill"
+- extendedWaitUntil:
+    visible:
+      id: "language-menu"
+    timeout: 5000
+- tapOn:
+    id: "language-option-es"
+- extendedWaitUntil:
+    notVisible:
+      id: "language-menu"
+    timeout: 20000
+- assertVisible:
+    id: "language-pill-code"
+    text: "ES"
+- scrollUntilVisible:
+    element:
+      id: "kitchen-card-boise-bowl-co-hyde-park"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "kitchen-card-boise-bowl-co-hyde-park"
+- extendedWaitUntil:
+    visible: "Ver carrito.*"
+    timeout: 20000
+- assertNotVisible: ".*[Bb]olsa.*"
+- takeScreenshot: docs/screenshots/customer/r33-cart-bar-es
+- tapOn:
+    text: "Ver carrito.*"
+- extendedWaitUntil:
+    visible: "Tu carrito"
+    timeout: 20000
+- assertNotVisible: ".*[Bb]olsa.*"
+- takeScreenshot: docs/screenshots/customer/r33-cart-es
+# Back to English
+- back
+- back
+- scrollUntilVisible:
+    element:
+      id: "language-pill"
+    direction: UP
+    timeout: 30000
+- tapOn:
+    id: "language-pill"
+- extendedWaitUntil:
+    visible:
+      id: "language-menu"
+    timeout: 5000
+- tapOn:
+    id: "language-option-en"
+- extendedWaitUntil:
+    visible:
+      id: "language-pill-code"
+      text: "EN"
+    timeout: 10000

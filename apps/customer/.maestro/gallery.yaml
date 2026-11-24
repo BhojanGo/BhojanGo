@@ -16,6 +16,6 @@ appId: com.bhojango.app
 - scrollUntilVisible:
     element: "Open the customise sheet"
 - tapOn: "Open the customise sheet"
-- assertVisible: "Add to bag · .*340.*"
-- tapOn: "Add to bag · .*340.*"
-- assertNotVisible: "Add to bag · .*340.*"
+- assertVisible: "Add to cart · .*340.*"
+- tapOn: "Add to cart · .*340.*"
+- assertNotVisible: "Add to cart · .*340.*"

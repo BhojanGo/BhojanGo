@@ -24,20 +24,23 @@ def india_pickup() -> dict:
 
 
 def test_boise_pickup_card() -> None:
-    """3.99 + 10.99 + 22.00, Idaho 6%, card: platform 1.85, tax 2.22, total 41.05, card fee 1.49 (the
-    restaurant's), restaurant 35.49, no delivery partner payout. Far beyond the 8 mi max: pickup has no limit."""
-    food = Decimal("36.98")
+    """3.99 + 10.99 + 22.00, Idaho 6%, card: platform 1.85, tax 2.33, total 41.16, card fee 1.49 (the
+    restaurant's), restaurant 35.49, no delivery partner payout. Far beyond the 8 mi max: pickup has no limit.
+    R33: the tax comes from Idaho's taxable lines (food + platform fee), not a food-only figure fed in."""
+    from core_api.modules.pricing.tests.test_idaho_tax import idaho, taxed
+
     inp = QuoteInputs(currency="USD", lines=[CartLine("A", 1, Decimal("3.99")), CartLine("B", 1, Decimal("10.99")),
                                             CartLine("C", 1, Decimal("22.00"))], distance=Decimal("0"),
-                      local_time=BOISE_AT, fulfillment="pickup",
-                      external_tax=[ExternalTax("Idaho sales tax", Decimal("6"), food, Decimal("2.22"), "US-ID", "local",
-                                                "taxcalc_test")])
-    q = compute(inp, us_pickup())
+                      local_time=BOISE_AT, fulfillment="pickup")
+    q = taxed(inp, idaho(us_pickup()))
+    inp = replace(inp, external_tax=[ExternalTax(ln.label, Decimal(ln.detail["rate_percent"]), Decimal(ln.detail["base"]),
+                                                 ln.amount, "US-ID", "local", "taxcalc_test")
+                                     for ln in q.lines if ln.code == "tax"])
     line = {ln.code: ln.amount for ln in q.lines}
     assert "delivery_fee" not in line and "tip" not in line
-    assert (line["platform_fee"], line["tax"]) == (Decimal("1.85"), Decimal("2.22"))  # 5% of 36.98 = 1.849
-    assert q.total == Decimal("41.05")
-    assert q.split.card_fee == Decimal("1.49")  # 2.9% of 41.05 + 0.30 = 1.4905
+    assert (line["platform_fee"], line["tax"]) == (Decimal("1.85"), Decimal("2.33"))  # 5% of 36.98 = 1.849; 6% of 38.83
+    assert q.total == Decimal("41.16")
+    assert q.split.card_fee == Decimal("1.49")  # 2.9% of 41.16 + 0.30 = 1.4936
     assert q.split.restaurant == Decimal("35.49")  # 36.98 - 1.49
     assert q.split.rider == Decimal("0")
     assert q.split.platform == Decimal("1.85")

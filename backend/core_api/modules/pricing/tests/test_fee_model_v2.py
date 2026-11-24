@@ -91,10 +91,12 @@ def priced(items: list[Decimal], tax: Decimal | None, tip: Decimal = Decimal(0),
                       local_time=datetime(2026, 11, 22, 12, 0, tzinfo=ZoneInfo("America/Boise")), tip=tip)
     first = compute(inp, rules or us_rules())
     assert first.tax_pending
-    # The tax provider decides what's taxable; here it taxes the food only, at 6%.
+    if tax is None:  # R33: Idaho's taxable lines (food + platform fee) through the tax provider, not a fed-in figure
+        from core_api.modules.pricing.tests.test_idaho_tax import idaho, taxed
+
+        return taxed(inp, idaho(rules or us_rules()))
     food = first.food_subtotal
-    amount = (food * Decimal("0.06")).quantize(Decimal("0.01")) if tax is None else tax
-    ext = [ExternalTax("Idaho sales tax", Decimal("6"), food, amount, "US-ID", "local", "taxcalc_test")]
+    ext = [ExternalTax("Idaho sales tax", Decimal("6"), food, tax, "US-ID", "local", "taxcalc_test")]
     return compute(replace(inp, external_tax=ext), rules or us_rules())
 
 
@@ -103,24 +105,24 @@ def test_b_exact_order() -> None:
     line = {ln.code: ln.amount for ln in q.lines}
     assert q.food_subtotal == Decimal("36.98")
     assert line["platform_fee"] == Decimal("3.70")
-    assert line["tax"] == Decimal("2.22")
+    assert line["tax"] == Decimal("2.44")  # R33: Idaho 6% of food + platform fee (40.68)
     assert line["delivery_fee"] == Decimal("3.99")
-    assert q.total == Decimal("46.89")
-    assert q.split.card_fee == Decimal("1.66")
+    assert q.total == Decimal("47.11")
+    assert q.split.card_fee == Decimal("1.67")  # 2.9% of 47.11 + 0.30 = 1.6662
     assert q.split.detail["commission"] == Decimal("0")
-    assert q.split.restaurant == Decimal("35.32")
+    assert q.split.restaurant == Decimal("35.31")
     assert q.split.rider == Decimal("3.99")
-    assert q.split.tax == Decimal("2.22")
+    assert q.split.tax == Decimal("2.44")
     assert q.split.platform == Decimal("3.70")  # BhojanGo keeps the platform fee
     assert q.split.restaurant + q.split.rider + q.split.tax + q.split.platform + q.split.card_fee == q.total
 
 
 def test_b_tip_goes_to_the_partner_and_is_left_out_of_the_card_fee() -> None:
     q = priced([Decimal("3.99"), Decimal("10.99"), Decimal("22.00")], tax=None, tip=Decimal("5.00"))
-    assert q.total == Decimal("51.89")
-    assert q.split.card_fee == Decimal("1.66")  # 2.9% of 46.89 (51.89 less the 5.00 tip) + 0.30
+    assert q.total == Decimal("52.11")
+    assert q.split.card_fee == Decimal("1.67")  # 2.9% of 47.11 (52.11 less the 5.00 tip) + 0.30
     assert q.split.rider == Decimal("8.99")
-    assert q.split.restaurant == Decimal("35.32")
+    assert q.split.restaurant == Decimal("35.31")
 
 
 def test_c_minimum_platform_fee() -> None:

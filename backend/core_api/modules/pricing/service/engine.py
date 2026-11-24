@@ -187,7 +187,7 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
 
     # ── guard rails ──────────────────────────────────────────────────────────
     if not inp.lines:
-        raise NotDeliverable("Your bag is empty")
+        raise NotDeliverable("Your cart is empty")
     pickup = inp.fulfillment == "pickup"
     radius = None if pickup else biz("max_radius")  # R32: a pickup order has no distance limit
     if radius:
@@ -299,7 +299,8 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     if pk and D(pk.params["amount"]) > 0:
         fees["packaging"] = add("packaging", "Packaging", D(pk.params["amount"]), pk, taxable_as="packaging").amount
     sg = None if pickup else rules.get("customer_fee:surge_levy")  # R32: busy hours are about delivery demand
-    if sg and any(_in_window(inp.local_time, w) for w in sg.params["windows"]):
+    # R33: off (0) in every seed; when on, all of it goes to the delivery partner (see the split)
+    if sg and D(sg.params["amount"]) > 0 and any(_in_window(inp.local_time, w) for w in sg.params["windows"]):
         fees["surge"] = add("surge", "Busy-hour fee", D(sg.params["amount"]), sg, taxable_as="surge").amount
     ln = rules.get("customer_fee:late_night_fee")
     if ln and _in_window(inp.local_time, ln.params["window"]):
@@ -328,7 +329,9 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
             if inp.external_tax is None:
                 tax_pending = True
                 continue
-            external_targets = ",".join(sorted({bl.taxable_as for bl in lines if bl.taxable_as}))
+            listed = t.params.get("taxable_lines")  # R33: the state's taxable lines (unset: the provider decided)
+            external_targets = ",".join(sorted({bl.taxable_as for bl in lines if bl.taxable_as
+                                                and (listed is None or bl.taxable_as in listed)}))
             for ext in inp.external_tax:
                 amount = add("tax", ext.label, ext.amount, t, detail={
                     "rate_percent": str(ext.rate_percent), "base": str(money(ext.base)), "jurisdiction": ext.jurisdiction,
@@ -422,7 +425,9 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     # R29: the delivery fee (before any offer: whoever funds the offer pays it) goes 100% to the
     # delivery partner, and so does the tip. R30: that is all the partner gets; nothing tops it up out
     # of the platform fee, so the platform fee is never reduced by partner pay.
-    delivery_to_partner = fees.get("delivery_fee", ZERO)
+    # R33: a busy-hour fee, when one is on, is the partner's too (100%; never BhojanGo's).
+    busy_hour = fees.get("surge", ZERO)
+    delivery_to_partner = fees.get("delivery_fee", ZERO) + busy_hour
     rider = money(delivery_to_partner + tip)
 
     government = money(tax_by_collector["platform"])
@@ -433,6 +438,7 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
                 "platform_funded_offers": money(-sum((bl.amount for bl in lines if bl.funded_by == "platform"), ZERO)),
                 "tip": tip, "tax_collected_by_restaurant": money(tax_by_collector["restaurant"]),
                 "card_fee": card_fee, "delivery_fee_to_partner": delivery_to_partner,
+                **({"busy_hour_fee_to_partner": busy_hour} if busy_hour else {}),
                 "platform_fee": fees.get("platform_fee", ZERO)},
     )
     return QuoteResult(

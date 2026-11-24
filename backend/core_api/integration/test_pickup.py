@@ -58,6 +58,10 @@ async def test_pickup_quote_order_code_and_lock(client: AsyncClient) -> None:  #
     fee = sum(Decimal(ln["amount"]) for ln in q["lines"] if ln["code"] == "platform_fee")
     assert fee == max(Decimal("0.99"), (food * Decimal("0.05")).quantize(C, rounding=ROUND_HALF_UP))
     assert q["fulfillment"] == "pickup" and q["pickup_address"]["street"] == "1520 N 13th St"
+    # R33: Idaho taxes the food and the platform fee (6%), through the tax provider and the state's rule
+    tax = next(ln for ln in q["lines"] if ln["code"] == "tax")
+    assert Decimal(tax["amount"]) == ((food + fee) * Decimal("0.06")).quantize(C, rounding=ROUND_HALF_UP), tax
+    assert tax["detail"]["targets"] == "food,platform_fee", tax["detail"]
 
     # A restaurant that hasn't turned pickup on can't be quoted for it.
     other = next(r for r in (await client.get("/api/v1/restaurants", params={"limit": 50})).json()["items"]

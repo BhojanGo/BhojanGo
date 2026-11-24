@@ -85,7 +85,7 @@ export default function RestaurantScreen() {
       </View>
       {inBag > 0 ? (
         <Pressable testID="view-bag" accessibilityRole="button" onPress={() => router.push("/bag")} style={styles.bagBar}>
-          {/* As the website's bar: "View bag", then the summary; no "·" between them (R12). */}
+          {/* As the website's bar: "View cart", then the summary; no "·" between them (R12). */}
           <Text style={[type.label, { color: color.white }]}>{t("kitchen.view_bag")}</Text>
           <Text style={[type.label, { color: color.white, flexShrink: 1 }]} numberOfLines={1}>
             {t("kitchen.bar_summary", { count: inBag, total: money(total, r.currency) })}

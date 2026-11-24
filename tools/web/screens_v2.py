@@ -157,11 +157,11 @@ try:
         def bag_with_two(page) -> None:  # type: ignore[no-untyped-def]
             page.goto(BASE + KITCHEN_PATH, wait_until="networkidle")
             page.get_by_role("button", name="Add Chicken Dum Biryani").click()
-            page.get_by_role("dialog").get_by_role("button", name=re.compile("^Add to bag")).click()
+            page.get_by_role("dialog").get_by_role("button", name=re.compile("^Add to cart")).click()
             page.get_by_role("button", name="Add Double Ka Meetha").click()
             sheet = page.get_by_role("dialog")
             if sheet.count():
-                sheet.get_by_role("button", name=re.compile("^Add to bag")).click()
+                sheet.get_by_role("button", name=re.compile("^Add to cart")).click()
             expect(page.locator("text=/2 items/ >> visible=true").first).to_be_visible(timeout=15000)  # the bag (desktop) or the bag bar (phone)
 
         # ── signed out ────────────────────────────────────────────────────────

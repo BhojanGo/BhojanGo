@@ -40,6 +40,60 @@ def case_stripe_tax_on_the_quote(h: H) -> None:
     print(f"  tax lines: {[(t['label'], t['amount'], t['detail'].get('rate_percent')) for t in taxes]}")
 
 
+def _calc(h: H, platform_code: str, shipping_code: str) -> dict:
+    """One Stripe Tax calculation for the R33 Boise order (3.99 + 10.99 + 22.00, platform fee 3.70, delivery
+    4.50 as a separately stated shipping line): tax per line (cents), with Stripe's taxability reasons."""
+    s = h.stripe
+    calc = s.tax.Calculation.create(
+        currency="usd",
+        line_items=[{"amount": a, "reference": r, "tax_code": c, "tax_behavior": "exclusive"} for r, a, c in (
+            ("food-1", 399, "txcd_40060003"), ("food-2", 1099, "txcd_40060003"), ("food-3", 2200, "txcd_40060003"),
+            ("platform_fee", 370, platform_code))],
+        shipping_cost={"amount": 450, "tax_code": shipping_code, "tax_behavior": "exclusive"},
+        customer_details={"address": {"country": "US", "state": "ID", "city": "Boise", "postal_code": "83702",
+                                      "line1": "1510 N 13th St"}, "address_source": "shipping"},
+        expand=["line_items.data.tax_breakdown"])
+    def g(obj, key: str, default=None):  # type: ignore[no-untyped-def]
+        """A field of a StripeObject (or dict) that may be missing from the answer (as tax.py's _g)."""
+        try:
+            v = obj[key]
+        except (KeyError, TypeError, AttributeError):
+            v = default
+        return default if v is None else v
+
+    def reasons(obj) -> list[str]:  # type: ignore[no-untyped-def]
+        return sorted({str(g(b, "taxability_reason")) for b in g(obj, "tax_breakdown", [])})
+
+    out: dict = {}
+    for li in g(g(calc, "line_items", {}), "data", []):
+        out[g(li, "reference")] = (g(li, "amount_tax"), reasons(li))
+    ship = g(calc, "shipping_cost", {})
+    out["delivery_fee(shipping)"] = (g(ship, "amount_tax"), reasons(ship))
+    out["total_tax"] = g(calc, "tax_amount_exclusive")
+    out["by_reason"] = sorted((str(g(b, "taxability_reason")), g(b, "taxable_amount"), g(b, "amount"))
+                              for b in g(calc, "tax_breakdown", []))
+    return out
+
+
+def case_stripe_tax_idaho_taxable_lines(h: H) -> None:
+    """R33: what Stripe Tax test mode returns for Idaho. (1) Stripe's own answer with each line's natural code
+    (platform fee as general services, delivery as shipping); (2) the app's mapping from Idaho's rule (platform
+    fee taxed with the meal, delivery a non-taxable shipping line): tax 2.44 = 6% of 40.68."""
+    natural = _calc(h, "txcd_20030000", "txcd_92010001")
+    print(f"  R33 Stripe Idaho, natural codes: {natural}")
+    mapped = _calc(h, "txcd_40060003", "txcd_00000000")
+    print(f"  R33 Stripe Idaho, rule mapping: {mapped}")
+    assert mapped["delivery_fee(shipping)"][0] == 0, mapped
+    assert mapped["platform_fee"][0] == 22, mapped  # 6% of 3.70
+    assert mapped["total_tax"] == 244, mapped
+    # The app's own quote: Idaho's rule leaves the delivery fee out of the tax
+    customer = h.api(CUSTOMER)
+    _, _, q, _ = h.boise_quote(customer)
+    for t in _tax_lines(q):
+        assert "delivery_fee" not in (t["detail"].get("targets") or ""), t["detail"]
+    print(f"  R33 app quote tax lines: {[(t['label'], t['amount'], t['detail'].get('targets')) for t in _tax_lines(q)]}")
+
+
 def case_card_succeeds_and_places_the_order(h: H) -> None:
     """4242 (pm_card_visa): Stripe's payment_intent.succeeded webhook places the order; the
     tax calculation becomes a Stripe Tax transaction."""

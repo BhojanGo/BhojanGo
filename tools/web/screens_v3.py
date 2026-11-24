@@ -155,7 +155,7 @@ with sync_playwright() as p:
         page.get_by_role("button", name=f"Add {name}").first.click()
         sheet = page.get_by_role("dialog")
         if sheet.count():
-            sheet.get_by_role("button", name=re.compile("^Add to bag")).click()
+            sheet.get_by_role("button", name=re.compile("^Add to cart")).click()
             expect(sheet).to_have_count(0, timeout=10000)
 
     for w in WIDTHS:
@@ -190,7 +190,7 @@ with sync_playwright() as p:
         pg.screenshot(path=str(png))
         Image.open(png).convert("RGB").save(png.with_suffix(".jpg"), quality=80, optimize=True)
         png.unlink()
-        pg.get_by_role("dialog").get_by_role("button", name=re.compile("^Add to bag")).click()
+        pg.get_by_role("dialog").get_by_role("button", name=re.compile("^Add to cart")).click()
         add(pg, second)
         shoot(pg, "WebKitchen", w)
         pg.goto(WEB + "/checkout", wait_until="networkidle")

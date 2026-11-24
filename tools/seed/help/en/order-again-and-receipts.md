@@ -3,7 +3,7 @@ slug: order-again-and-receipts
 topic: orders
 country: *
 title: How do I order again or get a receipt?
-summary: Find past orders in Your orders. Order again fills your bag with the same dishes at today's prices, and every paid order has a downloadable receipt.
+summary: Find past orders in Your orders. Order again fills your cart with the same dishes at today's prices, and every paid order has a downloadable receipt.
 popular: 0
 related: rate-your-order, report-a-problem-with-an-order, fair-bill-who-gets-your-money
 ---
@@ -11,7 +11,7 @@ All your orders live in [Your orders](/account/orders), newest first. You can se
 
 ## Order again
 
-Open a past order and tap **Order again**. We put the same dishes and options back in your bag so you can check out.
+Open a past order and tap **Order again**. We put the same dishes and options back in your cart so you can check out.
 
 - Dishes are priced at **today's** menu prices, not what you paid last time.
 - Dishes the restaurant no longer has, or that are sold out today, are left out.

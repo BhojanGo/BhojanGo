@@ -81,14 +81,15 @@ def test_bands_alone_also_stop_at_their_last_band() -> None:
 def test_boise_full_order() -> None:
     inp = QuoteInputs(currency="USD", lines=[CartLine("A", 1, Decimal("3.99")), CartLine("B", 1, Decimal("10.99")),
                                             CartLine("C", 1, Decimal("22.00"))], distance=Decimal("3.00"), local_time=BOISE_AT)
-    food = Decimal("36.98")
-    ext = [ExternalTax("Idaho sales tax", Decimal("6"), food, Decimal("2.22"), "US-ID", "local", "taxcalc_test")]
-    q = compute(replace(inp, external_tax=ext), us())
+    # R33: Idaho's taxable lines (food + platform fee; the delivery fee is untaxed), through the tax provider
+    from core_api.modules.pricing.tests.test_idaho_tax import idaho, taxed
+
+    q = taxed(inp, idaho(us()))
     line = {ln.code: ln.amount for ln in q.lines}
-    assert (line["platform_fee"], line["delivery_fee"], line["tax"]) == (Decimal("3.70"), Decimal("4.50"), Decimal("2.22"))
-    assert q.total == Decimal("47.40")
-    assert q.split.card_fee == Decimal("1.67")  # 2.9% of 47.40 + 0.30 = 1.6746
-    assert q.split.restaurant == Decimal("35.31")
+    assert (line["platform_fee"], line["delivery_fee"], line["tax"]) == (Decimal("3.70"), Decimal("4.50"), Decimal("2.44"))
+    assert q.total == Decimal("47.62")
+    assert q.split.card_fee == Decimal("1.68")  # 2.9% of 47.62 + 0.30 = 1.6810
+    assert q.split.restaurant == Decimal("35.30")
     assert q.split.rider == Decimal("4.50") == q.split.detail["delivery_fee_to_partner"]  # never more, never less
     assert q.split.platform == Decimal("3.70")
     assert q.split.restaurant + q.split.rider + q.split.tax + q.split.platform + q.split.card_fee == q.total

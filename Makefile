@@ -160,8 +160,8 @@ ci-i18n:
 	python tools/i18n/check_wording.py
 	python tools/i18n/check_app_lengths.py --self-test
 	python tools/i18n/check_app_lengths.py
-	PYTHONIOENCODING=utf-8 python tools/i18n/kitchen_scan.py --self-test
-	PYTHONIOENCODING=utf-8 python tools/i18n/kitchen_scan.py
+	PYTHONIOENCODING=utf-8 python tools/i18n/wording_scan.py --self-test
+	PYTHONIOENCODING=utf-8 python tools/i18n/wording_scan.py
 
 # Alert rules: valid, and the unit tests in alerts.test.yml (PaymentFailures fires on a rate).
 ci-observe:

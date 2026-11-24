@@ -513,6 +513,8 @@ COUNTRIES = [
 # (the spec says: confirm tax with a CA); admins change them in the console.
 # (family, template, key, name, scope_level, scope_id, params)
 # A restaurant scope_id is the restaurant's slug here; seed.py maps it to the id.
+IDAHO_TAXABLE = ["food", "packaging", "platform_fee", "service_fee", "small_order_fee", "late_night_fee"]  # R33
+
 RULES = [
     # India
     ("tax", "rate_on_lines", "gst_food", "GST on food and packaging", "country", "IN",
@@ -554,8 +556,9 @@ RULES = [
     ("delivery_fee", "distance_slabs", None, "Hyderabad delivery fee", "city", "IN-TG-HYD",
      {"slabs": [{"up_to": 3, "fee": 30}, {"up_to": 5, "fee": 40}, {"up_to": 7, "fee": 50}]}),
     ("customer_fee", "small_order_fee", None, "Small order fee", "city", "IN-TG-HYD", {"below": 99, "fee": 15}),
-    ("customer_fee", "surge_levy", None, "Evening surge", "city", "IN-TG-HYD",
-     {"windows": [{"start": "19:00", "end": "21:30"}], "amount": 15}),
+    # R33: the busy-hour fee is off (0) everywhere; if it is ever turned on, all of it goes to the delivery partner.
+    ("customer_fee", "surge_levy", None, "Busy-hour fee (off)", "city", "IN-TG-HYD",
+     {"windows": [{"start": "19:00", "end": "21:30"}], "amount": 0}),
     ("customer_fee", "packaging_levy", None, "Packaging", "restaurant", "spice-route-kitchen-madhapur", {"amount": 10}),
     # R29: a restaurant's own commission deal (restaurant level beats the country's 0%), so the demo shows an
     # override. Dev/QA seed only: the production seed (markets_data.rules) takes no restaurant-level rule (R30).
@@ -569,6 +572,10 @@ RULES = [
     ("business", "auto_refund_limit", None, "Automatic refunds for problem reports", "city", "IN-TG-HYD", {"max_per_order": 100}),
     # USA
     ("tax", "external", None, "Sales tax (Stripe Tax)", "country", "US", {"provider": "stripe_tax"}),
+    # R33: Idaho (Tax Commission guidance): food and the platform fee (a service charge) are taxable; a
+    # separately stated delivery fee and the tip are not. The busy-hour fee is a delivery charge (the partner's).
+    ("tax", "external", None, "Idaho sales tax: taxable lines", "region", "US-ID",
+     {"provider": "stripe_tax", "taxable_lines": IDAHO_TAXABLE}),
     ("business", "commission_tax", None, "Tax on commission", "country", "US", {"label": "Tax on commission", "rate_percent": 0, "ca_confirmed": False}),
     ("business", "payout_tds", None, "Tax withheld from kitchen payouts", "country", "US",
      {"label": "Tax withheld", "rate_percent": 0, "base": "gross_sales", "ca_confirmed": False}),
