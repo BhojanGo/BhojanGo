@@ -600,6 +600,29 @@ Migration `0050_no_zone_minimum` (data only: every zone's minimum order 0; Boise
   order from <restaurant>" and a progress bar; Pay is off and the API refuses the order (BELOW_MINIMUM) until met.
 - **Phones.** No page is wider than the screen at 360, 390 and 414 px (Playwright).
 
+## BhojanGo offer budgets and India's bill to the paisa (round 37, 2026-11-24)
+
+Migration `0051_platform_offer_budget` (one new table, `platform_offer_spend`; no data written).
+
+- **Offers BhojanGo pays for are off by default.** Every seed (base, demo, markets-only) adds them paused ("Off
+  by default ... set a monthly offer budget, then resume it"); restaurants' own offers are unchanged.
+- **A monthly budget per country, state or city** (admin: Pricing & Rules, Offers: "BhojanGo offer budgets";
+  setting one needs rules.approve). The nearest level with a budget is the pool an order spends from; none
+  anywhere is 0, so those offers don't run. A quote gives a BhojanGo-funded offer only when the whole of it fits
+  in what's left (budget $10, offer $3: three orders, not the fourth); placing the order checks again under a
+  lock (OFFER_ENDED: the bag prices again). Spend per pool and month (market time). Operations get an alert at
+  80% and at 100% (spent, or too little left to give the offer again). Home screens hide offers the budget can't
+  pay for.
+- **What an offer costs.** On each offer in admin: the most it can cost an order next to the platform fee
+  BhojanGo earns on that order (at the order size where the gap is largest), a warning when it can cost more,
+  and its budget (spent, left, running or not). Approvers can pause and resume BhojanGo's offers.
+- **India's bill to the paisa.** Menus, cards, search and cart item lines keep whole rupees (₹289). The fair
+  bill, Pay, receipts, order totals, refunds and customer messages show exact paise again (₹385.80), so the
+  printed lines add up to the total charged (R36 had rounded them). Checked on 8 engine bills, US and India, by
+  the shared bill rows, the website, the app and the receipt (`packages/ui/test/fixtures/bills.json`).
+- **Fixed on the way:** the "Who gets your money" example for a city with no paid orders yet counted the card
+  fee as tax (the simulator's split left it out).
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

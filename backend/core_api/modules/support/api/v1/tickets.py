@@ -18,7 +18,7 @@ from core_api.modules.identity.api.dependencies import AdminContext, require_per
 from core_api.modules.support.models import SupportTicket
 from shared import authz
 from shared.db import get_db
-from shared.money import customer_money
+from shared.money import format_money
 
 router = APIRouter(tags=["Support"])
 DB = Annotated[AsyncSession, Depends(get_db, scope="function")]
@@ -236,7 +236,7 @@ async def report_problem(order_id: uuid.UUID, data: ProblemIn, user: User, db: D
         except refunds.RefundError as e:
             raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "CANT_REFUND", "message": str(e)})
         return ProblemOut(outcome="refunded", amount=str(amount), currency=currency, limit=str(limit),
-                          message=f"Refunded {customer_money(amount, currency)} to your original payment. Sorry about that.")
+                          message=f"Refunded {format_money(amount, currency)} to your original payment. Sorry about that.")
     t = SupportTicket(kind="problem", status="open", market_city=order.market_city, country=(order.market_city or "IN")[:2],
                       requester_id=user.id, requester_role="customer", restaurant_id=order.restaurant_id, order_id=order.id,
                       topic=data.reason, note=(data.note or "").strip() or None,

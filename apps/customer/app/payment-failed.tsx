@@ -14,7 +14,7 @@ import { payFailedLine } from "../lib/notices";
 import { paymentStatus, payWithStripe, startPayment, waitForPayment, type PayOutcome, type PayStatus } from "../lib/pay";
 
 export default function PaymentFailed() {
-  const { money, t } = useI18n();
+  const { bill, t } = useI18n();
   const { orderId, method, provider, reason } = useLocalSearchParams<{ orderId: string; method: "upi" | "card"; provider?: string; reason?: string }>();
   const [status, setStatus] = useState<PayStatus | null>(null);
   /** The payment's status didn't load (offline, our servers): Retry, not a "0:00 left" timer. */
@@ -36,7 +36,7 @@ export default function PaymentFailed() {
   }, [orderId]);
 
   const left = status?.price_held_until ? Math.max(0, Math.floor((new Date(status.price_held_until).getTime() - now) / 1000)) : 0;
-  const total = status ? money(status.amount / 100, status.currency) : "";
+  const total = status ? bill(status.amount / 100, status.currency) : "";
 
   async function retry(with_: "upi" | "card", outcome: PayOutcome) {
     setSheet(null);

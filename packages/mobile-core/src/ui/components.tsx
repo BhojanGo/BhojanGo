@@ -172,7 +172,7 @@ interface FairRow { label: string; payee: string; amount: string; accent?: boole
  *   the usual fee struck through, then 0, paid by the kitchen or by us
  */
 export function FairBill({ lines, currency, totalLabel }: { lines: BillLine[]; currency: string; totalLabel?: string }) {
-  const { t, money } = useI18n();
+  const { t, bill: money } = useI18n();  // R37: the bill to the cent: its lines add up to the total
   const payee = (code: string) => t(PAYEE_KEY[code] ?? code);
   const delivery = lines.find((ln) => ln.code === "delivery_fee");
   const free = delivery && lines.find((ln) => ln.code === "promotion" && Number(delivery.amount) > 0 &&

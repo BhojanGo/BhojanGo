@@ -41,7 +41,7 @@ def ev(kind: str, **payload) -> dict:  # type: ignore[no-untyped-def]
 async def test_placed_tells_customer_and_restaurant() -> None:
     out = await plan(ev("order.placed"), FakeDirectory())  # type: ignore[arg-type]
     assert [(o.user_id, o.key) for o in out] == [(CUSTOMER, "order_placed"), (OWNER, "partner_new_order")]
-    assert out[0].total == "₹638" and out[0].params["code"] == "#AB12CD"  # R36: the customer reads whole rupees
+    assert out[0].total == "₹638.22" and out[0].params["code"] == "#AB12CD"
     assert out[1].params == {"code": "#AB12CD", "items": 3, "total": "₹638.22", "accept_by": "8:03 PM"}
 
 
@@ -60,7 +60,7 @@ async def test_status_changes() -> None:
 async def test_cancellations_say_whether_money_moved() -> None:
     d = FakeDirectory()
     refunded = (await plan(ev("order.cancelled", refund_amount=63822), d))[0]  # type: ignore[arg-type]
-    assert refunded.key == "order_cancelled_refunded" and refunded.params["refund"] == "₹638"
+    assert refunded.key == "order_cancelled_refunded" and refunded.params["refund"] == "₹638.22"
     assert (await plan(ev("order.cancelled", refund_amount=0), d))[0].key == "order_cancelled_unpaid"  # type: ignore[arg-type]
 
 
@@ -68,7 +68,7 @@ async def test_refunds_only_by_item_get_their_own_message() -> None:
     d = FakeDirectory()
     assert await plan(ev("payment.refunded", amount=63822, currency="INR", reason="restaurant_timeout"), d) == []  # type: ignore[arg-type]
     item = (await plan(ev("payment.refunded", amount=18700, currency="INR", items=[{"id": "x"}]), d))[0]  # type: ignore[arg-type]
-    assert item.key == "refund_items" and item.params["amount"] == "₹187"
+    assert item.key == "refund_items" and item.params["amount"] == "₹187.00"
 
 
 async def test_rider_assigned_and_payment_failed() -> None:
@@ -188,5 +188,5 @@ async def test_pickup_ready_sends_the_code_and_collected_is_the_receipt() -> Non
     assert POLICY["order_ready_for_pickup"] == ("push", "sms_fallback")
     assert "4821" in m.render("order_ready_for_pickup", "te", **ready[0].params).body
     done = await plan(ev("order.status_changed", new_status="delivered"), d)  # type: ignore[arg-type]
-    assert [o.key for o in done] == ["order_collected"] and done[0].total == "₹638"
+    assert [o.key for o in done] == ["order_collected"] and done[0].total == "₹638.22"
     assert await plan(ev("order.status_changed", new_status="ready"), FakeDirectory()) == []  # type: ignore[arg-type]

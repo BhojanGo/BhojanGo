@@ -364,6 +364,10 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("DELETE", "/api/v1/rules/fees"): admin("viewer", "ops_hyd", "cm_us", params=lambda c: {
         "level": "city", "scope_id": "IN-TG-HYD", "field": "platform_fee_pct"}),
     ("GET", "/api/v1/rules/commission/preview/{rule_id}"): admin("ops_boi", "cm_us", "finance_us"),
+    # R37: BhojanGo offer budgets (read: rules.view in the country; set: rules.approve at the place) and an offer's economics
+    ("GET", "/api/v1/rules/offers/budgets"): admin("ops_boi", "cm_us", params=lambda c: {"country": "IN"}),
+    ("PUT", "/api/v1/rules/offers/budgets/city/{city}"): admin("viewer", "ops_hyd", "cm_us", "support_hyd", body=lambda c: {"monthly": None}),
+    ("GET", "/api/v1/rules/offers/{rule_id}/economics"): admin("ops_boi", "cm_us", "finance_us"),
     ("GET", "/api/v1/finance/contribution"): admin(
         "ops_hyd", "support_hyd", "finance_us", params=lambda c: {"scope": "IN-TG-HYD", "start": "2026-11-09", "end": "2026-11-16"}),
     ("GET", "/api/v1/finance/payout-preview/restaurants/{restaurant_id}"): admin(
@@ -537,7 +541,8 @@ _ALIASES = {"/api/v1/markets/countries/{code}": "/api/v1/markets/countries/{coun
             "/api/v1/markets/regions/{code}": "/api/v1/markets/regions/{region}",
             "/api/v1/markets/regions/{code}/cities": "/api/v1/markets/regions/{region}/cities",
             "/api/v1/markets/cities/{code}": "/api/v1/markets/cities/{city}",
-            "/api/v1/markets/cities/{code}/zones": "/api/v1/markets/cities/{city}/zones"}
+            "/api/v1/markets/cities/{code}/zones": "/api/v1/markets/cities/{city}/zones",
+            "/api/v1/rules/offers/budgets/{level}/{code}": "/api/v1/rules/offers/budgets/city/{city}"}
 
 
 def routes() -> list[tuple[str, str]]:

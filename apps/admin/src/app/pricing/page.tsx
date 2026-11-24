@@ -14,6 +14,7 @@ import { Suspense, useMemo, useState } from "react";
 
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { type ParamsSchema, RuleEditor } from "@/components/ops/RuleEditor";
+import { OfferBudgets, OfferEconomics } from "@/components/pricing/PlatformOffers";
 import { adminApi } from "@/lib/api";
 import { can, firstCity, useAdminMe, useCity, useMarkets } from "@/lib/markets";
 import { ago, apiMessage, FAMILIES, useScope, type Rule } from "@/lib/ops";
@@ -297,7 +298,10 @@ function RuleDetail({ rule, label, schema, onChanged }: { rule: Rule; label: str
   const isLive = state.key === "live" || state.key === "paused" || state.key === "scheduled";
   const mayEdit = can(me, "rules.edit", where);
   const kitchenOffer = rule.family === "promotion" && rule.scope_level === "restaurant" && rule.params.funded_by === "restaurant" && (state.key === "live" || state.key === "paused");
-  const mayPause = kitchenOffer && (can(me, "partners.edit", where) || can(me, "rules.approve", where));
+  // R37: an offer BhojanGo pays for spends its budget: those who approve money rules pause or resume it
+  const platformOffer = rule.family === "promotion" && rule.params.funded_by === "platform" && (state.key === "live" || state.key === "paused");
+  const mayPause = (kitchenOffer && (can(me, "partners.edit", where) || can(me, "rules.approve", where)))
+    || (platformOffer && can(me, "rules.approve", where));
   const mineToApprove = rule.status === "pending_approval" && can(me, "rules.approve", where) && rule.created_by !== me?.user_id;
   return (
     <section className="space-y-4 rounded-2xl bg-white p-6" aria-label={`Rule · ${rule.name ?? rule.template}`}>
@@ -323,6 +327,7 @@ function RuleDetail({ rule, label, schema, onChanged }: { rule: Rule; label: str
           onSave={(p) => void run(() => adminApi.patch(`/user/rules/${rule.id}`, { params: p }), "Draft saved.", rule.id)} saveLabel="Save draft" />
       ) : <Params rule={rule} />}
       {isDraft && rule.family === "commission" && rule.template !== "payout_schedule" ? <PreviewBox rule={rule} /> : null}
+      {rule.family === "promotion" ? <OfferEconomics ruleId={rule.id} units={units(where)} paused={!!rule.paused_at} live={state.key === "live"} /> : null}
       <div className="flex flex-wrap items-center gap-2">
         {isDraft && mayEdit && !editing ? (
           <>
@@ -354,9 +359,10 @@ function RuleDetail({ rule, label, schema, onChanged }: { rule: Rule; label: str
         {rule.status === "pending_approval" && rule.created_by === me?.user_id ? <span className="text-small text-muted">Waiting for a second admin to approve.</span> : null}
         {simCity ? <Link href={`/pricing/simulator?city=${simCity}`} className="ml-auto text-label text-peacock">Try it in the price simulator →</Link> : null}
       </div>
-      {kitchenOffer ? (
-        <section className="space-y-2 rounded-xl border border-line p-4" aria-label="The restaurant's own offer">
-          <p className="text-small">The kitchen pays for this offer, so it went live without approval.{rule.paused_at ? <> <b>Paused {ago(rule.paused_at)}:</b> {rule.paused_reason}</> : null}</p>
+      {kitchenOffer || platformOffer ? (
+        <section className="space-y-2 rounded-xl border border-line p-4" aria-label={kitchenOffer ? "The restaurant's own offer" : "An offer BhojanGo pays for"}>
+          <p className="text-small">{kitchenOffer ? "The restaurant pays for this offer, so it went live without approval." : "BhojanGo pays for this offer from the place's monthly offer budget."}
+            {rule.paused_at ? <> <b>Paused {ago(rule.paused_at)}:</b> {rule.paused_reason}</> : null}</p>
           {mayPause && !rule.paused_at ? (
             <div className="flex flex-wrap gap-2">
               <input aria-label="Why pause it (the restaurant sees this)" placeholder="Why pause it? The restaurant sees this" value={reason} maxLength={300}
@@ -447,6 +453,7 @@ function PricingPage() {
           Approvals {approvals.data?.length ? <span className="ml-1 rounded-full bg-kesar px-1.5 text-small text-white">{approvals.data.length}</span> : null}
         </button>
       </nav>
+      {tab === "promotion" && country ? <OfferBudgets country={country} scope={scope} units={units(scope)} /> : null}
       <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
         <section className="rounded-2xl bg-white p-2" aria-label="Rules">
           {mayAdd ? (

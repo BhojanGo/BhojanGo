@@ -45,7 +45,7 @@ class PromotionSpend(Base):
     )
 
 
-__all__ = ["OrderPricingSnapshot", "PromotionSpend"]
+__all__ = ["OrderPricingSnapshot", "PlatformOfferSpend", "PromotionSpend", "PromotionSpendWeek"]
 
 
 class PromotionSpendWeek(Base):
@@ -59,3 +59,21 @@ class PromotionSpendWeek(Base):
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
     spent: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal("0"))
     orders: Mapped[int] = mapped_column(nullable=False, default=0)
+
+
+class PlatformOfferSpend(Base):
+    """R37: what BhojanGo-funded offers cost per budget pool (``city:IN-TG-HYD``, ``region:US-ID``,
+    ``country:IN``) and calendar month (market time); see pricing/service/offer_budget.py.
+    ``alerted``: the highest alert raised this month (0, 80 or 100)."""
+
+    __tablename__ = "platform_offer_spend"
+
+    pool: Mapped[str] = mapped_column(String(40), primary_key=True)
+    month: Mapped[date] = mapped_column(Date, primary_key=True)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    spent: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal("0"))
+    orders: Mapped[int] = mapped_column(nullable=False, default=0)
+    alerted: Mapped[int] = mapped_column(nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+    )

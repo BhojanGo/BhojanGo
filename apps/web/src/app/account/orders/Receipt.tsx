@@ -202,7 +202,7 @@ export function Receipt({ id }: { id: string }) {
                   {i.quantity ?? 1} × {i.name}
                   {opts && <span className="text-muted"> · {opts}</span>}
                 </span>
-                {line != null && <b className="shrink-0 tabular-nums">{f.money(line, order.currency)}</b>}
+                {line != null && <b className="shrink-0 tabular-nums">{f.bill(line, order.currency)}</b>}
               </li>
             );
           })}
@@ -225,7 +225,7 @@ export function Receipt({ id }: { id: string }) {
               <p className="text-small text-muted">{t("account.receipt.no_bill")}</p>
               <div className="mt-4 flex items-baseline justify-between border-t border-dashed border-[#C9D3D4] pt-4">
                 <b className="text-h3">{t("account.receipt.total")}</b>
-                <b className="text-h3 tabular-nums">{f.money(order.total, order.currency)}</b>
+                <b className="text-h3 tabular-nums">{f.bill(order.total, order.currency)}</b>
               </div>
             </>
           )}
@@ -233,13 +233,13 @@ export function Receipt({ id }: { id: string }) {
             <div data-testid="receipt-refunds" className="mt-3 flex flex-col gap-2 text-body">
               {back.refunds.map((r, n) => (
                 <div key={n} className="flex justify-between gap-3">
-                  <span>{t("account.receipt.refund_line", { amount: f.money(r.amount, bill.currency), reason: t(`account.receipt.refund_reason.${r.reason}`) })}</span>
-                  <span className="shrink-0 tabular-nums">{f.money(-r.amount, bill.currency)}</span>
+                  <span>{t("account.receipt.refund_line", { amount: f.bill(r.amount, bill.currency), reason: t(`account.receipt.refund_reason.${r.reason}`) })}</span>
+                  <span className="shrink-0 tabular-nums">{f.bill(-r.amount, bill.currency)}</span>
                 </div>
               ))}
               <div className="flex items-baseline justify-between border-t border-dashed border-[#C9D3D4] pt-3">
                 <b className="text-h3">{t("account.receipt.total_paid")}</b>
-                <b data-testid="receipt-total-paid" className="text-h3 tabular-nums">{f.money(back.paid, bill.currency)}</b>
+                <b data-testid="receipt-total-paid" className="text-h3 tabular-nums">{f.bill(back.paid, bill.currency)}</b>
               </div>
             </div>
           )}

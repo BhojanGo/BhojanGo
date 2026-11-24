@@ -357,7 +357,7 @@ export function Tracking({ id }: { id: string }) {
           <span className="min-w-0 flex-grow tabular-nums">
             {kitchenPath ? <Link href={kitchenPath} className="font-bold text-[#111418]">{kitchen}</Link> : <b>{kitchen}</b>}
             {" · "}
-            {t("kitchen.items", { count })} · {f.money(bill?.total ?? order.total, order.currency)}
+            {t("kitchen.items", { count })} · {f.bill(bill?.total ?? order.total, order.currency)}
           </span>
           <a href="#receipt" className="font-bold">{t("track.receipt")}</a>
           <Link href={`/account/orders/${id}/report`} className="font-bold">{t("track.help")}</Link>
@@ -570,7 +570,7 @@ function CancelOrder({ order, onDone, onRefresh }: { order: Order; onDone: (o: O
           <h2 id="cancel-h" className="m-0 text-h3">{t("track.cancel_title")}</h2>
           <p id="cancel-money" className="m-0 mt-2 text-body text-[#3D4A4E]">
             {refund > 0
-              ? t("track.cancel_refund", { amount: f.money(refund, order.currency), method: payLabel(t, c.refund_to) })
+              ? t("track.cancel_refund", { amount: f.bill(refund, order.currency), method: payLabel(t, c.refund_to) })
               : t("track.cancel_nothing")}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
@@ -597,9 +597,9 @@ function RefundLine({ order }: { order: Order }) {
   const paid = (order.status_history as { status: string }[] | undefined)?.some((h) => h.status === "placed");
   if (order.refunded) {
     return <p className="m-0 rounded-[18px] bg-[#EFF6F6] px-[18px] py-[14px] text-body text-[#083F46]" data-testid="refund-line">
-      {t("track.refunded", { amount: f.money(order.refunded, order.currency), method: payLabel(t, order.payment_method) })}</p>;
+      {t("track.refunded", { amount: f.bill(order.refunded, order.currency), method: payLabel(t, order.payment_method) })}</p>;
   }
   if (!paid) return null;
   return <p className="m-0 rounded-[18px] bg-[#EFF6F6] px-[18px] py-[14px] text-body text-[#083F46]" data-testid="refund-line">
-    {t("track.refund_pending", { amount: f.money(order.total, order.currency), method: payLabel(t, order.payment_method) })}</p>;
+    {t("track.refund_pending", { amount: f.bill(order.total, order.currency), method: payLabel(t, order.payment_method) })}</p>;
 }

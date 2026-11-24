@@ -78,7 +78,8 @@ async def test_each_invoice_is_its_own_statements_week(client: AsyncClient) -> N
     spice = order["restaurant_id"]
     # Both biryanis were the kitchen's mistake: the week ends below zero, so the next week's statement
     # exists with no orders, only the balance carried in (as in R24's review).
-    support = await login(client, "support.hyd@example.com", ADMIN)
+    # R37: city ops refund it: with no launch offer the bag is ₹50 dearer, above support's ₹500 an order
+    support = await login(client, "ops.hyd@example.com", ADMIN)
     biryani = order["items"][0]["menu_item_id"]
     r = await client.post(f"/api/v1/payments/orders/{order['id']}/refunds", headers=support,
                           json={"items": [{"menu_item_id": biryani, "quantity": 2}], "reason": "missing_item"})

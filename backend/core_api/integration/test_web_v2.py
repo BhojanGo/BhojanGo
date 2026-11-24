@@ -149,10 +149,8 @@ async def test_discover_an_address(client: AsyncClient) -> None:
     spice = next(k for k in d["restaurants"] if k["slug"] == "spice-route-kitchen-madhapur")
     assert spice["path"] == "/in/hyderabad/spice-route-kitchen-madhapur"
     assert float(spice["delivery_fee"]) > 0 and spice["distance"] is not None
-    # Hyderabad's launch offer, paid for by the platform, on every Hyderabad kitchen
-    launch = next(o for o in d["offers"] if o["template"] == "percent_off")
-    assert launch["funded_by"] == "platform" and launch["percent"] == "10" and launch["restaurant"] is None
-    assert spice["offer"]["id"] == launch["id"]
+    # R37: Hyderabad's launch offer is paid for by BhojanGo, so it is off in the seed (no offer budget): no card shows it
+    assert all(o["funded_by"] == "restaurant" for o in d["offers"]) and spice["offer"] is None
     assert all(c["count"] >= 2 for c in d["cuisines"])  # a cuisine needs two kitchens (web v3)
     # a whole city (its page): no per-address fees
     city = (await client.get("/api/v1/discover", params={"city": "IN-TG-HYD"})).json()

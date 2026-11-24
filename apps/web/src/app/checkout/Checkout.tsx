@@ -302,7 +302,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
     }
   }
 
-  const payLabel = q ? t("checkout.pay_with", { amount: f.money(q.total, q.currency), method: chosen ? t(`checkout.short_${chosen.type}`) : "" }) : t("checkout.pay");
+  const payLabel = q ? t("checkout.pay_with", { amount: f.bill(q.total, q.currency), method: chosen ? t(`checkout.short_${chosen.type}`) : "" }) : t("checkout.pay");
   // R36: under the restaurant's own minimum the whole bill still shows; Pay waits until it's met
   const short = q ? Number((q as { short_by?: string | number }).short_by ?? 0) : 0;
   const minimum = q && (q as { restaurant_minimum?: string | number | null }).restaurant_minimum != null
@@ -328,7 +328,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
         <FairBill lines={q.lines} total={q.total} currency={q.currency} formatLocale={f.formatLocale} t={t} distance={distance} totalLabel={t("checkout.you_pay")} compact />
       ) : (
         <div>
-          <div className="flex justify-between text-body"><span>{t("bill.line_food")}</span><b className="tabular-nums">{money(subtotal)}</b></div>
+          <div className="flex justify-between text-body"><span>{t("bill.line_food")}</span><b className="tabular-nums">{f.bill(subtotal, bag.restaurant?.currency)}</b></div>
           <p className="mt-2 text-small text-muted" aria-live="polite">{quote.loading ? t("checkout.working_out") : quote.error ?? (deliverTo || pickup ? t("checkout.working_out") : t("checkout.choose_address"))}</p>
         </div>
       )}
@@ -566,12 +566,12 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
         </aside>
       </div>
 
-      {fake && <FakePay amount={q ? f.money(q.total, q.currency) : ""} onClose={() => setFake(null)} onOutcome={(o) => void finishFake(o)} />}
+      {fake && <FakePay amount={q ? f.bill(q.total, q.currency) : ""} onClose={() => setFake(null)} onOutcome={(o) => void finishFake(o)} />}
       {stripe && (
         <StripePay
           checkout={stripe.checkout}
           returnUrl={stripeReturnUrl(typeof window !== "undefined" ? window.location.origin : "", stripe.orderId)}
-          amount={q ? f.money(q.total, q.currency) : ""}
+          amount={q ? f.bill(q.total, q.currency) : ""}
           onClose={() => setStripe(null)}
           onPaid={() => {
             const id = stripe.orderId;

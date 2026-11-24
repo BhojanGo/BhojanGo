@@ -25,7 +25,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from shared.money import customer_money, format_money
+from shared.money import format_money
 from shared.texts import INCIDENT_MESSAGES, LANGUAGES, fallback_name, language_for, preset_text
 
 __all__ = ["LANGUAGES", "language_for"]
@@ -339,8 +339,9 @@ def minor_to_money(minor: int | str, currency: str) -> str:
 
 
 def to_customer_money(amount: Decimal | float | str, currency: str) -> str:
-    """R36: what a customer reads (India: whole rupees, ₹289); restaurants and partners keep ``money``."""
-    return customer_money(amount, currency)
+    """What a customer's message says about money they paid or get back. R37: exact paise (₹385.80), as
+    on the bill and the receipt (R36 had whole rupees; menus and carts still show them)."""
+    return format_money(amount, currency)
 
 
 def minor_to_customer_money(minor: int | str, currency: str) -> str:

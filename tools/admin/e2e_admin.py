@@ -337,6 +337,41 @@ with sync_playwright() as p:
     page.screenshot(path=f"{OUT}/07b-offer-paused.png", full_page=True)
     api.post(f"{CORE}/restaurants/{rest['id']}/offers/{offer['id']}/end", headers=partner_h)
 
+    # R37: offers BhojanGo pays for: off (paused) in the seed, a monthly budget per place, and for each offer
+    # what it costs an order next to the platform fee it earns, with a warning when it can cost more.
+    adm = token("admin@example.com", PW)
+    api.put(f"{CORE}/rules/offers/budgets/city/IN-TG-HYD", headers=adm, data={"monthly": None})
+    costly = api.post(f"{CORE}/rules", headers=adm, data={
+        "family": "promotion", "template": "flat_off", "key": "r37_e2e", "name": "R37 ₹100 off any order",
+        "params": {"amount": 100, "funded_by": "platform"}, "scope_level": "city", "scope_id": "IN-TG-HYD"}).json()
+    try:
+        page.goto(f"{BASE}/pricing?scope=IN-TG-HYD&tab=promotion", wait_until="networkidle")
+        budgets = page.get_by_role("region", name="BhojanGo offer budgets")
+        check("R37 offer budgets: Hyderabad has none, so BhojanGo's offers are off", lambda: (
+            expect(budgets.get_by_test_id("budget-IN-TG-HYD")).to_contain_text("Off: no budget", timeout=15000),
+            expect(budgets.get_by_test_id("budget-IN-TG-HYD").get_by_test_id("budget-spent")).to_contain_text("0%")))
+        page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("10% off, up to")).first.click()
+        check("R37 the seeded launch offer: paused, BhojanGo pays for it, approvers can resume it", lambda: (
+            expect(page.get_by_role("region", name="An offer BhojanGo pays for").get_by_text(re.compile("Off by default"))).to_be_visible(timeout=15000),
+            expect(page.get_by_test_id("offer-running")).to_have_text("Paused: customers don't see it."),
+            expect(page.get_by_role("button", name="Resume offer")).to_be_visible(),
+            expect(page.get_by_test_id("offer-cost-warning")).to_have_count(0)))  # 10% up to ₹50 never beats a 10% fee
+        budgets.get_by_label("Monthly budget for Hyderabad").fill("5000")
+        budgets.get_by_test_id("budget-IN-TG-HYD").get_by_role("button", name="Save").click()
+        check("R37 a city budget: saved, spends from Hyderabad's own", lambda: (
+            expect(budgets.get_by_test_id("budget-IN-TG-HYD")).to_contain_text("₹0.00 of ₹5,000.00", timeout=15000),
+            expect(budgets.get_by_test_id("budget-IN-TG-HYD")).not_to_contain_text("Off: no budget")))
+        page.get_by_role("region", name="Rules").get_by_role("button", name=re.compile("R37 ₹100 off any order")).first.click()
+        check("R37 an offer that can cost more than the platform fee: the warning", lambda: (
+            expect(page.get_by_test_id("offer-cost-warning")).to_contain_text("can cost more than the platform fee", timeout=15000),
+            expect(page.get_by_test_id("offer-cost")).to_contain_text("up to ₹100"),
+            expect(page.get_by_test_id("offer-budget")).to_contain_text("Hyderabad: ₹0.00 of ₹5,000.00"),
+            expect(page.get_by_test_id("offer-running")).to_contain_text("Not live yet")))  # a draft
+        page.screenshot(path=f"{OUT}/07h-offer-budget-warning.png", full_page=True)
+    finally:
+        api.delete(f"{CORE}/rules/{costly['id']}", headers=adm)
+        api.put(f"{CORE}/rules/offers/budgets/city/IN-TG-HYD", headers=adm, data={"monthly": None})
+
     # Batching (task 43): a per-city switch among the business rules, off by default. It changes
     # rider pay, so it needs a second admin like money rules.
     fin_us = token("finance.us@example.com", PW)
