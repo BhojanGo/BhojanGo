@@ -720,6 +720,27 @@ it logs any existing run that isn't Monday to Monday, overlaps another, or share
   (`tools/sweep/sweep_web.py`, in CI), and new Maestro sweep flows for the app screens no flow opened: see
   `qa-artifacts/r41/sweep/index.md`.
 
+## Test isolation and functional validation (round 42, 2026-11-25)
+
+No migration.
+
+- **Tests never touch the dev database.** Integration tests run on `bhojango_test_<id>`, made, migrated, seeded and
+  dropped per run (`tools/test_db.py`, `make test-integration`, CI's Migrations job); `--prove-untouched` counts the
+  dev database (orders, refunds, payout runs, statements, balances, disputes, tickets, users) before and after and
+  fails if anything changed. `tools/target_guard.py` refuses a database without "test" in its name and an API whose
+  `/health` doesn't say `test_database: true`. Proof: qa-artifacts/r42/isolation-proof.md (2,174 tests, every count +0).
+- **Every route has a functional spec** (`tools/sweep/routes.py --check` in `make ci-guard`): 98 routes from the
+  Next.js and expo-router directories; specs in `tools/sweep/functional/<app>/<route>.json` (action → expected → how
+  it's verified). Round 41's sweep missed the admin root `/`.
+- **Page by page:** `tools/sweep/functional/run.sh` (website and admin, US and India users, numbers against the API
+  answers and the database, then every page with core-api stopped) and the r42 Maestro flows; CI job "Functional
+  pages (R42)". Report: qa-artifacts/r42/functional/index.md.
+- **Fixed:** checkout said a promo code was "applied" when it took nothing off; a restaurant page without an address
+  showed the old `delivery_fee` column ($2.99) while the bill charged the band ($3.50); admin Fees and the simulator
+  ignored the picked place; an admin role could be granted at a place that doesn't exist; the app didn't preselect
+  the city's default tip as the website does.
+- **QA (approved):** India's restaurant documents say "restaurant" (14 texts; qa-artifacts/r42/qa-documents-change.md).
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.
