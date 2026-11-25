@@ -255,7 +255,7 @@ export default function MenuScreen() {
         setCreating(false);
       }} />
       {dish && menu.data ? (
-        <DishEditor key={dish === "new" ? "new" : dish.id} data={menu.data} dish={dish === "new" ? null : dish} onClose={() => setDish(null)}
+        <DishEditor key={dish === "new" ? "editor-new" : `editor-${dish.id}`} data={menu.data} dish={dish === "new" ? null : dish} onClose={() => setDish(null)}
           onSaved={async () => { setDish(null); await menu.reload(); }}
           onPhoto={(d) => setEditing({ ...d, price: d.price })}
           onHistory={(d) => setSheet({ history: { id: d.id, name: d.name } })} />
@@ -267,7 +267,7 @@ export default function MenuScreen() {
         <HistorySheet rid={id} currency={cur} item={sheet.history} onClose={() => setSheet(null)} />
       ) : null}
       {editing ? (
-        <DishPhoto key={editing.id} item={editing} currency={cur} kitchenId={id} onClose={() => setEditing(null)}
+        <DishPhoto key={`photo-${editing.id}`} item={editing} currency={cur} kitchenId={id} onClose={() => setEditing(null)}
           onSaved={async () => { setEditing(null); setDish(null); await menu.reload(); }} />
       ) : null}
     </SafeAreaView>

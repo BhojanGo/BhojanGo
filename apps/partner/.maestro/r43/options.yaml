@@ -38,17 +38,23 @@ appId: com.bhojango.partner
 - tapOn:
     id: "option-name-0"
 - inputText: "Half"
-- hideKeyboard
+- pressKey: Enter
 - tapOn:
     id: "add-option"
 - tapOn:
     id: "option-name-1"
 - inputText: "Full"
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: "option-price-1"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "option-price-1"
 - eraseText: 5
 - inputText: ${output.full}
-- hideKeyboard
+- pressKey: Enter
 - takeScreenshot: docs/screenshots/partner/r43-options-${MARKET}-group
 - tapOn:
     id: "group-save"
@@ -64,11 +70,17 @@ appId: com.bhojango.partner
     id: "dish-from"
 - eraseText: 5
 - inputText: ${output.from}
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: "dish-until"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "dish-until"
 - eraseText: 5
 - inputText: ${output.until}
-- hideKeyboard
+- pressKey: Enter
 - takeScreenshot: docs/screenshots/partner/r43-options-${MARKET}-hours
 - scrollUntilVisible:
     element:
