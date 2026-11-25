@@ -21,6 +21,7 @@ import framework as fw  # noqa: E402
 import admin  # noqa: E402,F401
 import apps  # noqa: E402,F401
 import web  # noqa: E402,F401
+import r43  # noqa: E402,F401  (R43: the Stripe test-mode path is an app_fn there)
 
 APP = {"web": "website", "admin": "admin", "customer": "customer app", "partner": "restaurant app", "rider": "delivery partner app"}
 MONEY_KINDS = {"number"}
@@ -70,7 +71,8 @@ def main() -> int:
             if "{user}" in f.maestro:
                 shots = [x for x in have if x.startswith(name.rsplit("-", 1)[0]) and f"-{user}" in x] or shots
             rows.append({"app": f.app, "page": f.route, "function": f.id, "kind": f.kind, "user": user, "expected": f.expected,
-                         "actual": f"Maestro {name}.yaml: {res}" if f.maestro else "not automated yet",
+                         "actual": (f"Stripe test mode (tools/stripe_e2e/test_r43_full_path.py, Payments e2e check): {res}" if name.startswith("stripe-")
+                                    else f"Maestro {name}.yaml: {res}") if f.maestro else "not automated yet",
                          "result": "PASS" if res.startswith("PASS") else ("FAIL" if res.startswith("FAIL") else "NOT RUN"),
                          "screenshots": [f"apps/{f.app}/{s}" for s in shots[:2]]})
     total = Counter(r["result"] for r in rows)
