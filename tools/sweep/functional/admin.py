@@ -591,6 +591,7 @@ def _(t: T) -> str:
 @fn(A, ST, "unknown", kind="empty", action="Open a statement that doesn't exist", expected="Not found", verify="UI", users=("us",))
 def _(t: T) -> str:
     t.open("/finance/statements/00000000-0000-0000-0000-000000000000", who="finance_us")
+    t.page.get_by_text(re.compile(r"can.t find|not found|couldn.t|doesn.t exist|no such", re.I)).first.wait_for(timeout=15000)
     ok(re.search(r"can.t find|not found|couldn.t|doesn.t exist|no such", t.page.locator("body").inner_text(), re.I), t.page.locator("body").inner_text()[:160])
     return "not found"
 
@@ -1015,6 +1016,7 @@ def _(t: T) -> str:
 @fn(A, CI, "unknown", kind="empty", action="Open an id that doesn't exist", expected="Not found", verify="UI", users=("us",))
 def _(t: T) -> str:
     t.open("/content/help/00000000-0000-0000-0000-000000000000", who="super")
+    t.page.get_by_text(re.compile(r"can.t find|not found|doesn.t exist", re.I)).first.wait_for(timeout=15000)  # a client page
     ok(re.search(r"can.t find|not found|couldn.t|doesn.t exist", t.page.locator("body").inner_text(), re.I), t.page.locator("body").inner_text()[:160])
     return "not found"
 

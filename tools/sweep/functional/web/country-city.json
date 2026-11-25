@@ -54,6 +54,18 @@
    "test": "web/[country]/[city]#unknown-city"
   },
   {
+   "id": "uncached-api-down",
+   "kind": "error",
+   "users": [
+    "in"
+   ],
+   "action": "Open a city page the website hasn't cached (a coming-soon city) with core-api stopped",
+   "expected": "The error page ('Try again'), never 'We can't find that page' for a real city",
+   "verify": "UI: the page's heading and status",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/[country]/[city]#uncached-api-down"
+  },
+  {
    "id": "api-down",
    "kind": "error",
    "users": [

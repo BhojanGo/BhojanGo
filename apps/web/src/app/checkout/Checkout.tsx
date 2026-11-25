@@ -99,6 +99,8 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const fitHeight = useFitBelowHeader(shell);
   const [rest, setRest] = useState<Restaurant | null>(null);
   const [addresses, setAddresses] = useState<Address[] | null>(null);
+  // R42: the saved addresses couldn't load (BhojanGo unreachable): say so, never "set your address"
+  const [loadFailed, setLoadFailed] = useState(false);
   const [saved, setSaved] = useState<SavedMethod[]>([]);
   const [choice, setChoice] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -129,7 +131,8 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
 
   useEffect(() => {
     if (!hydrated || !user) return;
-    authed<Address[]>("GET", "/api/v1/me/addresses").then(setAddresses).catch(() => setAddresses([]));
+    authed<Address[]>("GET", "/api/v1/me/addresses").then((a) => { setAddresses(a); setLoadFailed(false); })
+      .catch(() => { setAddresses([]); setLoadFailed(true); });
     authed<SavedMethod[] | { methods: SavedMethod[] }>("GET", "/api/v1/me/payment-methods")
       .then((r) => setSaved(Array.isArray(r) ? r : r.methods ?? []))
       .catch(() => undefined); // not every backend has saved methods yet
@@ -364,6 +367,12 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
       <div className="grid grid-cols-1 gap-6 md:gap-10 lg:grid-cols-[minmax(0,1fr)_420px]">
         <div className="flex flex-col gap-4">
           <h1 className="m-0 text-h1">{t("checkout.title")}</h1>
+          {loadFailed ? (
+            <p role="alert" data-testid="checkout-load-failed" className="m-0 flex flex-wrap items-center gap-3 rounded-xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]">
+              <span className="flex-1">{t("checkout.load_failed")}</span>
+              <button type="button" onClick={() => window.location.reload()} className="font-bold underline">{t("common.retry")}</button>
+            </p>
+          ) : null}
 
           {/* R32: delivery or pickup */}
           {rest?.pickup_enabled ? (
@@ -435,7 +444,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                       <span><b className="block">{placeLine(a)}</b><span className="text-small text-muted">{[a.city, a.delivery_notes].filter(Boolean).join(" · ")}</span></span>
                     </label>
                   ))}
-                  {!place && list.length === 0 && addresses !== null && <p className="m-0 text-body text-muted">{t("checkout.no_address")}</p>}
+                  {!place && list.length === 0 && addresses !== null && !loadFailed && <p className="m-0 text-body text-muted">{t("checkout.no_address")}</p>}
                 </fieldset>
               )}
               {usingPlace && (

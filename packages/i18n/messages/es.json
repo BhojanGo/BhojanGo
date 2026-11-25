@@ -450,6 +450,7 @@
     "apply": "Aplicar",
     "promo_applied": "aplicado",
     "promo_not_applied": "no se aplica a este pedido",
+    "load_failed": "No pudimos cargar tus direcciones ni la cuenta. Revisa tu conexión e inténtalo de nuevo.",
     "remove": "Quitar",
     "fair_bill": "La cuenta justa",
     "you_pay": "Tú pagas",

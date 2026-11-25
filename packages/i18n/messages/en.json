@@ -450,6 +450,7 @@
     "apply": "Apply",
     "promo_applied": "applied",
     "promo_not_applied": "doesn't apply to this order",
+    "load_failed": "We couldn't load your addresses and the bill. Check your connection and try again.",
     "remove": "Remove",
     "fair_bill": "The fair bill",
     "you_pay": "You pay",

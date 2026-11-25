@@ -79,7 +79,13 @@ def setup() -> None:
             placed = paid_order(market)
             done = paid_order(market, 2)  # Boise Bowl's minimum is $15: two bowls
             deliver(market, done)
-            out[market] = {"placed": placed, "delivered": done}
+            rest, item = restaurant(market), menu_item(market, MARKET[market]["dish"])
+            # a cart for the "API down" phase's checkout (the website keeps it in localStorage: bhojango-bag)
+            cart = {"restaurant": {"id": rest["id"], "name": rest["name"], "slug": rest["slug"], "city": rest["city"],
+                                   "currency": rest.get("currency") or ("USD" if market == "us" else "INR")},
+                    "lines": [{"key": f"{item['id']}|", "menuItemId": item["id"], "name": item["name"], "unitPrice": float(item["price"]),
+                               "quantity": 2, "picks": [], "summary": ""}], "tip": 0, "fulfillment": "delivery"}
+            out[market] = {"placed": placed, "delivered": done, "cart": cart}
         except Exception as e:  # noqa: BLE001 - the functions that need them then fail and say so
             print("setup", market, e, flush=True)
     os.makedirs(os.path.dirname(VARS), exist_ok=True)
@@ -1358,6 +1364,20 @@ def _(t: T) -> str:
 
 
 # ── Every website page with core-api stopped (phase "down") ─────────────────────────────────────────────────────────
+@fn(W, CT, "uncached-api-down", kind="error", down=True, users=("in",),
+    action="Open a city page the website hasn't cached (a coming-soon city) with core-api stopped",
+    expected="The error page ('Try again'), never 'We can't find that page' for a real city",
+    verify="UI: the page's heading and status")
+def _(t: T) -> str:
+    p = t.open("/in/visakhapatnam", who="anon")
+    body = p.locator("body").inner_text()
+    t.shot("api-down")
+    ok(not re.search(r"can.t find that page", body, re.I), "a real city shown as 'We can't find that page'")
+    ok(re.search(r"try again|something went wrong|couldn.t", body, re.I), body[:160])
+    return "the error page with Try again (not a 404)"
+
+
+
 DOWN = {"/": "/", "/cities": "/cities", CT: "{path}", K: "{path}/{rest}", "/deliver": "/deliver", "/deliver/app": "/deliver/app",
         "/partner": "/partner", "/help": "/help", "/help/[topic]": "/help/orders", "/help/[topic]/[slug]": "/help/orders/cancel-an-order",
         "/help/a/[slug]": "/help/a/how-refunds-work", "/terms": "/terms", "/terms/history": "/terms/history",
@@ -1381,6 +1401,10 @@ for route, path in DOWN.items():
         o = orders(t)
         url = path.format(path=t.m["path"], rest=t.m["rest"], placed=o.get("placed", "00000000-0000-0000-0000-000000000000"))
         who = t.user if route in SIGNED else "anon"
+        if route == C and o.get("cart"):  # checkout with something in the cart: it can't price it, and must say so
+            p = t.open("/", who=who)
+            p.evaluate("cart => localStorage.setItem('bhojango-bag', JSON.stringify({state: cart, version: 0}))", o["cart"])
+            return down_state(t, url, who)
         if route in STATIC:
             p = t.open(url, who=who)
             body = p.locator("body").inner_text()

@@ -24,6 +24,8 @@ import web  # noqa: E402,F401
 
 APP = {"web": "website", "admin": "admin", "customer": "customer app", "partner": "restaurant app", "rider": "delivery partner app"}
 MONEY_KINDS = {"number"}
+SCREEN_SHOTS = {(app, sc["screen"]): sc["shots"] for app, screens in json.load(open(
+    os.path.join(os.path.dirname(HERE), "apps.json"), encoding="utf-8")).items() if not app.startswith("_") for sc in screens}
 
 
 def cell(v: object) -> str:
@@ -48,8 +50,13 @@ def main() -> int:
             continue
         res = flow.get(f"{f.app}/{f.maestro}", "NOT RUN") if f.maestro else "NOT RUN: no flow yet"
         shots_dir = os.path.join(out, "apps", f.app)
-        shots = sorted(x for x in os.listdir(shots_dir) if f.maestro and x.startswith(f.maestro.split("/")[-1].replace("r42-", "r42-")[:6])) \
-            if os.path.isdir(shots_dir) else []
+        have = sorted(os.listdir(shots_dir)) if os.path.isdir(shots_dir) else []
+        # the r42 flows' own screenshots (r42-bill-us...), else the screen's from the round 41 map (tools/sweep/apps.json)
+        parts = f.maestro.split("-") if f.maestro.startswith("r42-") else []
+        stem = f"r42-{parts[1]}" if len(parts) > 1 else ""  # r42-bill-us -> r42-bill (and its -us / -in screens)
+        market = parts[-1] if parts and parts[-1] in ("us", "in") else ""
+        shots = [x for x in have if stem and x.startswith(stem) and (not market or f"-{market}" in x)] or [
+            f"{n.split('/')[-1]}.png" for n in SCREEN_SHOTS.get((f.app, f.route), []) if f"{n.split('/')[-1]}.png" in have]
         for user in f.users:
             rows.append({"app": f.app, "page": f.route, "function": f.id, "kind": f.kind, "user": user, "expected": f.expected,
                          "actual": f"Maestro {f.maestro}.yaml: {res}" if f.maestro else "not automated yet",

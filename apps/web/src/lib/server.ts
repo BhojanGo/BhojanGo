@@ -55,6 +55,27 @@ async function get<T>(path: string, revalidate = 60): Promise<T | null> {
   }
 }
 
+/**
+ * R42: for a page that turns "nothing" into a 404 (a city, a restaurant): only core_api's own 404 means "no such
+ * place". When core_api doesn't answer this throws, so the visitor gets the error page ("Try again"), never
+ * "We can't find that page" for a real city while BhojanGo is unreachable (and search engines don't drop it).
+ */
+async function getOr404<T>(path: string, revalidate = 60): Promise<T | null> {
+  let r: Response;
+  try {
+    r = await fetch(`${CORE}/api/v1${path}`, { next: { revalidate } });
+  } catch (e) {
+    noStore();
+    throw new Error(`core_api unavailable: ${(e as Error).message}`);
+  }
+  if (r.status === 404) return null;
+  if (!r.ok) {
+    noStore();
+    throw new Error(`${path}: ${r.status}`);
+  }
+  return (await r.json()) as T;
+}
+
 const EMPTY_DIRECTORY: Directory = { countries: [], totals: { countries: 0, live: 0, soon: 0, restaurants: 0 } };
 
 /** R17: where an admin has paused ordering now (public: scope, area, the customers' note). */
@@ -68,7 +89,7 @@ export async function directory(): Promise<Directory> {
 }
 
 export async function cityPage(country: string, slug: string): Promise<CityPage | null> {
-  return get<CityPage>(`/markets/cities/${encodeURIComponent(country)}/${encodeURIComponent(slug)}`, 60);
+  return getOr404<CityPage>(`/markets/cities/${encodeURIComponent(country)}/${encodeURIComponent(slug)}`, 60);
 }
 
 /** Kitchens, fees and offers for an address (lat/lng), or a whole city (code). */
@@ -86,7 +107,7 @@ export async function search(q: string, where: { lat: number; lng: number } | { 
 }
 
 export async function restaurant(slug: string): Promise<Restaurant | null> {
-  return get<Restaurant>(`/restaurants/by-slug/${encodeURIComponent(slug)}`);
+  return getOr404<Restaurant>(`/restaurants/by-slug/${encodeURIComponent(slug)}`);
 }
 
 export async function menu(id: string): Promise<Menu | null> {
