@@ -31,7 +31,7 @@ services:
     command: ["uv", "run", "--frozen", "pytest", "e2e", "-v", "--tb=short", "-p", "no:cacheprovider"]
     environment:
       APP_ENV: development
-      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/${POSTGRES_DB:-bhojango}
       REDIS_URL: redis://redis:6379/0
       JWT_DEV_KEY_PATH: /srv/keys/jwt-dev.pem  # the same signing key as core-api (quote tokens)
       E2E_CORE_API: http://core-api:8001

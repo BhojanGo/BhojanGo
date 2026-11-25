@@ -1,0 +1,75 @@
+{
+ "app": "web",
+ "route": "/[country]/[city]",
+ "functions": [
+  {
+   "id": "cards-and-fees",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read every restaurant card (fee, time, distance) at the customer's address",
+   "expected": "Each card's delivery fee, minimum and times are the discover API's for that location",
+   "verify": "UI: every amount on the page; API: GET /discover?lat&lng, GET /pricing/example",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]#cards-and-fees"
+  },
+  {
+   "id": "search-and-open",
+   "kind": "filter",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Search for a cuisine, open the first card",
+   "expected": "Only matching restaurants; the card opens its menu",
+   "verify": "UI: cards, URL",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]#search-and-open"
+  },
+  {
+   "id": "no-match",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Search for something no restaurant has",
+   "expected": "No cards and a line saying so",
+   "verify": "UI: cards and the empty line",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]#no-match"
+  },
+  {
+   "id": "unknown-city",
+   "kind": "error",
+   "users": [
+    "us"
+   ],
+   "action": "Open a city that doesn't exist",
+   "expected": "Not found, with a way to the city list",
+   "verify": "UI: 404 page",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]#unknown-city"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/[country]/[city]#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public page"
+  }
+ ]
+}

@@ -449,6 +449,7 @@
     "promo": "Código promocional",
     "apply": "Aplicar",
     "promo_applied": "aplicado",
+    "promo_not_applied": "no se aplica a este pedido",
     "remove": "Quitar",
     "fair_bill": "La cuenta justa",
     "you_pay": "Tú pagas",

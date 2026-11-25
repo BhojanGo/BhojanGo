@@ -1,0 +1,69 @@
+{
+ "app": "admin",
+ "route": "/overview",
+ "functions": [
+  {
+   "id": "overview-numbers",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read today's orders, money and the cities",
+   "expected": "Each count and amount is the overview API's",
+   "verify": "UI: every amount and 'N orders'; API: GET /ops/overview?scope=",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/overview#overview-numbers"
+  },
+  {
+   "id": "drill-down",
+   "kind": "link",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open a state, then a city",
+   "expected": "The overview narrows to it",
+   "verify": "UI: URL scope",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/overview#drill-down"
+  },
+  {
+   "id": "other-country",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "The US country manager opens India's overview",
+   "expected": "Not India's data",
+   "verify": "UI; API GET /ops/overview?scope=IN as cm.us -> 403",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/overview#other-country"
+  },
+  {
+   "id": "quiet-city",
+   "kind": "empty",
+   "users": [
+    "us"
+   ],
+   "action": "Open a coming-soon city's overview",
+   "expected": "Zero orders, said plainly",
+   "verify": "UI: 0 / no orders",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/overview#quiet-city"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/overview#api-down"
+  }
+ ]
+}

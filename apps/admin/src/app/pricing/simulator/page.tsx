@@ -38,7 +38,9 @@ function Simulator() {
   const router = useRouter();
   const { data: markets } = useMarkets();
   // No ?city=: the first live city in Markets (never a hard-coded one).
-  const city = params.get("city") ?? firstCity(markets) ?? "";
+  // R42: the console's picked place (?scope=US-ID-BOI, or a country: its first live city) before the first city anywhere
+  const picked = params.get("scope") ?? "";
+  const city = params.get("city") ?? (picked.split("-").length >= 3 ? picked : firstCity(markets, picked && picked !== "*" ? picked.split("-")[0] : null)) ?? "";
   const country = city.split("-")[0] ?? "";
   const cityInfo = markets?.flatMap((c) => c.regions.flatMap((r) => r.cities)).find((c) => c.code === city);
   const currency = markets?.find((c) => c.code === country)?.currency;

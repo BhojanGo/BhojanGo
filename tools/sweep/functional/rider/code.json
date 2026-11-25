@@ -1,0 +1,33 @@
+{
+ "app": "rider",
+ "route": "code",
+ "functions": [
+  {
+   "id": "code",
+   "kind": "form",
+   "users": [
+    "in"
+   ],
+   "action": "Enter the code",
+   "expected": "Signed in",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/deliver.yaml",
+   "maestro": "deliver"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the way in: anyone may open it"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "wrong code refused"
+  }
+ ]
+}

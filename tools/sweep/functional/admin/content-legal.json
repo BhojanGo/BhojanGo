@@ -1,0 +1,61 @@
+{
+ "app": "admin",
+ "route": "/content/legal",
+ "functions": [
+  {
+   "id": "documents",
+   "kind": "filter",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Show each document type; open one",
+   "expected": "Its versions",
+   "verify": "UI legal-list; API GET /legal/admin",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/legal#documents"
+  },
+  {
+   "id": "start-draft",
+   "kind": "button",
+   "users": [
+    "us"
+   ],
+   "action": "Start a draft",
+   "expected": "A draft editor",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/legal#start-draft"
+  },
+  {
+   "id": "ops-refused",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open as city ops",
+   "expected": "Can't start a draft",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/legal#ops-refused"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/content/legal#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "every country has its documents"
+  }
+ ]
+}

@@ -1,0 +1,76 @@
+{
+ "app": "web",
+ "route": "/",
+ "functions": [
+  {
+   "id": "find-food",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Type the city's address and Find food",
+   "expected": "Lands on the city's restaurants",
+   "verify": "UI: URL is the city page and lists its restaurants; API: /discover has them",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/#find-food"
+  },
+  {
+   "id": "who-gets-amounts",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read the example bill (who gets your money)",
+   "expected": "Each amount is the pricing example's",
+   "verify": "UI: the money split; API: GET /pricing/example?city=",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/#who-gets-amounts"
+  },
+  {
+   "id": "notify-me",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Type a city we're not in and an email, tick Email me, and Notify me",
+   "expected": "Thanks; a sign-up is stored once",
+   "verify": "UI: confirmation; API: 2xx from the notify endpoint",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/#notify-me"
+  },
+  {
+   "id": "city-search-empty",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Search the city list for a place we don't serve",
+   "expected": "No cities and a 'not there yet' line",
+   "verify": "UI: city list",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/#city-search-empty"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the public home page: anyone may open it"
+  }
+ ]
+}

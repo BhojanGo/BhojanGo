@@ -35,6 +35,7 @@ jobs:
     timeout-minutes: 60
     env:
       COMPOSE_PROJECT_NAME: bhojango-chat
+      POSTGRES_DB: bhojango_chat_test  # R42: a test database (tools/target_guard.py)
       COMPOSE: docker compose -f infra/docker/compose.yaml
       DEMO_RIDER_SIM: "0"  # the demo rider simulator stays off while tests run
     steps:

@@ -1,0 +1,62 @@
+{
+ "app": "admin",
+ "route": "/markets/[country]",
+ "functions": [
+  {
+   "id": "payout-timezone",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read the payout provider and time zone",
+   "expected": "The country's (Stripe Connect / Razorpay Route; America/Boise / Asia/Kolkata)",
+   "verify": "UI: payout-timezone; API: GET /markets",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/markets/[country]#payout-timezone"
+  },
+  {
+   "id": "save-offer-ceiling",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Type a non-number in the offer ceiling",
+   "expected": "Save stays disabled",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/markets/[country]#save-offer-ceiling"
+  },
+  {
+   "id": "cm-other-country",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "The US manager opens India",
+   "expected": "Read-only or refused",
+   "verify": "UI: Save buttons absent/disabled",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/markets/[country]#cm-other-country"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/markets/[country]#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a country page always has its settings"
+  }
+ ]
+}

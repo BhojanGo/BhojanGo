@@ -165,6 +165,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const quote = useQuote({ enabled: hydrated && !!user, restaurantId: bag.restaurant?.id, lines, deliverTo, fulfillment: pickup ? "pickup" : "delivery",
     tip: bag.tip, promo, nonce, fallbackError: t("common.error") });
   const q = quote.quote;
+  const promoApplied = !!promo && !!q?.lines.some((l) => l.code === "promotion" && (l.detail as Record<string, unknown> | null | undefined)?.promo_code === promo);
   const money = (n: number | string) => f.money(n, bag.restaurant?.currency ?? q?.currency);
   const held = q ? Math.max(0, Math.floor((Date.parse(q.expires_at) - now) / 1000)) : 0;
   // Tip choices are the city's, from the quote, or from a refusal that knows them (a bag
@@ -543,9 +544,10 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
               </ul>
               <div className="mb-4 mt-4 rounded-[14px] border border-dashed border-[#C9D3D4] px-4 py-3 text-body">
                 {promo ? (
-                  <div className="flex items-center gap-2">
-                    <Check color="#0B5D66" />
-                    <span className="flex-grow"><b>{promo}</b> {quote.error ? "" : t("checkout.promo_applied")}</span>
+                  <div className="flex items-center gap-2" data-testid="promo-state" data-applied={promoApplied ? "true" : "false"}>
+                    {promoApplied ? <Check color="#0B5D66" /> : null}
+                    {/* R42: "applied" only when the quote took something off with this code; else say it doesn't apply */}
+                    <span className="flex-grow"><b>{promo}</b> {quote.error || !q ? "" : promoApplied ? t("checkout.promo_applied") : t("checkout.promo_not_applied")}</span>
                     <button type="button" onClick={() => setPromo(null)} className="font-bold text-[#0B5D66]">{t("checkout.remove")}</button>
                   </div>
                 ) : (

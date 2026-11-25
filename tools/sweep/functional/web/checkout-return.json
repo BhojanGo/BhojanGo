@@ -1,0 +1,57 @@
+{
+ "app": "web",
+ "route": "/checkout/return",
+ "functions": [
+  {
+   "id": "unknown-order",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Come back from a payment page for an order that doesn't exist",
+   "expected": "Says it couldn't find the payment and links back to checkout",
+   "verify": "UI: Back to checkout",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout/return#unknown-order"
+  },
+  {
+   "id": "paid-order",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Come back from the payment page for a paid order",
+   "expected": "Goes on to its tracking page",
+   "verify": "UI: URL /orders/{id}/track; API: the order is paid",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout/return#paid-order"
+  },
+  {
+   "id": "signed-out",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open it signed out",
+   "expected": "Sign in first (nothing about the order)",
+   "verify": "UI: /signin or no order shown",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout/return#signed-out"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/checkout/return#api-down"
+  }
+ ]
+}

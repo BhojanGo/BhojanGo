@@ -1,0 +1,32 @@
+# R42 (brief item b): a menu change on the tablet reaches the website: Veg Dum Biryani sold out shows "Sold out" on
+# the restaurant's page within 90 s (scripts/r42_partner.js measures it), and back in stock clears it.
+appId: com.bhojango.partner
+---
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "Which restaurant is this tablet for?"
+    timeout: 30000
+- tapOn: "Spice Route Kitchen"
+- tapOn: "Menu"
+- tapOn: "Search items"
+- inputText: "Veg Dum"
+- hideKeyboard
+- takeScreenshot: docs/screenshots/partner/r42-stock-before
+- tapOn: "Veg Dum Biryani in stock"
+- runScript:
+    file: scripts/r42_partner.js
+    env:
+      STEP: web
+      DISH: "Veg Dum Biryani"
+      SOLD: "1"
+      LIMIT: "90"
+- takeScreenshot: docs/screenshots/partner/r42-stock-sold-out
+- tapOn: "Veg Dum Biryani in stock"
+- runScript:
+    file: scripts/r42_partner.js
+    env:
+      STEP: web
+      DISH: "Veg Dum Biryani"
+      SOLD: "0"
+      LIMIT: "90"
+- takeScreenshot: docs/screenshots/partner/r42-stock-after

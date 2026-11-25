@@ -40,6 +40,7 @@ jobs:
     timeout-minutes: 110
     env:
       COMPOSE_PROJECT_NAME: bhojango
+      POSTGRES_DB: bhojango_load_test  # R42: a test database (tools/target_guard.py)
       COMPOSE: docker compose -f infra/docker/compose.yaml -f infra/docker/load.compose.yaml
       WINDOW: ${{ inputs.window || '20' }}
       SCALE: ${{ inputs.scale || '1' }}

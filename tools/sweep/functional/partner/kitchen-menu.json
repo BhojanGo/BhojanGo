@@ -1,0 +1,53 @@
+{
+ "app": "partner",
+ "route": "(kitchen)/menu",
+ "functions": [
+  {
+   "id": "stock-to-web",
+   "kind": "toggle",
+   "users": [
+    "in"
+   ],
+   "action": "Mark a dish sold out, then back in stock",
+   "expected": "The website's menu shows 'Sold out' and clears it, each within 90 s (measured)",
+   "verify": "UI; website page; API menu",
+   "run": "maestro: apps/partner/.maestro/r42-stock-web.yaml",
+   "maestro": "r42-stock-web"
+  },
+  {
+   "id": "offers-hours",
+   "kind": "form",
+   "users": [
+    "in"
+   ],
+   "action": "Create and end an offer; search",
+   "expected": "Offer live then ended",
+   "verify": "UI",
+   "run": "maestro: apps/partner/.maestro/menu.yaml",
+   "maestro": "menu"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/partner/.maestro/r42-api-down.yaml",
+   "maestro": "r42-api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own menu"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a restaurant's menu has dishes"
+  }
+ ]
+}

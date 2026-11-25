@@ -1,0 +1,85 @@
+{
+ "app": "partner",
+ "route": "(kitchen)/orders",
+ "functions": [
+  {
+   "id": "accept-ready-busy-pause",
+   "kind": "button",
+   "users": [
+    "in"
+   ],
+   "action": "Accept with ready-in, Mark ready, Busy +10, Pause 15 min, Resume",
+   "expected": "Each state on the tablet and in the API",
+   "verify": "UI; API order status",
+   "run": "maestro: apps/partner/.maestro/orders.yaml",
+   "maestro": "orders"
+  },
+  {
+   "id": "reject",
+   "kind": "button",
+   "users": [
+    "in"
+   ],
+   "action": "Reject an order",
+   "expected": "Gone; the customer refunded in full",
+   "verify": "UI; API: cancelled + refunded",
+   "run": "maestro: apps/partner/.maestro/r42-reject-lock.yaml",
+   "maestro": "r42-reject-lock"
+  },
+  {
+   "id": "pickup-code",
+   "kind": "form",
+   "users": [
+    "in"
+   ],
+   "action": "Pickup code: wrong, then right",
+   "expected": "Wrong refused; right hands over",
+   "verify": "UI; API",
+   "run": "maestro: apps/partner/.maestro/pickup.yaml",
+   "maestro": "pickup"
+  },
+  {
+   "id": "pickup-locked",
+   "kind": "error",
+   "users": [
+    "in"
+   ],
+   "action": "Wrong pickup code 5 times",
+   "expected": "Locked: 'Too many wrong codes'",
+   "verify": "UI; API 423",
+   "run": "maestro: apps/partner/.maestro/r42-reject-lock.yaml",
+   "maestro": "r42-reject-lock"
+  },
+  {
+   "id": "no-orders",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "No orders",
+   "expected": "An empty board",
+   "verify": "UI",
+   "run": "not automated yet (NOT RUN)",
+   "test": "none"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/partner/.maestro/r42-api-down.yaml",
+   "maestro": "r42-api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "a restaurant sees only its own orders (API: access sweep)"
+  }
+ ]
+}

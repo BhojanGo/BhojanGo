@@ -1,0 +1,55 @@
+{
+ "app": "web",
+ "route": "/partner",
+ "functions": [
+  {
+   "id": "apply-form",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Fill the restaurant sign-up: name, your name, city, phone, email, password, terms; Create account",
+   "expected": "A short password and an unticked terms box are refused; a full form creates the account and goes to step 2",
+   "verify": "UI: messages, partner-next; API: the new partner signs in",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/partner#apply-form"
+  },
+  {
+   "id": "bill-example",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read the example bill",
+   "expected": "The amounts are the pricing example's",
+   "verify": "UI: partner-bill; API: GET /pricing/example?city=",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/partner#bill-example"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/partner#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public page"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form; nothing to list"
+  }
+ ]
+}

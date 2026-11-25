@@ -15,7 +15,7 @@ name: bhojango
 
 x-backend-env: &backend-env
   APP_ENV: development
-  DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
+  DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/${POSTGRES_DB:-bhojango}
   AWS_REGION: us-east-1
   AWS_ACCESS_KEY_ID: test
   AWS_SECRET_ACCESS_KEY: test
@@ -63,7 +63,7 @@ services:
     environment:
       POSTGRES_USER: bhojango
       POSTGRES_PASSWORD: bhojango_dev
-      POSTGRES_DB: bhojango
+      POSTGRES_DB: ${POSTGRES_DB:-bhojango}  # R42: test stacks use a name with "test" in it (tools/target_guard.py)
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:

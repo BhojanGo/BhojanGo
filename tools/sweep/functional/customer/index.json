@@ -1,0 +1,42 @@
+{
+ "app": "customer",
+ "route": "index",
+ "functions": [
+  {
+   "id": "opens",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Launch the app",
+   "expected": "Signed out: sign-in; signed in: Home",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/sign-in-email.yaml",
+   "maestro": "sign-in-email"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/customer/.maestro/offline-sign-in.yaml",
+   "maestro": "offline-sign-in"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the way in: anyone may open it"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a launcher screen"
+  }
+ ]
+}

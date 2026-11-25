@@ -1,0 +1,87 @@
+{
+ "app": "customer",
+ "route": "bag",
+ "functions": [
+  {
+   "id": "bill-equals-quote",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Add the dish, open the cart",
+   "expected": "Every bill line and Pay = the pricing API's quote",
+   "verify": "UI vs POST /pricing/quote (scripts/r42_numbers.js)",
+   "run": "maestro: apps/customer/.maestro/r42-bill-us.yaml",
+   "maestro": "r42-bill-us"
+  },
+  {
+   "id": "bill-in",
+   "kind": "number",
+   "users": [
+    "in"
+   ],
+   "action": "The same in Hyderabad",
+   "expected": "Lines = quote in paise",
+   "verify": "UI vs API",
+   "run": "maestro: apps/customer/.maestro/r42-bill-in.yaml",
+   "maestro": "r42-bill-in"
+  },
+  {
+   "id": "pay",
+   "kind": "form",
+   "users": [
+    "in"
+   ],
+   "action": "Pay and approve (test provider)",
+   "expected": "Tracking opens",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/order-and-track.yaml",
+   "maestro": "order-and-track"
+  },
+  {
+   "id": "languages",
+   "kind": "toggle",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "The cart in each language",
+   "expected": "Fits, translated",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/cart-languages.yaml",
+   "maestro": "cart-languages"
+  },
+  {
+   "id": "declined",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Decline the payment",
+   "expected": "'Payment failed' and retry",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/payment-failed.yaml",
+   "maestro": "payment-failed"
+  },
+  {
+   "id": "empty-cart",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the cart with nothing in it",
+   "expected": "'Your cart is empty'",
+   "verify": "UI",
+   "run": "not automated yet (NOT RUN)",
+   "test": "none"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the customer's own cart on the device"
+  }
+ ]
+}

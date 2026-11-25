@@ -1,0 +1,62 @@
+{
+ "app": "admin",
+ "route": "/settings",
+ "functions": [
+  {
+   "id": "test-alert",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Settings → Monitoring → Send test alert",
+   "expected": "Each channel says sent, off (not set) or failed",
+   "verify": "UI: test-alert-result; API: POST /monitoring/test-alert answer",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/settings#test-alert"
+  },
+  {
+   "id": "grant-revoke",
+   "kind": "form",
+   "users": [
+    "us"
+   ],
+   "action": "Grant a role to an email with a bad scope, then a good one; remove it",
+   "expected": "A bad scope is refused; the grant is listed; Remove takes it away",
+   "verify": "UI: Admins list; API: GET /admin/roles",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/settings#grant-revoke"
+  },
+  {
+   "id": "viewer-refused",
+   "kind": "permission",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open Settings as a viewer",
+   "expected": "No Grant / Remove; the API refuses a grant",
+   "verify": "UI; API -> 403",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/settings#viewer-refused"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/settings#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "there is always at least the super admin"
+  }
+ ]
+}

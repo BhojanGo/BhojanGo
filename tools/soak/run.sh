@@ -23,7 +23,7 @@ OUT="$ROOT/tools/soak/out/$STAMP"
 mkdir -p "$OUT"
 START_ISO=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 echo "$START_ISO" > "$OUT/started_at"
-DB_URL="postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango"
+DB_URL="postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/${POSTGRES_DB:-bhojango}"
 
 echo "== build the soak image (backend + its dependencies)"
 docker build -q -f "$ROOT/infra/docker/test.Dockerfile" --target migrations -t bhojango-soak "$ROOT" >/dev/null || exit 1

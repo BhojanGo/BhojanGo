@@ -1,0 +1,63 @@
+{
+ "app": "customer",
+ "route": "(tabs)/search",
+ "functions": [
+  {
+   "id": "search",
+   "kind": "filter",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Search 'curry'",
+   "expected": "Restaurants and dishes matching",
+   "verify": "UI vs /search",
+   "run": "maestro: apps/customer/.maestro/r36-search-curry.yaml",
+   "maestro": "r36-search-curry"
+  },
+  {
+   "id": "tabbar",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Tab bar clears the content",
+   "expected": "Nothing under the tab bar",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/tabbar-clearance.yaml",
+   "maestro": "tabbar-clearance"
+  },
+  {
+   "id": "nothing-found",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Search nonsense",
+   "expected": "'Nothing found'",
+   "verify": "UI",
+   "run": "not automated yet (NOT RUN)",
+   "test": "none"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/customer/.maestro/r42-api-down.yaml",
+   "maestro": "r42-api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "any signed-in customer"
+  }
+ ]
+}

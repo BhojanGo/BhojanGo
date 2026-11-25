@@ -1,0 +1,34 @@
+{
+ "app": "customer",
+ "route": "payment-failed",
+ "functions": [
+  {
+   "id": "retry",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Payment failed: retry, approve",
+   "expected": "Paid on retry",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/payment-failed.yaml",
+   "maestro": "payment-failed"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the customer's own order"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "always about one payment"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "the screen is the error state"
+  }
+ ]
+}

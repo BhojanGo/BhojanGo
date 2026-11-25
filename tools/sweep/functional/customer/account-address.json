@@ -1,0 +1,46 @@
+{
+ "app": "customer",
+ "route": "account/address",
+ "functions": [
+  {
+   "id": "form",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Add an address, US and India formats",
+   "expected": "Saved; the right fields per country",
+   "verify": "UI vs /me/addresses",
+   "run": "maestro: apps/customer/.maestro/r41-sweep-us.yaml",
+   "maestro": "r41-sweep-us"
+  },
+  {
+   "id": "form-in",
+   "kind": "form",
+   "users": [
+    "in"
+   ],
+   "action": "India address form",
+   "expected": "PIN code, state",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/r41-sweep-in.yaml",
+   "maestro": "r41-sweep-in"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the customer's own addresses"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "the form's own checks (r41-sweep); API down: the account tab's (r42-api-down)"
+  }
+ ]
+}

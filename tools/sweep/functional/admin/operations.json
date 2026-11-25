@@ -1,0 +1,69 @@
+{
+ "app": "admin",
+ "route": "/operations",
+ "functions": [
+  {
+   "id": "tabs",
+   "kind": "filter",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Live orders / Needs attention / Dispatch map / Support",
+   "expected": "Each lists the API's",
+   "verify": "UI: rows; API: GET /ops/orders?scope=",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/operations#tabs"
+  },
+  {
+   "id": "live-numbers",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read the live orders",
+   "expected": "Each order's total is the order's",
+   "verify": "UI amounts; API GET /ops/orders",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/operations#live-numbers"
+  },
+  {
+   "id": "nothing-needs-attention",
+   "kind": "empty",
+   "users": [
+    "us"
+   ],
+   "action": "Needs attention when nothing does",
+   "expected": "An all-clear line",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/operations#nothing-needs-attention"
+  },
+  {
+   "id": "finance-refused",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open Operations as Finance",
+   "expected": "Read-only or refused per role",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/operations#finance-refused"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/operations#api-down"
+  }
+ ]
+}

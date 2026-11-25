@@ -97,6 +97,7 @@ jobs:
             apps: partner
     env:
       COMPOSE_PROJECT_NAME: bhojango
+      POSTGRES_DB: bhojango_screens_test  # R42: test runs write only to a test database (tools/target_guard.py)
       COMPOSE: docker compose -f infra/docker/compose.yaml
       DEMO_RIDER_SIM: "0"  # nothing moves orders on its own while the flows run
       OUT: ${{ github.workspace }}/stack-screens-out

@@ -1,0 +1,46 @@
+{
+ "app": "rider",
+ "route": "documents",
+ "functions": [
+  {
+   "id": "checklist",
+   "kind": "button",
+   "users": [
+    "in"
+   ],
+   "action": "Onboarding checklist",
+   "expected": "Each document's state",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/onboarding.yaml",
+   "maestro": "onboarding"
+  },
+  {
+   "id": "signup-checklist",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A new rider's checklist",
+   "expected": "Steps to go",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/signup.yaml",
+   "maestro": "signup"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own documents"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "the checklist always lists what's needed"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

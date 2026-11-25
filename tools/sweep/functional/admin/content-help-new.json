@@ -1,0 +1,60 @@
+{
+ "app": "admin",
+ "route": "/content/help/new",
+ "functions": [
+  {
+   "id": "draft",
+   "kind": "form",
+   "users": [
+    "us"
+   ],
+   "action": "Fill slug, title, country, language, text; Save draft",
+   "expected": "Saved as a draft (not on the website)",
+   "verify": "UI: status; API: the article is draft",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/help/new#draft"
+  },
+  {
+   "id": "required",
+   "kind": "error",
+   "users": [
+    "in"
+   ],
+   "action": "Save with no title",
+   "expected": "Save stays disabled",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/help/new#required"
+  },
+  {
+   "id": "viewer-refused",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open as viewer",
+   "expected": "Can't publish",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/help/new#viewer-refused"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/content/help/new#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a new article form"
+  }
+ ]
+}

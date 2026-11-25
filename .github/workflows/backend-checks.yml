@@ -94,7 +94,9 @@ jobs:
         env:
           RUN_MIGRATED_DB_TESTS: "1"
         # The markets-only seed tests need their own database: they run in the step above, not here (R31).
-        run: uv run pytest core_api/integration -v --tb=short --ignore=core_api/integration/test_markets_only_seed.py
+        # R42: on a database of their own (bhojango_test_<id>, made, migrated, seeded and dropped by tools/test_db.py);
+        # the job's seeded database stands in for the dev one and must come out untouched.
+        run: uv run python ../tools/test_db.py --prove-untouched -- python -m pytest core_api/integration -v --tb=short --ignore=core_api/integration/test_markets_only_seed.py
 
       - name: API contract (generated client matches OpenAPI)
         working-directory: backend
@@ -104,7 +106,7 @@ jobs:
         working-directory: backend
         env:
           RUN_MIGRATED_DB_TESTS: "1"
-        run: uv run pytest worker/tests/integration -v --tb=short
+        run: uv run python ../tools/test_db.py --prove-untouched -- python -m pytest worker/tests/integration -v --tb=short
 
       # R27: QA requires a kitchen's live tablet to take orders, and its reset job runs the demo seed
       # with no tablet open. The seed's order history (priced at past times) must still be written,

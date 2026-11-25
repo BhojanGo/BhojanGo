@@ -1,0 +1,42 @@
+{
+ "app": "web",
+ "route": "/terms/history",
+ "functions": [
+  {
+   "id": "versions",
+   "kind": "link",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the version history and read each version",
+   "expected": "Every published version, newest first, each opening its text",
+   "verify": "UI: legal-history rows; API: versions list",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/terms/history#versions"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/terms/history#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public page"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "at least version 1 exists once published"
+  }
+ ]
+}

@@ -67,6 +67,14 @@ seed:
 
 test: test-backend test-js
 
+# R42: the integration suite on a database of its own, made and dropped for the run (tools/test_db.py), against
+# `make dev`'s Postgres; it proves the dev database came out untouched. Never run it on the dev database itself.
+test-integration:
+	cd backend && DATABASE_URL=postgresql+asyncpg://bhojango:bhojango_dev@localhost:$${POSTGRES_PORT:-5432}/bhojango \
+	  REDIS_URL=redis://localhost:$${REDIS_PORT:-6379}/0 APP_ENV=development PAYMENT_PROVIDER=fake SMS_PROVIDER=log \
+	  PUSH_PROVIDER=log EMAIL_PROVIDER=log ROUTING_PROVIDER=straight_line STORAGE_PROVIDER=local \
+	  uv run python ../tools/test_db.py --prove-untouched -- python -m pytest core_api/integration -q
+
 test-backend:
 	docker build -f infra/docker/test.Dockerfile --target backend-test --no-cache-filter backend-test --progress=plain .
 
@@ -89,7 +97,7 @@ ci-migrations:
 # G1: the whole backend as its own compose project (no host ports), seeded; the
 # runner orders, pays, dispatches, delivers and checks payouts and messages
 # over HTTP (backend/e2e). Always torn down with its volumes.
-E2E_COMPOSE := $(COMPOSE) -p bhojango-g1 -f infra/docker/compose.yaml -f infra/docker/e2e.compose.yaml
+E2E_COMPOSE := POSTGRES_DB=bhojango_g1_test $(COMPOSE) -p bhojango-g1 -f infra/docker/compose.yaml -f infra/docker/e2e.compose.yaml
 ci-e2e:
 	$(E2E_COMPOSE) --profile backend up -d --build --wait || { $(E2E_COMPOSE) --profile backend logs --tail 50; $(E2E_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit 1; }
 	$(E2E_COMPOSE) exec -T core-api python /srv/tools/seed/seed.py >/dev/null && 	$(E2E_COMPOSE) --profile e2e run --rm --build g1; status=$$?; 	[ $$status -eq 0 ] || $(E2E_COMPOSE) --profile backend logs --tail 80 realtime worker; 	$(E2E_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit $$status
@@ -97,7 +105,7 @@ ci-e2e:
 # G1 again on the backend as .railway/railway.ts runs it: Railway's Postgres
 # image + PostGIS, no init script, migrations as a pre-deploy step, events on
 # Redis Streams instead of SNS/SQS (infra/railway/sim.compose.yaml).
-RW_COMPOSE := $(COMPOSE) -p bhojango-railway -f infra/docker/compose.yaml -f infra/docker/e2e.compose.yaml -f infra/railway/sim.compose.yaml
+RW_COMPOSE := POSTGRES_DB=bhojango_railway_test $(COMPOSE) -p bhojango-railway -f infra/docker/compose.yaml -f infra/docker/e2e.compose.yaml -f infra/railway/sim.compose.yaml
 ci-railway:
 	$(RW_COMPOSE) --profile backend up -d --build --wait || { $(RW_COMPOSE) --profile backend logs --tail 50; $(RW_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit 1; }
 	$(RW_COMPOSE) exec -T core-api python /srv/tools/seed/seed.py >/dev/null && 	$(RW_COMPOSE) --profile e2e run --rm --build g1; status=$$?; 	[ $$status -eq 0 ] || $(RW_COMPOSE) --profile backend logs --tail 80 realtime worker; 	$(RW_COMPOSE) --profile e2e --profile backend down -v --remove-orphans; exit $$status
@@ -130,6 +138,8 @@ web-third-city:
 # web and admin images run `next start`, never `next dev` (R24).
 ci-guard:
 	python tools/target_guard_test.py
+	python tools/sweep/routes.py --check
+	python tools/sweep/functional/specs.py --check
 	python tools/seed/demo_test.py
 	python tools/seed/markets_test.py
 	python tools/secrets/mask_test.py

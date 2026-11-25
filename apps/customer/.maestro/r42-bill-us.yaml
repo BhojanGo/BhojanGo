@@ -1,0 +1,12 @@
+# R42: Boise's fair bill in the app = the pricing API's quote; receipt = the order (scripts/r42_numbers.js).
+appId: com.bhojango.app
+---
+- runFlow:
+    file: r42/bill.yaml
+    env:
+      MARKET: "us"
+      PHONE: "2085550101"
+      COUNTRY: "US"
+      REST: "boise-bowl-co-hyde-park"
+      DISH: "Teriyaki Chicken Bowl"
+      NAME: "Boise Bowl Co."

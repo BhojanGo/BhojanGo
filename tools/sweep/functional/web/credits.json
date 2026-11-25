@@ -1,0 +1,41 @@
+{
+ "app": "web",
+ "route": "/credits",
+ "functions": [
+  {
+   "id": "photo-links",
+   "kind": "link",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read the photo credits",
+   "expected": "Every photo's source and licence link is a full https link",
+   "verify": "UI: hrefs",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/credits#photo-links"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders in full (it needs nothing from core-api)",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/credits#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public page"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a fixed list (apps/web/src/content/photo-credits.json)"
+  }
+ ]
+}

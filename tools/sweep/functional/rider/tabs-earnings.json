@@ -1,0 +1,86 @@
+{
+ "app": "rider",
+ "route": "(tabs)/earnings",
+ "functions": [
+  {
+   "id": "week-total",
+   "kind": "number",
+   "users": [
+    "in"
+   ],
+   "action": "Open Earnings after a delivery",
+   "expected": "The week's total = the API's; each trip = delivery fee + tip",
+   "verify": "UI vs GET /finance/earnings/me (scripts/r42_earnings.js)",
+   "run": "maestro: apps/rider/.maestro/r42-earnings.yaml",
+   "maestro": "r42-earnings"
+  },
+  {
+   "id": "after-delivery",
+   "kind": "display",
+   "users": [
+    "in"
+   ],
+   "action": "Earnings after the delivery",
+   "expected": "The trip listed",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/deliver.yaml",
+   "maestro": "deliver"
+  },
+  {
+   "id": "nothing-yet",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A rider with no trips this week",
+   "expected": "Zero, said plainly",
+   "verify": "UI",
+   "run": "not automated yet (NOT RUN)",
+   "test": "none"
+  },
+  {
+   "id": "open-payouts",
+   "kind": "link",
+   "users": [
+    "in"
+   ],
+   "action": "Open past payouts from Earnings",
+   "expected": "The payouts screen",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/sos.yaml",
+   "maestro": "sos"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/rider/.maestro/r42-api-down.yaml",
+   "maestro": "r42-api-down"
+  },
+  {
+   "id": "trip-pay",
+   "kind": "number",
+   "users": [
+    "in",
+    "us"
+   ],
+   "action": "Every trip this week and in the last statement",
+   "expected": "Each pays the order's delivery fee and tip in full (+ any batch bonus)",
+   "verify": "API: /finance/earnings/me lines vs the order's quote lines (delivery_fee, tip) in /pricing/orders/{id}/snapshot",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "rider(tabs)/earnings#trip-pay"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own earnings only (API: delivery partners only)"
+  }
+ ]
+}

@@ -1,0 +1,46 @@
+{
+ "app": "web",
+ "route": "/payouts/done",
+ "functions": [
+  {
+   "id": "message",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Come back from setting up payouts",
+   "expected": "A plain 'you can close this page / back to the app' message",
+   "verify": "UI: text",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/payouts/done#message"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders in full (it needs nothing from core-api)",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/payouts/done#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "a landing page after the payout provider; it shows nothing private"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a fixed message"
+  },
+  {
+   "id": "na-action",
+   "kind": "action",
+   "na": "nothing to do on it: the provider sends people here, they close it"
+  }
+ ]
+}

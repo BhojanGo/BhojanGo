@@ -1,0 +1,62 @@
+{
+ "app": "web",
+ "route": "/cities",
+ "functions": [
+  {
+   "id": "filters",
+   "kind": "filter",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Use All countries / India / United States / Live now and the search",
+   "expected": "Each lists exactly the cities the API has for it; counts on the tabs equal the lists",
+   "verify": "UI: city cards; API: GET /markets/cities (or /cities)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/cities#filters"
+  },
+  {
+   "id": "restaurant-counts",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read each city's restaurant count",
+   "expected": "The number of live restaurants the API lists in that city",
+   "verify": "UI: 'N restaurants'; API: GET /restaurants?city=",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/cities#restaurant-counts"
+  },
+  {
+   "id": "no-match",
+   "kind": "empty",
+   "users": [
+    "us"
+   ],
+   "action": "Search for a city we don't serve",
+   "expected": "No cards; a 'no city' line",
+   "verify": "UI: cards and the empty line",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/cities#no-match"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/cities#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public page"
+  }
+ ]
+}

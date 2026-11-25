@@ -1,0 +1,76 @@
+{
+ "app": "web",
+ "route": "/orders/[id]/track",
+ "functions": [
+  {
+   "id": "status-follows",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Watch tracking while the restaurant accepts, cooks, and the rider picks up and delivers",
+   "expected": "The status line follows each step live (no reload); the PIN appears only after pickup",
+   "verify": "UI: Order status region, delivery-pin; API: the order's status after each step",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/orders/[id]/track#status-follows"
+  },
+  {
+   "id": "amounts",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read the bill on the tracking page",
+   "expected": "Every amount is the order's (lines, total, You paid)",
+   "verify": "UI: page amounts; API: GET /orders/{id} and its pricing snapshot",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/orders/[id]/track#amounts"
+  },
+  {
+   "id": "someone-elses-order",
+   "kind": "permission",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open another customer's order",
+   "expected": "Refused: not found, nothing of the order shown; the API refuses too",
+   "verify": "UI: no bill; API: GET /orders/{id} as the other customer -> 403/404",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/orders/[id]/track#someone-elses-order"
+  },
+  {
+   "id": "cancel-refund",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Cancel a just-paid order from tracking (before the restaurant accepts)",
+   "expected": "Says what comes back and where; the order is cancelled and the refund line shows the amount paid",
+   "verify": "UI: refund-line; API: order cancelled; DB: refunds row = the order total",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/orders/[id]/track#cancel-refund"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/orders/[id]/track#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "an order always has a status (an unknown order: /orders/[id] unknown-order)"
+  }
+ ]
+}

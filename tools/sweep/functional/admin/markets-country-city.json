@@ -1,0 +1,62 @@
+{
+ "app": "admin",
+ "route": "/markets/[country]/[city]",
+ "functions": [
+  {
+   "id": "city-status-zones",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read the city's status and zones",
+   "expected": "Each zone's minimum and area from the API",
+   "verify": "UI; API GET /markets/cities/{code}",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/markets/[country]/[city]#city-status-zones"
+  },
+  {
+   "id": "open-simulator",
+   "kind": "link",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the price simulator for this city",
+   "expected": "The simulator for the city",
+   "verify": "UI URL",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/markets/[country]/[city]#open-simulator"
+  },
+  {
+   "id": "ops-other-city",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Boise ops open Hyderabad",
+   "expected": "Refused",
+   "verify": "API",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/markets/[country]/[city]#ops-other-city"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/markets/[country]/[city]#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a city page always has its status"
+  }
+ ]
+}

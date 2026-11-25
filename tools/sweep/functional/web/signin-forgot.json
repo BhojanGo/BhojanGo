@@ -1,0 +1,41 @@
+{
+ "app": "web",
+ "route": "/signin/forgot",
+ "functions": [
+  {
+   "id": "same-answer",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Ask for a reset link for an account and for an unknown email",
+   "expected": "The same answer either way (no account enumeration)",
+   "verify": "UI: the status text",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/signin/forgot#same-answer"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders in full (it needs nothing from core-api)",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/signin/forgot#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the way in: open to everyone"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form; nothing to list"
+  }
+ ]
+}

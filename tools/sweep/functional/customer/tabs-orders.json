@@ -1,0 +1,50 @@
+{
+ "app": "customer",
+ "route": "(tabs)/orders",
+ "functions": [
+  {
+   "id": "list-and-receipt",
+   "kind": "link",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open a past order",
+   "expected": "Its receipt",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/orders-receipt.yaml",
+   "maestro": "orders-receipt"
+  },
+  {
+   "id": "no-orders",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A new customer's Orders",
+   "expected": "'No orders yet'",
+   "verify": "UI",
+   "run": "not automated yet (NOT RUN)",
+   "test": "none"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/customer/.maestro/r42-api-down.yaml",
+   "maestro": "r42-api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "only the signed-in customer's own orders are fetched (API: GET /orders is per user; access sweep)"
+  }
+ ]
+}

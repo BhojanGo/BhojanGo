@@ -1,0 +1,45 @@
+{
+ "app": "customer",
+ "route": "restaurant/[id]",
+ "functions": [
+  {
+   "id": "menu",
+   "kind": "button",
+   "users": [
+    "in"
+   ],
+   "action": "Add, customise",
+   "expected": "In the cart",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/order-and-track.yaml",
+   "maestro": "order-and-track"
+  },
+  {
+   "id": "closed",
+   "kind": "display",
+   "users": [
+    "in"
+   ],
+   "action": "A closed restaurant",
+   "expected": "Banner, no adds",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/r36-pickup-closed.yaml",
+   "maestro": "r36-pickup-closed"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the way in: anyone may open it"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a menu always has dishes (a closed one: see closed)"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

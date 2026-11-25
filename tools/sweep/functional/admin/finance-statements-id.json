@@ -1,0 +1,68 @@
+{
+ "app": "admin",
+ "route": "/finance/statements/[id]",
+ "functions": [
+  {
+   "id": "statement-numbers",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open a restaurant's statement",
+   "expected": "Every line (food, commission, card fee, tax, refunds, holds) and the total are the statement's; the order dates are theirs",
+   "verify": "UI: page amounts and dates; API: GET /finance/statements/{id}",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/finance/statements/[id]#statement-numbers"
+  },
+  {
+   "id": "unknown",
+   "kind": "empty",
+   "users": [
+    "us"
+   ],
+   "action": "Open a statement that doesn't exist",
+   "expected": "Not found",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/finance/statements/[id]#unknown"
+  },
+  {
+   "id": "other-country",
+   "kind": "permission",
+   "users": [
+    "in"
+   ],
+   "action": "US finance opens an India statement",
+   "expected": "Refused; API 403/404",
+   "verify": "API GET /finance/statements/{id} as finance.us",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/finance/statements/[id]#other-country"
+  },
+  {
+   "id": "back-to-run",
+   "kind": "link",
+   "users": [
+    "us"
+   ],
+   "action": "Use the link back to Finance",
+   "expected": "Back to the run",
+   "verify": "UI URL",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/finance/statements/[id]#back-to-run"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/finance/statements/[id]#api-down"
+  }
+ ]
+}

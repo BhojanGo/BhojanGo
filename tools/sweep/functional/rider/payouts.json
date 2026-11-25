@@ -1,0 +1,33 @@
+{
+ "app": "rider",
+ "route": "payouts",
+ "functions": [
+  {
+   "id": "statements",
+   "kind": "link",
+   "users": [
+    "in"
+   ],
+   "action": "Open payouts from Earnings",
+   "expected": "Statements listed",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/sos.yaml",
+   "maestro": "sos"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own statements"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "'first statement' line"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

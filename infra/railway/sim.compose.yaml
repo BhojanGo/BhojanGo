@@ -37,7 +37,7 @@ services:
     command: ["alembic", "upgrade", "head"]
     environment:
       APP_ENV: development
-      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/bhojango
+      DATABASE_URL: postgresql+asyncpg://bhojango:bhojango_dev@postgres:5432/${POSTGRES_DB:-bhojango}
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,0 +1,63 @@
+{
+ "app": "web",
+ "route": "/orders/[id]/report",
+ "functions": [
+  {
+   "id": "report-refund",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "On a delivered order, choose 1 of the dish, Missing, and Send report",
+   "expected": "Refunded (under the city's automatic limit): the refund equals the item's price incl. its tax; the order shows it",
+   "verify": "UI: 'Refunded' and the amount; API: GET /orders/{id} refunds; DB: refunds row",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/orders/[id]/report#report-refund"
+  },
+  {
+   "id": "nothing-chosen",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Press Send report without choosing an item or reason",
+   "expected": "Send stays disabled / says what to choose; nothing is sent",
+   "verify": "UI: disabled button; DB: no new refund or ticket",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/orders/[id]/report#nothing-chosen"
+  },
+  {
+   "id": "someone-elses",
+   "kind": "permission",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the report page for another customer's order",
+   "expected": "We couldn't find this order",
+   "verify": "UI: not-found; API: POST /orders/{id}/problems as another -> 403/404",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/orders/[id]/report#someone-elses"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/orders/[id]/report#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a report is always about one order: there is no list to be empty (an unknown order: see someone-elses)"
+  }
+ ]
+}

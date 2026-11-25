@@ -1,0 +1,61 @@
+{
+ "app": "admin",
+ "route": "/pricing/simulator",
+ "functions": [
+  {
+   "id": "price-a-cart",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Food subtotal, distance, time, tip; Price this cart",
+   "expected": "The bill the engine gives for those inputs; the city is the scope's",
+   "verify": "UI: result amounts; API: POST /pricing/simulate",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing/simulator#price-a-cart"
+  },
+  {
+   "id": "bad-input",
+   "kind": "error",
+   "users": [
+    "in"
+   ],
+   "action": "A negative subtotal",
+   "expected": "Refused with a message",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing/simulator#bad-input"
+  },
+  {
+   "id": "support-refused",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open as a support agent",
+   "expected": "Not allowed",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing/simulator#support-refused"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/pricing/simulator#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a calculator: there's always a result for valid inputs"
+  }
+ ]
+}

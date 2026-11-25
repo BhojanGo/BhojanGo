@@ -1,0 +1,74 @@
+{
+ "app": "web",
+ "route": "/help",
+ "functions": [
+  {
+   "id": "search-and-topics",
+   "kind": "filter",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Search help for 'refund', open a topic",
+   "expected": "Articles about refunds; each topic lists its articles (the counts are the API's)",
+   "verify": "UI: results; API: GET /help?country=",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/help#search-and-topics"
+  },
+  {
+   "id": "contact-form",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Fill the contact form (name, email, topic, message) and send",
+   "expected": "Sent; a support ticket exists",
+   "verify": "UI: confirmation; DB: support_tickets row with that email",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/help#contact-form"
+  },
+  {
+   "id": "search-nothing",
+   "kind": "empty",
+   "users": [
+    "us"
+   ],
+   "action": "Search help for nonsense",
+   "expected": "No articles and a contact suggestion",
+   "verify": "UI: results",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/help#search-nothing"
+  },
+  {
+   "id": "contact-invalid",
+   "kind": "error",
+   "users": [
+    "in"
+   ],
+   "action": "Send the contact form with an invalid email",
+   "expected": "Send stays disabled or the email is refused",
+   "verify": "UI: button/message",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/help#contact-invalid"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/help#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public page"
+  }
+ ]
+}

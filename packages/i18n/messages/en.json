@@ -449,6 +449,7 @@
     "promo": "Promo code",
     "apply": "Apply",
     "promo_applied": "applied",
+    "promo_not_applied": "doesn't apply to this order",
     "remove": "Remove",
     "fair_bill": "The fair bill",
     "you_pay": "You pay",

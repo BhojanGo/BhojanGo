@@ -1,0 +1,69 @@
+{
+ "app": "web",
+ "route": "/account/orders",
+ "functions": [
+  {
+   "id": "receipt-equals-order",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the paid order's receipt from Your orders",
+   "expected": "Every receipt line, You paid and any refund equal the stored order; India: GST lines; the date is the order's",
+   "verify": "UI: the receipt article; API: GET /orders/{id}, /pricing/orders/{id}/snapshot",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/orders#receipt-equals-order"
+  },
+  {
+   "id": "filters-search",
+   "kind": "filter",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Use the All / In progress / Delivered / Cancelled filters and the search box",
+   "expected": "Each filter lists exactly the orders the API has in that state; a search for the restaurant finds its orders",
+   "verify": "UI: order rows; API: GET /orders (statuses)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/orders#filters-search"
+  },
+  {
+   "id": "no-orders-yet",
+   "kind": "empty",
+   "users": [
+    "us"
+   ],
+   "action": "Open Your orders as a new customer",
+   "expected": "'No orders yet' and Find something to eat",
+   "verify": "UI: empty state; API: GET /orders is empty",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/orders#no-orders-yet"
+  },
+  {
+   "id": "signed-out",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open Your orders signed out",
+   "expected": "Sign in first",
+   "verify": "UI: /signin?next=/account/orders",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/orders#signed-out"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/account/orders#api-down"
+  }
+ ]
+}

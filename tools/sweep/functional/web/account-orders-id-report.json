@@ -1,0 +1,61 @@
+{
+ "app": "web",
+ "route": "/account/orders/[id]/report",
+ "functions": [
+  {
+   "id": "opens-form",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open Report a problem from the account",
+   "expected": "The same form for that order (items, reasons, photo)",
+   "verify": "UI: heading, reasons; API: the order's items",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/orders/[id]/report#opens-form"
+  },
+  {
+   "id": "photo-too-big",
+   "kind": "error",
+   "users": [
+    "in"
+   ],
+   "action": "Attach a file that isn't a photo",
+   "expected": "Refused with a message; nothing uploaded",
+   "verify": "UI: the photo message",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/orders/[id]/report#photo-too-big"
+  },
+  {
+   "id": "signed-out",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open it signed out",
+   "expected": "Sign in first",
+   "verify": "UI: /signin",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/orders/[id]/report#signed-out"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/account/orders/[id]/report#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "about one order; no list (an unknown order shows 'We couldn't find this order')"
+  }
+ ]
+}

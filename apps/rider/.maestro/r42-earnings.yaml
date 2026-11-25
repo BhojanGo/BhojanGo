@@ -1,0 +1,21 @@
+# R42 (brief item c): Earnings shows this week's total from the API, and each trip there pays its delivery fee and
+# tip in full (scripts/r42_earnings.js). Run after deliver.yaml (which delivers a trip this week).
+appId: com.bhojango.rider
+env:
+  PHONE: "9000000201"
+  INDIA: "true"
+---
+- runFlow: sign-in.yaml
+- tapOn: "Earnings"
+- extendedWaitUntil:
+    visible:
+      id: "week-total"
+    timeout: 30000
+- runScript:
+    file: scripts/r42_earnings.js
+    env:
+      RIDER: "rider1.hyd@example.com"
+- assertVisible:
+    id: "week-total"
+    text: ${output.total_re}
+- takeScreenshot: docs/screenshots/rider/r42-earnings

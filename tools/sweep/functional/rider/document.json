@@ -1,0 +1,33 @@
+{
+ "app": "rider",
+ "route": "document",
+ "functions": [
+  {
+   "id": "upload",
+   "kind": "form",
+   "users": [
+    "in"
+   ],
+   "action": "Upload a document photo",
+   "expected": "Sent for review",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/onboarding.yaml",
+   "maestro": "onboarding"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own documents"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "upload refused: message"
+  }
+ ]
+}

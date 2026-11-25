@@ -1,0 +1,12 @@
+# One fair-bill amount (from scripts/r42_numbers.js) must be on screen; an empty one (fewer lines) is skipped.
+appId: com.bhojango.app
+---
+- runFlow:
+    when:
+      true: ${AMOUNT != ""}
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: ".*${AMOUNT.replace('$', '[$]').replace('.', '[.]')}.*"
+          direction: DOWN
+          timeout: 10000

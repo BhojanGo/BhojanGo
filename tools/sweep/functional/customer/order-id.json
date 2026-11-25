@@ -1,0 +1,70 @@
+{
+ "app": "customer",
+ "route": "order/[id]",
+ "functions": [
+  {
+   "id": "tracking",
+   "kind": "display",
+   "users": [
+    "in"
+   ],
+   "action": "Follow the order live",
+   "expected": "Status, ETA, PIN after pickup",
+   "verify": "UI vs order API",
+   "run": "maestro: apps/customer/.maestro/order-and-track.yaml",
+   "maestro": "order-and-track"
+  },
+  {
+   "id": "pickup",
+   "kind": "display",
+   "users": [
+    "in"
+   ],
+   "action": "A pickup order's steps",
+   "expected": "Pickup code, collected",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/pickup.yaml",
+   "maestro": "pickup"
+  },
+  {
+   "id": "qa-track",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Tracking on a delivered order",
+   "expected": "Delivered state",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/qa-track.yaml",
+   "maestro": "qa-track"
+  },
+  {
+   "id": "messages",
+   "kind": "button",
+   "users": [
+    "in"
+   ],
+   "action": "Message the delivery partner",
+   "expected": "Sent; their reply arrives; numbers hidden",
+   "verify": "UI; API messages",
+   "run": "maestro: apps/customer/.maestro/messages.yaml",
+   "maestro": "messages"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "only the customer's own orders open (API: access sweep)"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "an order always has a status"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

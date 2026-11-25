@@ -1,0 +1,83 @@
+{
+ "app": "admin",
+ "route": "/pricing",
+ "functions": [
+  {
+   "id": "offer-budget",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Promotions: set the city's monthly BhojanGo offer budget, approve an offer BhojanGo pays for, place an order with it",
+   "expected": "The budget row shows spent of budget; the order's offer is spent from it; removing the budget turns the offer off",
+   "verify": "UI: budget row; API: GET /rules/offers/budgets, the order's quote discount",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing#offer-budget"
+  },
+  {
+   "id": "tabs-and-sources",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open each tab (Delivery fees … Approvals) and a rule",
+   "expected": "Each tab lists its rules with where each comes from; a rule opens with its history",
+   "verify": "UI: Rules region, row-source; API: GET /rules?family=",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing#tabs-and-sources"
+  },
+  {
+   "id": "rule-numbers",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read the delivery-fee rules",
+   "expected": "Each amount and distance is the rule's",
+   "verify": "UI: Rules region; API: GET /rules?family=delivery_fee",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing#rule-numbers"
+  },
+  {
+   "id": "nothing-to-approve",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open Approvals with nothing waiting",
+   "expected": "'Nothing waiting for you.'",
+   "verify": "UI: the empty line; API: no pending rules in scope",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing#nothing-to-approve"
+  },
+  {
+   "id": "support-refused",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open Pricing & Rules as a support agent",
+   "expected": "Not allowed (no rules shown); the rules API refuses changes",
+   "verify": "UI: refused; API: POST /rules -> 403",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing#support-refused"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/pricing#api-down"
+  }
+ ]
+}

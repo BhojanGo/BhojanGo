@@ -243,7 +243,8 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
     if discounts and promo_value(discounts[0]) > 0:
         best = discounts[0]
         discount = promo_value(best)
-        add("promotion", best.name or "Offer", -discount, best, funded_by=best.params["funded_by"], taxable_as="food")
+        add("promotion", best.name or "Offer", -discount, best, funded_by=best.params["funded_by"], taxable_as="food",
+            **({"detail": {"promo_code": best.params["code"]}} if best.params.get("code") else {}))  # R42: the code it took
     free_delivery = next((c for c in promos if c.template == "free_delivery"), None)
 
     # ── 4 fees ───────────────────────────────────────────────────────────────
@@ -283,7 +284,8 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
             free_delivery = None
     if free_delivery is not None and fees.get("delivery_fee", ZERO) > 0:
         add("promotion", free_delivery.name or "Free delivery", -fees["delivery_fee"], free_delivery,
-            funded_by=free_delivery.params["funded_by"], taxable_as="delivery_fee")
+            funded_by=free_delivery.params["funded_by"], taxable_as="delivery_fee",
+            **({"detail": {"promo_code": free_delivery.params["code"]}} if free_delivery.params.get("code") else {}))
 
     pf = rules.get("fee:platform_fee_pct")
     if pickup:  # R32: a pickup order's own platform fee (5% seeded), the same minimum

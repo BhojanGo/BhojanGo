@@ -8,13 +8,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { offerBadge, offerTitle } from "@/components/Cards";
-import { ratingOf } from "@/lib/contract";
+import { lowestFee, pricingOf, ratingOf } from "@/lib/contract";
 import { BrandTile, kitchenPhoto } from "@/components/KitchenPhoto";
 import { money, number, photo } from "@/lib/format";
 import { getContext } from "@/lib/prefs";
 import { jsonLdHtml } from "@/lib/jsonLd";
 import { shownPauses } from "@/lib/pauses";
-import { discover, menu, orderingPauses, restaurant, SITE, type KitchenCard, type Restaurant } from "@/lib/server";
+import { cityPage, discover, menu, orderingPauses, restaurant, SITE, type KitchenCard, type Restaurant } from "@/lib/server";
 import { availability, clock, km, slugify } from "./data";
 import { KitchenActions } from "./KitchenActions";
 import { HowSwitch, KitchenMenu, type Category } from "./KitchenMenu";
@@ -50,7 +50,11 @@ export default async function KitchenPage({ params }: { params: Params }) {
   if (!hit) notFound();
   const { r, path } = hit;
   const { t, place, formatLocale, country, language } = await getContext();
-  const [m, avail, near, pauses] = await Promise.all([menu(r.id), availability(r.id), place ? discover({ lat: place.lat, lng: place.lng }) : Promise.resolve(null), orderingPauses()]);
+  const { country: cc, city: citySlug } = await params;
+  // R42: no address yet: the city's lowest delivery band ("from $3.50"), as on the city page; never the
+  // restaurant's old delivery_fee column, which isn't what the bill charges.
+  const [m, avail, near, pauses, cityInfo] = await Promise.all([menu(r.id), availability(r.id), place ? discover({ lat: place.lat, lng: place.lng }) : Promise.resolve(null), orderingPauses(),
+    place ? Promise.resolve(null) : cityPage(cc, citySlug)]);
   // R18: ordering paused where this kitchen is (the city, its country or everywhere): the bag says so
   const orderingPaused = shownPauses(pauses, path).length > 0;
   const card: KitchenCard | null = near?.restaurants?.find((k) => k.id === r.id) ?? null;
@@ -71,17 +75,21 @@ export default async function KitchenPage({ params }: { params: Params }) {
   const etaMin = card?.eta_min ?? r.delivery_time_min;
   const etaMax = card?.eta_max ?? r.delivery_time_max;
   const eta = t("common.minutes", { min: etaMin, max: etaMax });
-  const fee = card ? (card.delivery_fee != null ? Number(card.delivery_fee) : null) : Number(r.delivery_fee);
+  const fee = card ? (card.delivery_fee != null ? Number(card.delivery_fee) : null) : null;
+  const feeFrom = card ? null : lowestFee(pricingOf(cityInfo));
   const free = card?.free_delivery || fee === 0;
   // R31: past the max delivery distance from this address (delivery bands, road distance): no delivery
   const tooFar = card?.deliverable === false;
   // R36: the kitchen takes pickup; too far to deliver but it does: pickup only (the switch is locked)
   const pickupOn = Boolean(card?.pickup_enabled ?? (r as { pickup_enabled?: boolean }).pickup_enabled);
   const pickupOnly = tooFar && pickupOn;
-  const deliveryLabel = free ? t("common.free_delivery") : fee != null ? t("common.delivery_fee", { fee: fmt(fee) }) : t("checkout.delivery");
+  const deliveryLabel = free ? t("common.free_delivery") : fee != null ? t("common.delivery_fee", { fee: fmt(fee) })
+    : feeFrom != null ? t("common.delivery_from", { fee: fmt(feeFrom) }) : t("checkout.delivery");
   const pickupLabel = card?.pickup_fee_percent ? t("kitchen.pickup_fee", { pct: number(Number(card.pickup_fee_percent), formatLocale) }) : t("checkout.pickup");
-  const feeText = tooFar ? t("common.too_far") : free ? t("common.free_delivery") : fee == null ? null : card ? t("kitchen.fee_to_address", { fee: fmt(fee) }) : t("common.delivery_fee", { fee: fmt(fee) });
-  const feeChip = tooFar ? t("common.too_far") : free ? t("common.free_delivery") : fee == null ? null : t("common.delivery_fee", { fee: fmt(fee) });
+  const feeText = tooFar ? t("common.too_far") : free ? t("common.free_delivery") : fee == null ? (feeFrom != null ? t("common.delivery_from", { fee: fmt(feeFrom) }) : null)
+    : t("kitchen.fee_to_address", { fee: fmt(fee) });
+  const feeChip = tooFar ? t("common.too_far") : free ? t("common.free_delivery") : fee == null ? (feeFrom != null ? t("common.delivery_from", { fee: fmt(feeFrom) }) : null)
+    : t("common.delivery_fee", { fee: fmt(fee) });
 
   const opens = clock(r.opens_at, formatLocale);
   const closes = clock(r.closes_at, formatLocale);

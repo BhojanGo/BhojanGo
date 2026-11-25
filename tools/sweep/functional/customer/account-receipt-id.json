@@ -1,0 +1,71 @@
+{
+ "app": "customer",
+ "route": "account/receipt/[id]",
+ "functions": [
+  {
+   "id": "receipt-bill",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open a past order's receipt",
+   "expected": "Paid = the order API's total; bill lines in paise",
+   "verify": "UI vs GET /orders/{id} (scripts/r42_numbers.js)",
+   "run": "maestro: apps/customer/.maestro/r42-bill-us.yaml",
+   "maestro": "r42-bill-us"
+  },
+  {
+   "id": "receipt-in",
+   "kind": "number",
+   "users": [
+    "in"
+   ],
+   "action": "India receipt",
+   "expected": "Paid = the order's; GST lines",
+   "verify": "UI vs API",
+   "run": "maestro: apps/customer/.maestro/r42-bill-in.yaml",
+   "maestro": "r42-bill-in"
+  },
+  {
+   "id": "bill-paise",
+   "kind": "number",
+   "users": [
+    "in"
+   ],
+   "action": "India bill in paise",
+   "expected": "₹ with two decimals",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/r37-bill-paise.yaml",
+   "maestro": "r37-bill-paise"
+  },
+  {
+   "id": "report-from-receipt",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Report a problem from the receipt",
+   "expected": "The report screen for that order",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/orders-receipt.yaml",
+   "maestro": "orders-receipt"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "only the customer's orders are listed to open (API refuses others: access sweep)"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a receipt always has its order"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down (orders tab)"
+  }
+ ]
+}

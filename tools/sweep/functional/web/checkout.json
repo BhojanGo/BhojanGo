@@ -1,0 +1,122 @@
+{
+ "app": "web",
+ "route": "/checkout",
+ "functions": [
+  {
+   "id": "bill-equals-quote",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open checkout with the dish ×2 in the cart",
+   "expected": "Every fair-bill line, the total and the Pay button equal the pricing API's quote",
+   "verify": "UI: bill rows, total, Pay; API: the POST /pricing/quote the page received",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout#bill-equals-quote"
+  },
+  {
+   "id": "fulfilment-switch",
+   "kind": "toggle",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Choose Pickup at checkout, then Delivery",
+   "expected": "Pickup: a pickup quote with no delivery fee or tip line, the bill equals it; Delivery: back to the delivery quote",
+   "verify": "UI: bill; API: the quotes the page received (fulfillment)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout#fulfilment-switch"
+  },
+  {
+   "id": "promo-code",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "With the city's BhojanGo offer budget set: type a wrong promo code, then the city's code (BOISE5 / FEAST100), then Remove",
+   "expected": "The wrong code says it doesn't apply and changes nothing; the right one says applied and adds the discount the quote has; Remove takes it off",
+   "verify": "UI: promo-state (applied or not), bill lines and total; API: the quotes the page received (promotion line with detail.promo_code)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout#promo-code"
+  },
+  {
+   "id": "tip-chips",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Choose each tip chip, then Other with a typed amount",
+   "expected": "The tip line and total follow each chip; the chips are the city's tip presets",
+   "verify": "UI: tip chips, bill; API: the quote for each tip",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout#tip-chips"
+  },
+  {
+   "id": "pay-declined",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Pay, then Decline in the test provider's checkout",
+   "expected": "'Your payment didn't go through' and no charge: the order stays unpaid, the price held",
+   "verify": "UI: the alert; API: the order's payment status is not paid",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout#pay-declined"
+  },
+  {
+   "id": "pay-and-order-stored",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Pay with the market's method (US card, India UPI) and Approve in the test provider's checkout",
+   "expected": "Tracking opens; the stored order's lines and total equal the quote paid; payment captured once",
+   "verify": "UI: Pay, tracking URL; API: GET /orders/{id}, /pricing/orders/{id}/snapshot; DB: orders.total, payments",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout#pay-and-order-stored"
+  },
+  {
+   "id": "empty-cart",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open checkout with an empty cart",
+   "expected": "'Your cart is empty' and Find something to eat",
+   "verify": "UI: empty state",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout#empty-cart"
+  },
+  {
+   "id": "signed-out",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open checkout signed out",
+   "expected": "Sign in first, then back to checkout",
+   "verify": "UI: /signin?next=/checkout",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout#signed-out"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/checkout#api-down"
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+{
+ "app": "rider",
+ "route": "delivery/[id]",
+ "functions": [
+  {
+   "id": "pickup-dropoff",
+   "kind": "button",
+   "users": [
+    "in"
+   ],
+   "action": "Pickup, drop-off, PIN",
+   "expected": "Delivered",
+   "verify": "UI; API",
+   "run": "maestro: apps/rider/.maestro/deliver.yaml",
+   "maestro": "deliver"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "only the assigned rider (API refuses others)"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a delivery always has its order"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "wrong PIN refused (deliver)"
+  }
+ ]
+}

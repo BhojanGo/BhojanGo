@@ -1,0 +1,67 @@
+{
+ "app": "web",
+ "route": "/help/[topic]/[slug]",
+ "functions": [
+  {
+   "id": "article",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open /help/orders/cancel-an-order and its links",
+   "expected": "The topic's / article's text from the help API; related links open",
+   "verify": "UI: heading, links answer; API: GET /help",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/help/[topic]/[slug]#article"
+  },
+  {
+   "id": "unknown",
+   "kind": "error",
+   "users": [
+    "us"
+   ],
+   "action": "Open one that doesn't exist",
+   "expected": "Not found with a way back to help",
+   "verify": "UI: 404",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/help/[topic]/[slug]#unknown"
+  },
+  {
+   "id": "helpful-vote",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Answer Was this helpful? Yes",
+   "expected": "Thanks; the vote is counted once",
+   "verify": "UI: thanks; API: the article's helpful count goes up by 1",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/help/[topic]/[slug]#helpful-vote"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/help/[topic]/[slug]#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public page"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "an article or topic always has text; an unknown one is the not-found state (see the error check)"
+  }
+ ]
+}

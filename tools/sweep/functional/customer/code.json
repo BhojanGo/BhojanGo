@@ -1,0 +1,42 @@
+{
+ "app": "customer",
+ "route": "code",
+ "functions": [
+  {
+   "id": "otp",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Enter the 6-digit code",
+   "expected": "Signed in",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/sign-in-email.yaml",
+   "maestro": "sign-in-email"
+  },
+  {
+   "id": "wrong-code",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A wrong code",
+   "expected": "Refused",
+   "verify": "UI",
+   "run": "not automated yet (NOT RUN)",
+   "test": "none"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the way in: anyone may open it"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form"
+  }
+ ]
+}

@@ -457,6 +457,13 @@ class Settings(BaseSettings):
         return platform if platform in PROTECTED_TEST_TARGETS else self.APP_ENV.strip().lower()
 
     @property
+    def test_database(self) -> bool:
+        """R42: the database is a throwaway test one (its name has "test" in it, e.g. bhojango_test_1a2b): what
+        public /health reports so test runs refuse to write anywhere else (tools/target_guard.py)."""
+        name = self.DATABASE_URL.rsplit("/", 1)[-1].split("?", 1)[0].lower() if self.DATABASE_URL else ""
+        return "test" in name
+
+    @property
     def production_named(self) -> bool:
         names = (self.APP_ENV, os.environ.get("RAILWAY_ENVIRONMENT_NAME", ""))
         return any(n.strip().lower() in PRODUCTION_NAMES for n in names)
