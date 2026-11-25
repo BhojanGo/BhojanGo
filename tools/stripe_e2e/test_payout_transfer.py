@@ -176,6 +176,9 @@ def case_connect_payout_transfer(h: H) -> None:
         # The delivery: the order paid through Stripe, delivered by the delivery partner last week
         # (Wednesday noon in Boise): a run pays only a week that has ended (R12).
         order = _paid_order(h)
+        # R40: a lost "not received" dispute in test_payments is the restaurant's loss and would come off this run (that
+        # is tested there); this case is about the transfer, so the throwaway database's disputes are cleared first.
+        h.sql("DELETE FROM payment_disputes")
         monday = date.fromisoformat(h.sql("SELECT (date_trunc('week', now() AT TIME ZONE 'America/Boise'))::date")[0][0])
         monday -= timedelta(days=7)
         wednesday = f"(TIMESTAMP '{monday + timedelta(days=2)} 12:00' AT TIME ZONE 'America/Boise')"

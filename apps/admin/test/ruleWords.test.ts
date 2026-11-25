@@ -95,8 +95,8 @@ test("R17: India's tax settings in words, and a form that shows settings an olde
 test("R30: the payment fee estimate per method and the delivery fee as base + per distance", () => {
   const us = unitsFor("US-ID-BOI", MARKETS);
   assert.equal(describe("card_fee_estimate", { card: { percent: "2.9", fixed: "0.30" } }, us),
-    "card 2.9% + $0.30 of the charge less the tip, taken from the restaurant's payout; cash: none");
+    "card 2.9% + $0.30 of the whole charge, taken from the restaurant's payout; cash: none");
   assert.equal(describe("card_fee_estimate", { percent: "2.9", fixed: "0.30" }, us),
-    "card 2.9% + $0.30 of the charge less the tip, taken from the restaurant's payout; cash: none");
+    "card 2.9% + $0.30 of the whole charge, taken from the restaurant's payout; cash: none");
   assert.equal(describe("base_per_distance", { base: "3.00", per_unit: "1.00" }, us), "$3 + $1 per mile, all of it to the delivery partner");
 });

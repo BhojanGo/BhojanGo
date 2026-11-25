@@ -421,7 +421,7 @@ def compute(inp: QuoteInputs, rules: dict[str, Candidate]) -> QuoteResult:
         used.append(cf)
     packaging = fees.get("packaging", ZERO)
     # R29: the payment fee comes off the restaurant's payout: the estimate (percent + fixed) of what the
-    # customer is charged less the tip. R30: at the payment method's rate (card until the method is known;
+    # customer is charged (R40: the whole charge, tip included). R30: at the payment method's rate (card until the method is known;
     # the order service re-prices it for the method chosen; cash has none).
     card_fee = ZERO
     cfe = rules.get("fee:card_fee_estimate")

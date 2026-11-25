@@ -479,7 +479,10 @@ with sync_playwright() as p:
 
                 def held() -> None:
                     expect(row).to_be_visible(timeout=15000)
-                    expect(row.get_by_test_id("dispute-state")).to_contain_text(re.compile(rf"^Open: {re.escape(held_word)}[\d,.]+ will be held from the next payout"))
+                    # R40: fraud (US) is BhojanGo's, nothing held; food quality (India) holds the restaurant's share
+                    expect(row.get_by_test_id("dispute-state")).to_contain_text(
+                        "Open: BhojanGo bears it (nothing held from the restaurant)" if market == "us"
+                        else re.compile(rf"^Open: {re.escape(held_word)}[\d,.]+ will be held from the next payout"))
                 check(f"R39 chargeback {market} {width} px: listed with the restaurant's share held from the next payout", held)
                 if width == 1440:
                     row.get_by_role("button", name="Evidence").click()
@@ -541,6 +544,59 @@ with sync_playwright() as p:
                 expect(mon.get_by_test_id("test-alert-result")).to_contain_text(re.compile(r"Paging webhook: (sent|off \(not set\))")),
                 expect(mon.get_by_test_id("test-alert-result")).to_contain_text(re.compile(r"Sentry: (sent|off \(not set\))"))))
             page.screenshot(path=f"{OUT}/r39-6-admin{width}-{market}.png", full_page=True)
+    page.set_viewport_size({"width": 1440, "height": 1000})
+
+    # ── R40: the finance model on the screens. Card fees are the restaurants' (their own line, never taken from
+    # BhojanGo), "BhojanGo keeps" = platform fees - offers - refunds it bears, Reconciliation adds up
+    # (captured = refunded + restaurants + card fees + partners + tax + BhojanGo), and a payout run that pays less than
+    # "owed" says why. US and India, 1440 and 390 px. WORKED_STATEMENT (tools/finance/worked_example.py, local only):
+    # the worked example's restaurant statement.
+    for market, country in (("us", "US"), ("in", "IN")):
+        cur = "$" if country == "US" else "₹"
+        rec_api = None
+        for width in (1440, 390):
+            page.set_viewport_size({"width": width, "height": 1000})
+            page.goto(f"{BASE}/finance?scope={country}", wait_until="networkidle")
+            recon = page.get_by_role("region", name="Reconciliation")
+            contrib = page.get_by_role("region", name="Contribution per order")
+
+            def model(recon=recon, contrib=contrib) -> None:  # type: ignore[no-untyped-def]
+                expect(recon).to_contain_text("Card fees (paid by restaurants)", timeout=20000)
+                expect(recon).to_contain_text("BhojanGo keeps")
+                expect(recon.get_by_test_id("recon-identity")).to_contain_text("Captured = refunded + restaurants are owed + card fees")
+                expect(recon).not_to_contain_text("Payment fees")
+                expect(recon).not_to_contain_text("Platform after payment fees")
+                expect(contrib).to_contain_text("Card fees (paid by restaurants, not BhojanGo)")
+            check(f"R40 finance {market} {width} px: card fees are the restaurants' line; BhojanGo pays no payment fees", model)
+            if rec_api is None:
+                weeks = api.get(f"{CORE}/finance/payout-runs", headers=token("admin@example.com", PW), params={"country": country}).json()
+                if weeks:
+                    r0 = weeks[0]
+                    rec_api = api.get(f"{CORE}/finance/reconciliation", headers=token("admin@example.com", PW), params={
+                        "country": country, "start": r0["period_start"], "end": r0["period_end"]}).json()
+            if rec_api:
+                m = rec_api["money"]
+                check(f"R40 reconciliation {market}: captured = refunded + restaurants + card fees + partners + tax + BhojanGo", lambda m=m: _ok(
+                    m["captured"] == m["refunded"] + m["restaurant_payable"] + m["card_fees"] + m["rider_payable"] + m["tax_owed"] + m["platform_revenue"]))
+                if (rec_api.get("not_in_run") or {}).get("orders"):
+                    check(f"R40 reconciliation {market} {width} px: what the run doesn't pay yet is labelled, with why",
+                          lambda recon=recon: expect(recon.get_by_test_id("not-in-run")).to_contain_text(
+                              re.compile(rf"Not in this payout yet: {re.escape(cur)}[\d,.]+ \(\d+ orders?: .*\. Delivered after this payout run was prepared")))
+            page.screenshot(path=f"{OUT}/r40-finance-admin{width}-{market}.png", full_page=True)
+        # A restaurant statement: the card fee on each order line (US: the worked example's when it ran)
+        statement = os.environ.get("WORKED_STATEMENT") if country == "US" else None
+        if not statement:
+            runs = api.get(f"{CORE}/finance/payout-runs", headers=token("admin@example.com", PW), params={"country": country}).json()
+            if runs:
+                detail = api.get(f"{CORE}/finance/payout-runs/{runs[0]['id']}", headers=token("admin@example.com", PW)).json()
+                statement = next((st["id"] for st in detail["statements"] if st["payee_type"] == "restaurant" and st["summary"].get("orders")), None)
+        if statement:
+            for width in (1440, 390):
+                page.set_viewport_size({"width": width, "height": 1000})
+                page.goto(f"{BASE}/finance/statements/{statement}", wait_until="networkidle")
+                check(f"R40 restaurant statement {market} {width} px: the card fee comes off the restaurant's line",
+                      lambda: expect(page.locator("main")).to_contain_text(re.compile(r"[Cc]ard fee"), timeout=20000))
+                page.screenshot(path=f"{OUT}/r40-statement-admin{width}-{market}.png", full_page=True)
     page.set_viewport_size({"width": 1440, "height": 1000})
 
     # Batching (task 43): a per-city switch among the business rules, off by default. It changes
@@ -829,8 +885,9 @@ with sync_playwright() as p:
     check("finance: the week picker lists only weeks that have ended, newest first", lambda: _ok(
         page.get_by_test_id("payout-week").locator("option").first.get_attribute("value") == weeks[0]["start"]
         and date.fromisoformat(weeks[0]["end"]) <= date.today() + timedelta(days=1)))
-    check("finance: contribution per order, after payment fees", lambda: (
-        expect(page.get_by_role("region", name="Contribution per order")).to_contain_text("Payment fees", timeout=20000),
+    check("finance: contribution per order; card fees are the restaurants' (R40)", lambda: (
+        expect(page.get_by_role("region", name="Contribution per order")).to_contain_text("Card fees (paid by restaurants, not BhojanGo)", timeout=20000),
+        expect(page.get_by_role("region", name="Contribution per order")).not_to_contain_text("Payment fees"),
         expect(page.get_by_role("region", name="Contribution per order")).to_contain_text(
             re.compile(r"\$[\d,]+\.\d{2}|No delivered orders in this week"), timeout=20000)))
     page.get_by_role("region", name="Contribution per order").screenshot(path=f"{OUT}/09b-contribution.png")

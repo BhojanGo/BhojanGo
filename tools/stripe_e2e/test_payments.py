@@ -197,10 +197,11 @@ def _evidence_and_wait(h: H, dispute_id: str, note: str) -> list[str]:
 
 def case_dispute_card_opens_a_chargeback_and_winning_evidence_releases_it(h: H) -> None:
     """R39: pm_card_createDispute (4000 0000 0000 0259, reason fraudulent): the dispute is recorded against the
-    order with the restaurant's share held and an Operations alert; finance's evidence ("winning_evidence", Stripe
-    test mode's word for a win) goes to Stripe, and charge.dispute.closed marks it won: nothing lost."""
+    order with an Operations alert; R40: fraud is BhojanGo's, so nothing of the restaurant's is held. Finance's
+    evidence ("winning_evidence", Stripe test mode's word for a win) goes to Stripe, and charge.dispute.closed
+    marks it won: nothing lost."""
     order, (did, reason, held, status, dp, rest) = _disputed_order(h, "pm_card_createDispute")
-    assert dp.startswith(("dp_", "du_")) and reason == "fraudulent" and int(held) > 0 and rest, (dp, reason, held, rest)
+    assert dp.startswith(("dp_", "du_")) and reason == "fraudulent" and int(held) == 0 and rest, (dp, reason, held, rest)
     alert = h.sql(f"SELECT status FROM ops_alerts WHERE fingerprint = 'dispute:{dp}'")
     assert alert and alert[0][0] == "firing", alert
     listed = h.api(ADMIN).call("GET", "/finance/disputes", 200, params={"country": "US", "state": "open"})
@@ -210,13 +211,15 @@ def case_dispute_card_opens_a_chargeback_and_winning_evidence_releases_it(h: H) 
     assert h.sql(f"SELECT status FROM ops_alerts WHERE fingerprint = 'dispute:{dp}'")[0][0] == "resolved"
 
 
-def case_dispute_lost_for_not_received_is_borne_by_bhojango(h: H) -> None:
-    """R39: pm_card_createDisputeProductNotReceived (reason product_not_received): "losing_evidence" loses it;
-    not a food-quality reason, so BhojanGo bears the whole amount and the restaurant nothing."""
+def case_dispute_lost_for_not_received_is_borne_by_the_restaurant(h: H) -> None:
+    """R40: pm_card_createDisputeProductNotReceived (reason product_not_received): the restaurant's share is held
+    while it is open; "losing_evidence" loses it and the restaurant bears the food amount, BhojanGo the rest."""
     order, (did, reason, held, status, dp, rest) = _disputed_order(h, "pm_card_createDisputeProductNotReceived")
-    assert reason == "product_not_received", reason
+    assert reason == "product_not_received" and int(held) > 0, (reason, held)
+    food = int(round(float(h.sql(f"SELECT subtotal FROM orders WHERE id = '{order['id']}'")[0][0]) * 100))
     outcome, bearer, restaurant_loss, platform_loss, amount = _evidence_and_wait(h, did, "losing_evidence")
-    assert (outcome, bearer, int(restaurant_loss), int(platform_loss)) == ("lost", "platform", 0, int(amount)), (outcome, bearer)
+    assert (outcome, bearer) == ("lost", "restaurant"), (outcome, bearer)
+    assert int(restaurant_loss) == min(food, int(amount)) and int(platform_loss) == int(amount) - int(restaurant_loss)
 
 
 # ── the Payment Element in a real browser (headless Chromium) ────────────────

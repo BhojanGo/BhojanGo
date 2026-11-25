@@ -592,7 +592,7 @@ RULES = [
     ("business", "payout_tds", None, "Tax withheld from kitchen payouts", "country", "US",
      {"label": "Tax withheld", "rate_percent": 0, "base": "gross_sales", "ca_confirmed": False}),
     # R29 fee model v2 (Idaho and Boise inherit): 0% commission; 10% platform fee on food, at least $0.99;
-    # the card fee (estimate 2.9% + $0.30 of the charge less the tip) comes off the kitchen's payout.
+    # the card fee (estimate 2.9% + $0.30 of the whole charge) comes off the kitchen's payout.
     ("commission", "percent", None, "Restaurant commission", "country", "US", {"percent": 0}),
     ("fee", "platform_fee_pct", None, "Platform fee", "country", "US", {"percent": 10}),
     ("fee", "min_platform_fee", None, "Minimum platform fee", "country", "US", {"amount": "0.99"}),

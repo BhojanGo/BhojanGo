@@ -84,9 +84,12 @@ async def test_runs_and_reconciliation_agree_every_week() -> None:
                         assert payouts._minor(Decimal(run.totals["restaurants"])) == rec["restaurant_payable"], where
                         assert payouts._minor(Decimal(run.totals["riders"])) == rec["rider_payable"], where
                         assert payouts._minor(Decimal(run.totals["min_pay_top_ups"])) == rec["min_pay_top_ups"], where
-                        assert rec["captured"] == (rec["refunded"] + rec["restaurant_payable"] + rec["rider_payable"]
+                        # R40: card fees are their own line, paid by restaurants (never out of BhojanGo's money)
+                        assert rec["captured"] == (rec["refunded"] + rec["restaurant_payable"] + rec["card_fees"] + rec["rider_payable"]
                                                    + rec["tax_owed"] + rec["platform_revenue"]), (where, rec)
-                        assert rec["platform_after_payment_fees"] == rec["platform_revenue"] - rec["payment_fees"], where
+                        assert rec["card_fees"] == payouts._minor(sum((Decimal(s.summary.get("card_fee", 0)) for s in (await db.execute(
+                            select(PayoutStatement).where(PayoutStatement.run_id == run.id, PayoutStatement.payee_type == "restaurant"))
+                        ).scalars()), Decimal(0))), where
                         # R23: the carry, in the run, in Reconciliation and on the statements
                         kitchens = (await db.execute(select(PayoutStatement).where(
                             PayoutStatement.run_id == run.id, PayoutStatement.payee_type == "restaurant"))).scalars().all()

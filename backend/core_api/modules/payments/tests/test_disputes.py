@@ -27,11 +27,22 @@ def test_loss_per_the_agreement() -> None:
     # food quality: the restaurant bears the food (never more than the dispute); BhojanGo the rest
     assert D.split_loss("product_unacceptable", 2599, 2200) == ("restaurant", 2200, 399)
     assert D.split_loss("product_unacceptable", 1000, 2200) == ("restaurant", 1000, 0)
+    # R40: not received is the restaurant's too
+    assert D.split_loss("product_not_received", 2599, 2200) == ("restaurant", 2200, 399)
     # fraud and everything else: BhojanGo
-    for reason in ("fraudulent", "product_not_received", "duplicate", "general", "unrecognized"):
+    for reason in ("fraudulent", "duplicate", "general", "unrecognized", "credit_not_processed", "subscription_canceled"):
         assert D.split_loss(reason, 2599, 2200) == ("platform", 0, 2599)
-    # a country may name other restaurant reasons (Markets setting dispute_restaurant_reasons)
-    assert D.split_loss("product_not_received", 2599, 2200, ("product_not_received",)) == ("restaurant", 2200, 399)
+    # a country may name its own restaurant reasons (Markets setting dispute_restaurant_reasons)
+    assert D.split_loss("product_not_received", 2599, 2200, ("product_unacceptable",)) == ("platform", 0, 2599)
+
+
+@pytest.mark.parametrize("reason,held", [
+    ("product_unacceptable", 1500), ("product_not_received", 1500),  # the restaurant would bear it: its share is held
+    ("fraudulent", 0), ("duplicate", 0), ("general", 0), ("unrecognized", 0), ("credit_not_processed", 0),
+    ("subscription_canceled", 0), ("incorrect_account_details", 0), ("insufficient_funds", 0)])
+def test_r40_hold_only_when_the_restaurant_would_bear_it(reason: str, held: int) -> None:
+    assert D.hold_for(reason, 1500, 2599) == held
+    assert D.hold_for(reason, 3000, 2599) == (2599 if held else 0)  # never more than the disputed amount
 
 
 def test_the_next_payout_run() -> None:

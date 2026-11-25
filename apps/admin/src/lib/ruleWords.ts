@@ -116,7 +116,7 @@ export function describe(template: string, params: P, units: Units): string {
       const rate = (r: { percent?: unknown; fixed?: unknown }) => (Number(r.fixed ?? 0) > 0 ? `${n(r.percent)}% + ${m(r.fixed, cur)}` : `${n(r.percent)}%`);
       const methods = p.card ? ([["card", "card"], ["upi", "UPI"], ["wallet", "wallet"], ["net_banking", "net banking"]] as const)
         .filter(([k]) => p[k]).map(([k, label]) => `${label} ${rate(p[k] as { percent?: unknown; fixed?: unknown })}`) : [`card ${rate(p)}`];
-      return `${methods.join(" · ")} of the charge less the tip, taken from the restaurant's payout; cash: none`;
+      return `${methods.join(" · ")} of the whole charge, taken from the restaurant's payout; cash: none`;
     }
     case "percent": return `${n(p.percent)}% of food, whatever the tier`;
     case "percent_by_tier": return tiers(p.tiers, (v) => `${n(v)}%`, p.default_tier) + " of food";

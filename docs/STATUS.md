@@ -681,6 +681,22 @@ columns; no data written).
   file parts: "Unsupported FormDataPart implementation"); uploads now go through XMLHttpRequest (licence, permit,
   dish photos). Found by the new permit flow on the tablet.
 
+## Finance correctness (round 40, 2026-11-24)
+
+No migration. The model and the audit of every finance number: [launch/finance-model.md](launch/finance-model.md).
+
+- **Card fees are the restaurants'**, on the whole charge (tip included), and never BhojanGo's: Contribution no longer
+  takes "Payment fees" from what BhojanGo keeps, and Reconciliation shows "Card fees (paid by restaurants)" as its own
+  line instead of "Payment fees" and "Platform after payment fees" (which counted the restaurants' card fees as
+  BhojanGo's). "Platform revenue" / "Platform keeps" are now "BhojanGo keeps".
+- **Owed vs paid** for the same week is labelled: "Not in this payout yet: $X (N orders) — delivered after this
+  payout run was prepared" (and money held for open chargebacks); carried balances keep their own lines.
+- **US commission:** the seed has none (0%); the $0.44/order came from the admin e2e's 12% Boise override test order.
+- **Chargeback hold** only when the restaurant would bear the loss: food quality or not received (now the
+  restaurant's too). Fraud and every other reason: BhojanGo bears it, nothing is held.
+- **Reconciliation test** to the cent and the paisa (US and India; delivery, pickup, tip, offer, refunds,
+  cancellation, chargeback) and the worked Boise example (`tools/finance/worked_example.py`).
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

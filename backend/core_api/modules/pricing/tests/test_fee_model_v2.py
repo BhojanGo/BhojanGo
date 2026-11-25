@@ -117,12 +117,13 @@ def test_b_exact_order() -> None:
     assert q.split.restaurant + q.split.rider + q.split.tax + q.split.platform + q.split.card_fee == q.total
 
 
-def test_b_tip_goes_to_the_partner_and_is_left_out_of_the_card_fee() -> None:
+def test_b_tip_goes_to_the_partner_and_the_restaurant_pays_the_card_fee_on_the_whole_charge() -> None:
     q = priced([Decimal("3.99"), Decimal("10.99"), Decimal("22.00")], tax=None, tip=Decimal("5.00"))
     assert q.total == Decimal("52.11")
-    assert q.split.card_fee == Decimal("1.67")  # 2.9% of 47.11 (52.11 less the 5.00 tip) + 0.30
-    assert q.split.rider == Decimal("8.99")
-    assert q.split.restaurant == Decimal("35.31")
+    assert q.split.card_fee == Decimal("1.81")  # R40: 2.9% of the whole 52.11 (tip included) + 0.30 = 1.8112
+    assert q.split.rider == Decimal("8.99")  # the whole tip, nothing taken from it
+    assert q.split.restaurant == Decimal("35.17")  # 36.98 food - 1.81
+    assert q.split.platform == q.total - q.split.restaurant - q.split.rider - q.split.tax - q.split.card_fee
 
 
 def test_c_minimum_platform_fee() -> None:
