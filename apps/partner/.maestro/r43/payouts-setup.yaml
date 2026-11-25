@@ -24,16 +24,20 @@ appId: com.bhojango.partner
 - takeScreenshot: docs/screenshots/partner/r43-payouts-setup-${MARKET}-before
 - tapOn:
     id: "payout-set-up"
-# the provider's set-up page opens outside the app
-- extendedWaitUntil:
-    notVisible:
-      id: "payouts-screen"
-    timeout: 30000
+# a real provider (Stripe Connect) opens its set-up page in the browser: come back to the app; the local test
+# provider sets the account up at once (no page)
+- waitForAnimationToEnd:
+    timeout: 5000
 - takeScreenshot: docs/screenshots/partner/r43-payouts-setup-${MARKET}-provider
 - runScript:
     file: ../scripts/r43_empty.js
     env: { STEP: after, MARKET: "${MARKET}", REST: "${REST}" }
-- back
+- runFlow:
+    when:
+      notVisible:
+        id: "payouts-screen"
+    commands:
+      - back
 - extendedWaitUntil:
     visible:
       id: "payouts-screen"

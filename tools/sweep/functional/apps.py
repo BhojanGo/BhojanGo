@@ -153,7 +153,7 @@ screen(P, "(kitchen)/menu", ("stock-to-web", "toggle", "Mark a dish sold out, th
 screen(P, "(kitchen)/payouts", ("statements", "number", "Open Payouts", "Each weekly statement's amount = the restaurant's statement in the API",
                                 "UI vs GET /finance/statements/me (scripts/r42_partner.js)", "r42-payouts", ("in",)),
        ("none-yet", "empty", "Before the first payout", "'Your first statement shows here…'", "UI", "r42-payouts", ("in",)),
-       ("set-up", "button", "A restaurant without a payout account: Set up payouts", "The payout provider's set-up page opens", "UI; API: onboarding link", "r43-payouts-setup-{user}"),
+       ("set-up", "button", "A restaurant without a payout account: Set up payouts", "A payout account with the market's provider (a real one opens its set-up page; the local test provider is ready at once)", "UI; API: GET /finance/payout-accounts/me/setup", "r43-payouts-setup-{user}"),
        (*DOWN, "r42-api-down"), nas=(("permission", "own statements only (API refuses others)"),))
 screen(P, "(kitchen)/help", ("help", "link", "Open help topics", "Articles", "UI", "help"),
        nas=(("permission", "any partner"), ("empty", "always topics"), ("error", "API down: r42-api-down")))

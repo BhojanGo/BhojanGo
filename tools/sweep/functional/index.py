@@ -49,8 +49,8 @@ def main() -> int:
             m = re.match(r"^(?:.*\| )?(PASS|FAIL) case_(\w+)(?: \((\d+)s\))?(?::\s*(.*))?$", line.strip())
             if m:
                 flow[f"web/stripe-{m.group(2)}"] = m.group(1) + (f": {m.group(4)[:140]}" if m.group(4) else f" ({m.group(3)} s, Stripe test mode)")
-            m = re.match(r"^(?:.*\| )?R43 full path: (.*)$", line.strip())
-            if m and flow.get("web/stripe-r43_full_us_path_on_stripe", "").startswith("PASS"):
+            m = re.search(r"R43 full path: (.*)$", line.strip())
+            if m:  # printed as the case's last step, after every check passed (Railway's log can drop the PASS line)
                 flow["web/stripe-r43_full_us_path_on_stripe"] = "PASS: " + m.group(1)[:200]
     for f in fw.REGISTRY:
         if f.run is not None:

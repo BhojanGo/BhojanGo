@@ -60,7 +60,9 @@ function Toggle({ on, label, onPress, testID }: { on: boolean; label: string; on
   );
 }
 
-function Sheet({ testID, title, onClose, children, footer }: { testID: string; title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode }) {
+function Sheet({ testID, title, onClose, children, footer, msg }: {
+  testID: string; title: string; onClose: () => void; children: React.ReactNode; footer?: React.ReactNode; msg?: string | null;
+}) {
   const { tr } = useTr();
   const { width, height, narrow } = useLayout();
   return (
@@ -72,6 +74,8 @@ function Sheet({ testID, title, onClose, children, footer }: { testID: string; t
             <Btn testID={`${testID}-close`} title={tr("common.cancel")} onPress={onClose} />
           </View>
           <ScrollView contentContainerStyle={{ gap: 16, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">{children}</ScrollView>
+          {/* the save's answer next to Save, so it's seen on any screen (a long form scrolls) */}
+          {msg ? <Text testID={`${testID}-error`} accessibilityRole="alert" style={[type.label, { color: color.chili, marginTop: 12 }]}>{msg}</Text> : null}
           {footer ? <View style={{ flexDirection: "row", justifyContent: "flex-end", flexWrap: "wrap", gap: 12, marginTop: 12 }}>{footer}</View> : null}
         </View>
       </View>
@@ -177,7 +181,7 @@ export function DishEditor({ data, dish, onClose, onSaved, onPhoto, onHistory }:
   }
 
   return (
-    <Sheet testID="dish-editor" title={dish ? tr("partner.edit.edit_title", { name: dish.name }) : tr("partner.edit.new_title")} onClose={onClose}
+    <Sheet testID="dish-editor" title={dish ? tr("partner.edit.edit_title", { name: dish.name }) : tr("partner.edit.new_title")} onClose={onClose} msg={msg}
       footer={<>
         {dish ? <Btn testID="dish-history" title={tr("partner.edit.history")} onPress={() => onHistory(dish)} /> : null}
         {dish ? <Btn testID="dish-delete" title={tr("partner.edit.delete")} kind="danger" onPress={remove} /> : null}
@@ -259,7 +263,6 @@ export function DishEditor({ data, dish, onClose, onSaved, onPhoto, onHistory }:
         })}
         <Btn testID="new-group" title={tr("partner.edit.new_group")} onPress={() => setGroup("new")} />
       </Field>
-      {msg ? <Text testID="dish-error" style={[type.small, { color: color.chili }]}>{msg}</Text> : null}
       {group ? (
         <GroupEditor data={data} group={group === "new" ? null : group} onClose={() => setGroup(null)}
           onSaved={(g, deleted) => {
@@ -323,7 +326,7 @@ function GroupEditor({ data, group, onClose, onSaved }: {
 
   const step = (v: number, d: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v + d));
   return (
-    <Sheet testID="group-editor" title={group ? tr("partner.edit.group_title", { name: group.name }) : tr("partner.edit.group_title_new")} onClose={onClose}
+    <Sheet testID="group-editor" title={group ? tr("partner.edit.group_title", { name: group.name }) : tr("partner.edit.group_title_new")} onClose={onClose} msg={msg}
       footer={<>
         {group ? <Btn testID="group-delete" title={tr("partner.edit.delete_group")} kind="danger" onPress={() => void remove()} /> : null}
         <Btn testID="group-save" title={tr("partner.edit.save")} kind="primary" height={56} busy={busy} onPress={() => void save()} />
@@ -354,7 +357,6 @@ function GroupEditor({ data, group, onClose, onSaved }: {
         </View>
       ))}
       <Btn testID="add-option" title={tr("partner.edit.add_option")} onPress={() => setOptions([...options, { name: "", price: "0", is_default: false, is_available: true }])} />
-      {msg ? <Text testID="group-error" style={[type.small, { color: color.chili }]}>{msg}</Text> : null}
     </Sheet>
   );
 }
@@ -399,7 +401,7 @@ export function CategoriesEditor({ data, onClose, onChanged }: { data: Manage; o
   }
 
   return (
-    <Sheet testID="categories-editor" title={tr("partner.edit.categories_title")} onClose={onClose}>
+    <Sheet testID="categories-editor" title={tr("partner.edit.categories_title")} onClose={onClose} msg={msg}>
       <Text style={t.muted}>{tr("partner.edit.categories_note")}</Text>
       <View>
         {cats.map((c, i) => (
@@ -421,7 +423,6 @@ export function CategoriesEditor({ data, onClose, onChanged }: { data: Manage; o
           setAdding("");
         })} />
       </View>
-      {msg ? <Text testID="categories-error" style={[type.small, { color: color.chili }]}>{msg}</Text> : null}
     </Sheet>
   );
 }
@@ -508,7 +509,7 @@ export function HistorySheet({ rid, currency, item, onClose }: { rid: string; cu
     return String(v);
   };
   return (
-    <Sheet testID="menu-history" title={item ? tr("partner.edit.history_dish", { name: item.name }) : tr("partner.edit.history_title")} onClose={onClose}>
+    <Sheet testID="menu-history" title={item ? tr("partner.edit.history_dish", { name: item.name }) : tr("partner.edit.history_title")} onClose={onClose} msg={msg}>
       {rows === null && !msg ? <ActivityIndicator color={color.peacock} /> : null}
       {rows?.length === 0 ? <Text style={t.muted}>{tr("partner.edit.history_none")}</Text> : null}
       {(rows ?? []).map((c, n) => (
@@ -527,7 +528,6 @@ export function HistorySheet({ rid, currency, item, onClose }: { rid: string; cu
         </View>
       ))}
       {next ? <Btn testID="history-more" title={tr("partner.edit.history_more")} onPress={() => load(next)} /> : null}
-      {msg ? <Text style={[type.small, { color: color.chili }]}>{msg}</Text> : null}
     </Sheet>
   );
 }

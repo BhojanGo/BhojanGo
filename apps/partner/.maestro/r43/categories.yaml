@@ -20,7 +20,7 @@ appId: com.bhojango.partner
 - tapOn:
     id: "new-category"
 - inputText: ${output.cat}
-- hideKeyboard
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
 - tapOn:
     id: "add-category"
 - extendedWaitUntil:
@@ -37,21 +37,44 @@ appId: com.bhojango.partner
     id: "category-name-${output.last}"
 - eraseText: 40
 - inputText: ${output.cat2}
-- hideKeyboard
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
 - tapOn:
     id: "category-rename-${output.last}"
 - extendedWaitUntil:
     visible: ${output.cat2}
     timeout: 15000
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
+- scrollUntilVisible:
+    element:
+      id: "category-from-${output.last}"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "category-from-${output.last}"
 - inputText: "07:00"
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
+- scrollUntilVisible:
+    element:
+      id: "category-until-${output.last}"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "category-until-${output.last}"
 - inputText: "11:00"
-- hideKeyboard
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
+- scrollUntilVisible:
+    element:
+      id: "category-hours-${output.last}"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "category-hours-${output.last}"
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
+- scrollUntilVisible:
+    element:
+      id: "category-shown-${output.last}"
+    direction: DOWN
+    timeout: 10000
 - tapOn:
     id: "category-shown-${output.last}"
 - extendedWaitUntil:
@@ -59,6 +82,11 @@ appId: com.bhojango.partner
     timeout: 15000
 - takeScreenshot: docs/screenshots/partner/r43-categories-${MARKET}-edited
 # drag the ☰ handle up past every row: it lands first
+- scrollUntilVisible:
+    element:
+      id: "category-drag-${output.last}"
+    direction: DOWN
+    timeout: 10000
 - swipe:
     from:
       id: "category-drag-${output.last}"

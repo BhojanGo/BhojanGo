@@ -3,18 +3,19 @@
 # refuses the dish outside its hours and, with the hours cleared, adds Full's price (scripts/r43_menu.js).
 appId: com.bhojango.partner
 ---
-- runFlow: open-menu.yaml
 - runScript:
     file: ../scripts/r43_menu.js
     env: { STEP: optdish, MARKET: "${MARKET}" }
+- runFlow: open-menu.yaml
 - tapOn:
     id: "menu-search"
 - inputText: ${output.name}
-- hideKeyboard
+- pressKey: Enter
 - extendedWaitUntil:
     visible: ${output.name}
     timeout: 20000
-- tapOn: ${output.name}
+- tapOn:
+    id: "menu-item-0"  # the one row the search leaves (its name is also in the search box)
 - extendedWaitUntil:
     visible:
       id: "dish-editor"

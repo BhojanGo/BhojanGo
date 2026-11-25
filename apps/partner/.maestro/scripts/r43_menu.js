@@ -45,6 +45,8 @@ var dishOf = function (name) { return manage().items.filter(function (i) { retur
 
 if (STEP === "setup") {
   manage().items.forEach(function (i) { if (i.name.indexOf("R43 ") === 0) call("DELETE", API + "/restaurants/" + rid + "/menu-items/" + i.id, tok); });
+  // categories an earlier run left: hidden from customers
+  manage().categories.forEach(function (c) { if (c.name.indexOf("R43 ") === 0 && c.is_active) call("PUT", API + "/restaurants/" + rid + "/categories/" + c.id, tok, { is_active: false }); });
   var tag = String(Math.floor(1000 + Math.random() * 8999));
   output.name = "R43 Dish " + tag;
   output.renamed = "R43 Special " + tag;
