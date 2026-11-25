@@ -269,7 +269,7 @@ function Permit({ permit, onSaved }: { app: Application; permit: FoodPermit; onS
   const { t: tr } = useI18n();
   const [num, setNum] = useState(permit.number ?? "");
   const [until, setUntil] = useState(showDate(permit.expires_on));
-  const [doc, setDoc] = useState<{ name: string; size: number; key: string | null } | null>(permit.document ? { name: tr("partner.apply.licence_on_file"), size: 0, key: null } : null);
+  const [doc, setDoc] = useState<{ name: string; size: number; key: string | null } | null>(permit.document ? { name: tr("partner.apply.permit_title"), size: 0, key: null } : null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const date = parseDate(until);
@@ -324,7 +324,6 @@ function Permit({ permit, onSaved }: { app: Application; permit: FoodPermit; onS
           <Text style={t.label}>{tr("partner.apply.permit_expires")}</Text>
           <TextInput disableFullscreenUI testID="permit-expires" accessibilityLabel={tr("partner.apply.permit_expires")} value={until} onChangeText={setUntil}
             placeholder={tr("partner.apply.date_hint")} placeholderTextColor={color.muted} style={[field.bodyLg, s.input]} />
-          <Text style={t.muted}>{tr("partner.apply.remind")}</Text>
         </View>
       </View>
       <Text style={t.label}>{tr("partner.apply.permit_document")}</Text>

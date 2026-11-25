@@ -777,7 +777,7 @@ function Permit({ app, permit, onSaved }: { app: Application; permit: FoodPermit
   const f = useFormat();
   const [num, setNum] = useState(permit.number ?? "");
   const [until, setUntil] = useState(permit.expires_on ?? "");
-  const [doc, setDoc] = useState<{ name: string; key: string | null } | null>(permit.document ? { name: t("partner.apply.licence_on_file"), key: null } : null);
+  const [doc, setDoc] = useState<{ name: string; key: string | null } | null>(permit.document ? { name: t("partner.apply.permit_title"), key: null } : null);
   const [uploading, setUploading] = useState(false);
   const { busy, msg, setMsg, run } = useSave(onSaved);
   const id = useId();
