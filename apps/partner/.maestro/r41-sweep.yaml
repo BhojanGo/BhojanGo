@@ -1,0 +1,61 @@
+# R41 sweep: the Restaurant app's screens no other flow photographs: the code screen and the account screen,
+# each with the sweep's checks (no untranslated key, no unfilled placeholder).
+appId: com.bhojango.partner
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in to your restaurant"
+    timeout: 120000
+- tapOn:
+    id: "way-phone"
+- repeat:
+    while:
+      notVisible:
+        id: "phone-country-IN"
+    times: 6
+    commands:
+      - tapOn:
+          id: "phone-country-.*"
+- tapOn:
+    id: "phone"
+- inputText: "9000000900"
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 15000
+- assertNotVisible: '[a-z][a-z_]*(\.[a-z_]+){2,}'
+- assertNotVisible: '.*\{[a-z_]+\}.*'
+- assertVisible: '.*\+91 90000 00900.*'
+- takeScreenshot: docs/screenshots/partner/r41-code-in
+- inputText: "123456"
+- extendedWaitUntil:
+    notVisible: "Enter the 6-digit code"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Which restaurant is this tablet for?"
+    commands:
+      - tapOn: "Spice Route Kitchen"
+- extendedWaitUntil:
+    visible: "Ready for pickup"
+    timeout: 30000
+- tapOn: "Help"
+- scrollUntilVisible:
+    element:
+      id: "open-account"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "open-account"
+- extendedWaitUntil:
+    visible:
+      id: "account-screen"
+    timeout: 20000
+- assertNotVisible: '[a-z][a-z_]*(\.[a-z_]+){2,}'
+- assertNotVisible: '.*\{[a-z_]+\}.*'
+- assertNotVisible: '.*\$\s?[0-9].*'
+- takeScreenshot: docs/screenshots/partner/r41-account-in

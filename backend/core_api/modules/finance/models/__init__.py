@@ -2,7 +2,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, Index, Integer, String, Text, UniqueConstraint, false, func
+from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, false, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -39,7 +39,12 @@ class PayoutRun(Base):
     """One country's payouts for one period. draft -> approved -> paid."""
 
     __tablename__ = "payout_runs"
-    __table_args__ = (UniqueConstraint("country", "period_start", "period_end", name="uq_payout_runs_period"),)
+    __table_args__ = (
+        UniqueConstraint("country", "period_start", "period_end", name="uq_payout_runs_period"),
+        # R41: a run is one week, Monday (in the country's payout zone) to the next Monday (migration 0054: NOT VALID,
+        # so rows made before it are listed, not changed)
+        CheckConstraint("extract(isodow from period_start) = 1 AND period_end = period_start + 7", name="ck_payout_runs_monday_week"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     country: Mapped[str] = mapped_column(String(2), nullable=False)
@@ -93,4 +98,15 @@ class PayoutStatement(Base):
     negative_since: Mapped[date | None] = mapped_column(Date, nullable=True)
 
 
-__all__ = ["PayoutAccount", "PayoutRun", "PayoutStatement"]
+class PayoutRunOrder(Base):
+    """R41: an order belongs to at most one payout run (the primary key). Written when a run is prepared; deleting a
+    run releases its orders."""
+
+    __tablename__ = "payout_run_orders"
+
+    order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("payout_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+__all__ = ["PayoutAccount", "PayoutRun", "PayoutRunOrder", "PayoutStatement"]

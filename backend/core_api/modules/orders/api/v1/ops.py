@@ -202,7 +202,7 @@ async def overview(admin: Viewer, db: DB, scope: str = Query("*", pattern=r"^(\*
         apps = [a for a in apps if a.city in city_by_name and admin.can("partners.edit", city_by_name[a.city])]
         if apps:
             actions.append(OpsAction(kind="kitchen_application", count=len(apps), scope=code,
-                                  label=f"{len(apps)} kitchen{'s' if len(apps) > 1 else ''} applying to join",
+                                  label=f"{len(apps)} restaurant{'s' if len(apps) > 1 else ''} applying to join",
                                   detail=", ".join(f"{a.name} · {a.city}" for a in apps)[:200]))
         if admin.can("riders.edit", code):
             docs = (await db.execute(select(RiderDocument).join(User, User.id == RiderDocument.rider_id).where(

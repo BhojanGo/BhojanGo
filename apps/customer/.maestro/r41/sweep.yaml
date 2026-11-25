@@ -1,0 +1,49 @@
+# R41 sweep (run by ../r41-sweep-us.yaml and ../r41-sweep-in.yaml): the customer app's screens no other flow opens:
+# the place picker ("where"), favourites and the address form, each with a screenshot and the sweep's checks.
+appId: com.bhojango.app
+---
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: ${PHONE}
+      COUNTRY: ${COUNTRY}
+- extendedWaitUntil:
+    visible:
+      id: "home"
+    timeout: 60000
+# home may open scrolled down (the location line sits at the top)
+- scrollUntilVisible:
+    element:
+      id: "change-city|set-location"
+    direction: UP
+    timeout: 20000
+- tapOn:
+    id: "change-city|set-location"
+- extendedWaitUntil:
+    visible:
+      id: "where-screen"
+    timeout: 20000
+- runFlow: checks.yaml
+- takeScreenshot: docs/screenshots/customer/r41-where-${MARKET}
+- back
+- tapOn:
+    id: "tab-account"
+- tapOn:
+    id: "account-favourites"
+- extendedWaitUntil:
+    visible:
+      id: "favourites"
+    timeout: 20000
+- runFlow: checks.yaml
+- takeScreenshot: docs/screenshots/customer/r41-favourites-${MARKET}
+- back
+- tapOn:
+    id: "account-addresses"
+- tapOn:
+    id: "add-address"
+- extendedWaitUntil:
+    visible:
+      id: "pin-picker"
+    timeout: 20000
+- runFlow: checks.yaml
+- takeScreenshot: docs/screenshots/customer/r41-address-form-${MARKET}

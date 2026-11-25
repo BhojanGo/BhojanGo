@@ -1,0 +1,10 @@
+# R41 sweep as an India (Hyderabad) customer.
+appId: com.bhojango.app
+---
+- runFlow:
+    file: r41/sweep.yaml
+    env:
+      MARKET: "in"
+      PHONE: "9000000101"
+      COUNTRY: "IN"
+      OTHER_CUR: '\$'

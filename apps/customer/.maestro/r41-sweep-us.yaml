@@ -1,0 +1,10 @@
+# R41 sweep as a US (Boise) customer.
+appId: com.bhojango.app
+---
+- runFlow:
+    file: r41/sweep.yaml
+    env:
+      MARKET: "us"
+      PHONE: "2085550101"
+      COUNTRY: "US"
+      OTHER_CUR: '₹'

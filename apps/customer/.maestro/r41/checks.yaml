@@ -1,0 +1,10 @@
+# R41 sweep: the checks run on every screen the sweep opens (env OTHER_CUR: the other market's currency sign).
+appId: com.bhojango.app
+---
+# no untranslated message key or unfilled placeholder
+- assertNotVisible: '[a-z][a-z_]*(\.[a-z_]+){2,}'
+- assertNotVisible: '.*\{[a-z_]+\}.*'
+# no "bag" in BhojanGo's words (R33: cart)
+- assertNotVisible: '(?i).*\bbags?\b.*'
+# only the user's market's currency
+- assertNotVisible: '.*${OTHER_CUR}\s?[0-9].*'

@@ -23,6 +23,7 @@ import { adminApi } from "@/lib/api";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import { apiMessage, money, useScope } from "@/lib/ops";
 import { count } from "@/lib/count";
+import { weekLabel } from "@/lib/weeks";
 
 interface Run {
   id: string; country: string; currency: string; period_start: string; period_end: string; status: string; created_by: string;
@@ -42,7 +43,7 @@ interface Statement {
 /** R23: a kitchen below zero for 4 weeks or more (amount: what it owes, minor units). */
 interface Collect { restaurant_id: string; kitchen: string; currency: string; amount: number; weeks: number; since: string; week_start: string; week_end: string }
 interface Recon {
-  currency: string; orders: { total: number; delivered: number; cancelled: number; open: number };
+  currency: string; orders: { total: number; delivered: number; cancelled: number; open: number; definition?: string };
   money: Record<string, number>; issues: { order_id: string; issue: string }[]; refunds_not_settled: number;
   /** R40: orders whose card fee is the estimate, not what the provider reported. */
   card_fees_estimated?: number;
@@ -53,7 +54,7 @@ interface Recon {
 }
 
 interface Contribution {
-  currency: string; fees_estimated: number;
+  currency: string; fees_estimated: number; definition?: string;
   cities: { city: string; orders: number; totals: Record<string, string>; per_order: Record<string, string | null> }[];
   all: { orders: number; totals: Record<string, string>; per_order: Record<string, string | null> };
 }
@@ -90,15 +91,6 @@ interface Weeks { timezone: string; today: string; weeks: { start: string; end: 
   /** R25: the country's legal entity has no name in Markets, so no commission tax invoice can be issued */
   legal_name_missing?: boolean; country_name?: string }
 
-/** "Mon 9 Nov – Sun 15 Nov" for a run's period (end is the next Monday, not included). */
-function weekLabel(start: string, end: string): string {
-  const day = (iso: string, back = 0) => {
-    const d = new Date(`${iso}T12:00:00Z`);
-    d.setUTCDate(d.getUTCDate() - back);
-    return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(",", "");
-  };
-  return `${day(start)} – ${day(end, 1)}`;
-}
 
 function addDays(iso: string, n: number): string {
   return new Date(Date.parse(`${iso}T12:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
@@ -309,6 +301,7 @@ function FinancePage() {
             </tbody>
           </table></div>
           {contribution.data.cities.length === 0 ? <p className="text-small text-muted">No delivered orders in this week, so there is nothing to average.</p> : null}
+          {contribution.data.definition ? <p className="m-0 mt-2 text-small text-muted" data-testid="orders-definition">Orders: {contribution.data.definition} (the same orders as Reconciliation and the payout run).</p> : null}
         </section>
       ) : null}
       {recon.data ? (
@@ -342,7 +335,7 @@ function FinancePage() {
             </p>
           ) : null}
           <p className="mt-3 text-small text-muted">Restaurants are paid what they are owed this week, plus what earlier weeks left below zero (carried from last week), less what this week leaves below zero (carried to next week). Nothing below zero is written off or charged to a restaurant.</p>
-          <p className="mt-3 text-small">{recon.data.orders.delivered} delivered · {recon.data.orders.cancelled} cancelled · {recon.data.orders.open} still open · {count(recon.data.refunds_not_settled, "refund")} not settled ·{" "}
+          <p className="mt-3 text-small"><span data-testid="recon-delivered" title={recon.data.orders.definition}>{recon.data.orders.delivered} delivered</span> · placed this week: {recon.data.orders.cancelled} cancelled, {recon.data.orders.open} still open · {count(recon.data.refunds_not_settled, "refund")} not settled ·{" "}
             {recon.data.issues.length ? <b className="text-chili">{count(recon.data.issues.length, "issue")} to look at</b> : <span className="text-peacock">everything lines up</span>}</p>
         </section>
       ) : null}

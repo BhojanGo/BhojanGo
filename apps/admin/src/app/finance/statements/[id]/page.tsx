@@ -45,7 +45,7 @@ export default function StatementPage({ params }: { params: Promise<{ id: string
       </div>
       {st.isError ? <p role="alert">{apiMessage(st.error)}</p> : null}
       {s ? (
-        <table className="w-full rounded-2xl bg-white text-left" data-testid="statement-lines">
+        <div className="table-scroll">{/* R41: scrolls inside its card on a phone, never the page */}<table className="w-full rounded-2xl bg-white text-left" data-testid="statement-lines">
           <thead>
             <tr className="text-small text-muted">
               <th className="p-3">Order</th><th className="p-3">Delivered</th><th className="p-3 text-right">Food subtotal</th>
@@ -77,7 +77,7 @@ export default function StatementPage({ params }: { params: Promise<{ id: string
               <td className="p-3 text-right font-bold">{money(n(String(s.summary.net)), cur, 2)}</td>
             </tr>
           </tfoot>
-        </table>
+        </table></div>
       ) : null}
     </ConsoleShell>
   );
@@ -95,7 +95,7 @@ function PartnerStatement({ s }: { s: Statement }) {
         <h1 className="m-0 mt-2 text-h1">{s.payee_name ?? "Delivery partner statement"}</h1>
         <p className="mt-1 text-small text-muted">Each trip: the order&apos;s delivery fee (from the road distance) + 100% of the tip. BhojanGo never adds to or takes from it.</p>
       </div>
-      <table className="w-full rounded-2xl bg-white text-left" data-testid="statement-lines">
+      <div className="table-scroll">{/* R41: scrolls inside its card on a phone, never the page */}<table className="w-full rounded-2xl bg-white text-left" data-testid="statement-lines">
         <thead>
           <tr className="text-small text-muted">
             <th className="p-3">Order</th><th className="p-3">Delivered</th><th className="p-3 text-right">Road distance</th>
@@ -122,7 +122,7 @@ function PartnerStatement({ s }: { s: Statement }) {
             <td className="p-3 text-right font-bold">{money(s.lines.reduce((a, l) => a + n(l.total), 0), cur, 2)}</td>
           </tr>
         </tfoot>
-      </table>
+      </table></div>
     </ConsoleShell>
   );
 }

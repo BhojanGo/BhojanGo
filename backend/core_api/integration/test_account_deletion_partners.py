@@ -26,7 +26,7 @@ async def test_owed_payouts_orders_in_progress_and_the_kitchen_closing() -> None
     from shared.db import AsyncSessionLocal
 
     owner, rider = uuid.uuid4(), uuid.uuid4()
-    start = date(1980, 1, 1) + timedelta(weeks=uuid.uuid4().int % 500)  # far from real weeks
+    start = date(1979, 12, 31) + timedelta(weeks=uuid.uuid4().int % 500)  # a Monday, far from real weeks
     async with AsyncSessionLocal() as db:
         kitchen = Restaurant(name="Departing Kitchen", slug=f"departing-{owner.hex[:8]}", owner_id=owner,
                              address={"street": "1 Test St", "city": "Nowhere"}, country="US", city="Nowhere",

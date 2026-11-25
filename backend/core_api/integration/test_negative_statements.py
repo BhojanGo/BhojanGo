@@ -166,7 +166,7 @@ async def test_still_negative_after_four_weeks_is_flagged_to_collect(client: Asy
     spice = order["restaurant_id"]
     last_start, last_end = ist_last_week()
     first = last_start - timedelta(days=28)
-    await week_below_zero(spice, first, -100_000_000)  # far more than any week's sales: still below zero after them
+    await week_below_zero(spice, first, -4_500_000)  # R41: ₹45,000, a real small-business size, still more than its weeks of sales
     finance = await login(client, "finance.in@example.com", ADMIN)
 
     runs = []

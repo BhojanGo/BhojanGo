@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from sqlalchemy import Float, DateTime, Integer, Numeric, SmallInteger, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from shared.db import Base
 
@@ -90,6 +90,18 @@ class Order(Base):
     delivery_address: Mapped[dict] = mapped_column(JSONB, nullable=False)
     estimated_delivery_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     actual_delivery_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    @validates("actual_delivery_time")
+    def _delivered_not_in_the_future(self, _key: str, value: datetime | None) -> datetime | None:
+        """R41: an order is delivered at a time that has happened (a minute's clock skew allowed). The API stamps it
+        with the server's clock; anything later is refused, so no payout week can hold a delivery from the future."""
+        if value is not None:
+            from datetime import UTC, timedelta
+
+            at = value if value.tzinfo else value.replace(tzinfo=UTC)
+            if at > datetime.now(UTC) + timedelta(minutes=1):
+                raise ValueError(f"An order can't be delivered in the future ({at.isoformat()})")
+        return value
 
     # Payment
     payment_method: Mapped[str] = mapped_column(String(30), nullable=False)
