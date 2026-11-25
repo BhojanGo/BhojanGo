@@ -12,7 +12,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Path, Query, Request, Response, UploadFile, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.identity.api.dependencies import AdminContext, require_permission
@@ -304,7 +304,8 @@ async def view_upload(key: Annotated[str, Query(max_length=300)], admin: Annotat
         if u is None or not authz.can_within(admin.assignments, "riders.view", u.country):
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
     else:
-        kitchens = (await db.execute(select(Restaurant).where(Restaurant.owner_id == owner, Restaurant.fssai_document_key == key))).scalars().all()
+        kitchens = (await db.execute(select(Restaurant).where(Restaurant.owner_id == owner, or_(  # R39: or the food permit
+            Restaurant.fssai_document_key == key, Restaurant.food_permit_document_key == key)))).scalars().all()
         scopes = [await restaurant_city_code(db, r.id) for r in kitchens]
         if not any(sc and admin.can("partners.view", sc) for sc in scopes):
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")

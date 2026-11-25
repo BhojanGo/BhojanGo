@@ -12,6 +12,7 @@ import { km } from "@/components/discover/places";
 import { FairBill } from "@/components/FairBill";
 import { Check, Clock, Close, Pin } from "@/components/Icons";
 import { foodSubtotal, useQuote, type DeliverTo } from "@/components/order/useQuote";
+import { useFitBelowHeader } from "@/lib/bottomSpace";
 import { api, authed, cartItems, useBag, useHydrated, useSession } from "@/lib/client";
 import { tipPresetsOf, type TipPresets } from "@/lib/contract";
 import { photo } from "@/lib/format";
@@ -92,6 +93,10 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const hydrated = useHydrated();
   const user = useSession((s) => s.user);
   const bag = useBag();
+  // R39: on a phone the checkout fills the screen below the header: its content scrolls inside, the Pay bar
+  // sits under it (never over it), so nothing is ever hidden behind the button.
+  const shell = useRef<HTMLDivElement>(null);
+  const fitHeight = useFitBelowHeader(shell);
   const [rest, setRest] = useState<Restaurant | null>(null);
   const [addresses, setAddresses] = useState<Address[] | null>(null);
   const [saved, setSaved] = useState<SavedMethod[]>([]);
@@ -335,8 +340,17 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
     </>
   );
 
+  const payButton = q && held === 0 ? (
+    <button type="button" onClick={() => setNonce((n) => n + 1)} className="h-[60px] w-full rounded-full bg-[#0B5D66] text-h3 text-white">{t("checkout.fresh_price")}</button>
+  ) : (
+    <button type="button" disabled={!canPay} onClick={() => void pay()} aria-busy={busy} className="h-[60px] w-full rounded-full bg-[#0B5D66] text-h3 tabular-nums text-white hover:bg-[#083F46] disabled:bg-[#8FB3B7]">
+      {busy ? t("checkout.paying") : payLabel}
+    </button>
+  );
+
   return (
-    <div className="container-page pb-32 pt-4 md:pb-20 md:pt-6">
+    <div ref={shell} data-testid="checkout-shell" className="max-md:flex max-md:flex-col" style={fitHeight ? { height: fitHeight } : undefined}>
+    <div data-testid="checkout-scroll" className="container-page relative pb-6 pt-4 md:pb-20 md:pt-6 max-md:min-h-0 max-md:flex-1 max-md:overflow-y-auto">
       <div className="mb-4 flex items-center justify-between text-body">
         <Link href={kitchenPath} className="inline-flex items-center gap-2 font-bold text-[#0B5D66]">
           <span aria-hidden="true">←</span> {t("checkout.back_to_menu")}
@@ -552,15 +566,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                 </p>
               )}
               {error && <p role="alert" className="m-0 mt-3 rounded-xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]">{error}</p>}
-              <div className="fixed inset-x-4 bottom-4 z-40 md:static md:mt-4">
-                {q && held === 0 ? (
-                  <button type="button" onClick={() => setNonce((n) => n + 1)} className="h-[60px] w-full rounded-full bg-[#0B5D66] text-h3 text-white shadow-[0_10px_30px_rgba(11,93,102,0.3)] md:shadow-none">{t("checkout.fresh_price")}</button>
-                ) : (
-                  <button type="button" disabled={!canPay} onClick={() => void pay()} aria-busy={busy} className="h-[60px] w-full rounded-full bg-[#0B5D66] text-h3 tabular-nums text-white shadow-[0_10px_30px_rgba(11,93,102,0.3)] hover:bg-[#083F46] disabled:bg-[#8FB3B7] md:shadow-none">
-                    {busy ? t("checkout.paying") : payLabel}
-                  </button>
-                )}
-              </div>
+              <div className="mt-4 hidden md:block">{payButton}</div>
             </div>
           </div>
         </aside>
@@ -581,6 +587,9 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
           }}
         />
       )}
+    </div>
+    {/* R39: the phone's Pay bar: under the content, never over it */}
+    <div data-testid="pay-bar" className="shrink-0 border-t border-[#E2E7E8] bg-white px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 md:hidden">{payButton}</div>
     </div>
   );
 }

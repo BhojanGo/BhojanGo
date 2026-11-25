@@ -1,0 +1,82 @@
+# R39 item 5 in the Restaurant app (tablet): a new Boise restaurant gives its health-district food permit
+# (number, expiry date, a photo of it) in the application; it then waits for an admin's review.
+# Before the run: adb push a small permit.png to /sdcard/Download (the runner does it).
+appId: com.bhojango.partner
+---
+- runScript: scripts/new_us_phone.js
+- runFlow:
+    file: sign-in.yaml
+    env:
+      PHONE: ${output.phone}
+      COUNTRY: "US"
+- extendedWaitUntil:
+    visible: "Apply with your restaurant"
+    timeout: 30000
+- tapOn:
+    id: "full_name"
+- inputText: "Alex Rivera"
+- hideKeyboard
+- tapOn:
+    id: "kitchen_name"
+- inputText: "Sawtooth Grill"
+- hideKeyboard
+- tapOn: "Boise"
+- tapOn:
+    id: "street"
+- inputText: "1110 W Grove St"
+- hideKeyboard
+- tapOn:
+    id: "area"
+- inputText: "Downtown"
+- hideKeyboard
+- tapOn:
+    id: "zip"
+- inputText: "83702"
+- hideKeyboard
+- tapOn:
+    id: "cuisines"
+- inputText: "American, Grill"
+- hideKeyboard
+- tapOn: "Send application"
+- extendedWaitUntil:
+    visible: "Restaurant partner application"
+    timeout: 30000
+- tapOn: "Food permit"
+- assertVisible: ".*local health district.*"
+- tapOn:
+    id: "permit-number"
+- inputText: "CDH-FE-20417"
+- hideKeyboard
+- tapOn:
+    id: "permit-expires"
+- inputText: "30/09/2027"
+- hideKeyboard
+- tapOn:
+    id: "permit-upload"
+# Android's file picker: the pushed file isn't in Recent (Android 14 doesn't index it), so browse the device's
+# storage: Show roots > the device > Download
+- runFlow:
+    when:
+      notVisible: "permit.png"
+    commands:
+      - tapOn: "Show roots"
+      - tapOn: "sdk_gphone.*|Android SDK.*|Internal storage"
+      - tapOn: "Download"
+- extendedWaitUntil:
+    visible: "permit.png"
+    timeout: 15000
+- tapOn: "permit.png"
+- extendedWaitUntil:
+    visible: ".*uploaded just now.*"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/partner/r39-5-app-us
+- tapOn:
+    id: "permit-save"
+- extendedWaitUntil:
+    visible: "Tax and bank.*"
+    timeout: 20000
+- tapOn: "Food permit"
+- assertVisible:
+    id: "permit-status"
+    text: "Sent: we're reviewing it"
+- takeScreenshot: docs/screenshots/partner/r39-5-app-us-sent

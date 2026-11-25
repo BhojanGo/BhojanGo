@@ -1850,6 +1850,215 @@ with sync_playwright() as p:
                 shot(pg, f"r38-1-web{width}-{market}")  # full page: the bill whatever the check found
         ctx.close()
 
+    # ── R39: item 1, nothing hidden behind checkout's Pay button on a phone (360/390/414); item 2, phone numbers
+    # formatted as they are typed; item 5, the US food permit in "Add your restaurant". US (Boise) and India
+    # (Hyderabad) ──
+    TYPED = {"us": ("2085550123", ["2", "20", "(208)", "(208) 5", "(208) 55", "(208) 555", "(208) 555-0", "(208) 555-01",
+                                   "(208) 555-012", "(208) 555-0123"], "IN", "20 8555 0123"),
+             "in": ("9876543210", ["9", "98", "987", "9876", "98765", "98765 4", "98765 43", "98765 432", "98765 4321",
+                                   "98765 43210"], "US", "(987) 654-3210")}
+    HIDDEN_BEHIND = """() => {
+      const btn = document.querySelector("[data-testid='pay-bar'] button");
+      if (!btn || !btn.offsetParent) return {error: "no pay bar"};
+      const b = btn.getBoundingClientRect(), bad = [];
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        const n = walker.currentNode, el = n.parentElement;
+        if (!n.textContent.trim() || !el || el.closest("[data-testid='pay-bar']")) continue;
+        const st = getComputedStyle(el);
+        if (st.visibility === "hidden" || st.display === "none") continue;
+        const range = document.createRange(); range.selectNodeContents(n);
+        for (const q of range.getClientRects()) {
+          let l = q.left, t = q.top, r = q.right, bt = q.bottom;
+          for (let a = el; a && a !== document.documentElement; a = a.parentElement) {  // what scrolls or clips it
+            const s = getComputedStyle(a);
+            if (s.overflowX !== "visible" || s.overflowY !== "visible") {
+              const c = a.getBoundingClientRect(); l = Math.max(l, c.left); t = Math.max(t, c.top); r = Math.min(r, c.right); bt = Math.min(bt, c.bottom);
+            }
+            if (s.position === "fixed") break;
+          }
+          l = Math.max(l, 0); t = Math.max(t, 0); r = Math.min(r, innerWidth); bt = Math.min(bt, innerHeight);
+          if (r - l < 1 || bt - t < 1) continue;  // not on screen
+          if (l < b.right && r > b.left && t < b.bottom && bt > b.top) bad.push(n.textContent.trim().slice(0, 40));
+        }
+      }
+      return {bad};
+    }"""
+    LAST_BOTTOM = """() => {
+      const box = document.querySelector("[data-testid='checkout-scroll']");
+      let last = 0;
+      const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+      while (walker.nextNode()) {
+        const n = walker.currentNode;
+        if (!n.textContent.trim() || !n.parentElement || !n.parentElement.offsetParent) continue;
+        const own = n.parentElement.getBoundingClientRect();
+        if (own.width <= 1 || own.height <= 1) continue;  // text for screen readers only (sr-only)
+        const range = document.createRange(); range.selectNodeContents(n);
+        for (const q of range.getClientRects()) if (q.height > 0) last = Math.max(last, q.bottom);
+      }
+      for (const el of box.querySelectorAll("input, button, select, textarea")) {
+        if (el.offsetParent) last = Math.max(last, el.getBoundingClientRect().bottom);
+      }
+      return {last, payTop: document.querySelector("[data-testid='pay-bar'] button").getBoundingClientRect().top};
+    }"""
+
+    def scroll_positions(pg) -> list[str]:  # type: ignore[no-untyped-def]
+        """Every scroll position of the page and of checkout's own scroll box, 100 px apart: what text hides behind Pay."""
+        found: list[str] = []
+        win_max = pg.evaluate("document.documentElement.scrollHeight - innerHeight")
+        box_max = pg.evaluate("(() => { const b = document.querySelector(\"[data-testid='checkout-scroll']\"); return b.scrollHeight - b.clientHeight })()")
+        for wy in [*range(0, max(win_max, 0) + 1, 100), max(win_max, 0)]:
+            pg.evaluate(f"window.scrollTo(0, {wy})")
+            for by in [*range(0, max(box_max, 0) + 1, 100), max(box_max, 0)]:
+                pg.evaluate(f"document.querySelector(\"[data-testid='checkout-scroll']\").scrollTop = {by}")
+                pg.wait_for_timeout(30)
+                out = pg.evaluate(HIDDEN_BEHIND)
+                _assert("error" not in out, out)
+                found += [f"{t!r} at page {wy} / box {by}" for t in out["bad"]]
+        return found
+
+    for market, (where, phone, country, path, dish, *_rest) in R38.items():
+        digits, steps, other, switched = TYPED[market]
+        ctx = b.new_context(viewport={"width": 1440, "height": 900})
+        fake_hint(ctx, {})
+        place(ctx, *where)
+        pg = ctx.new_page()
+        # Item 2: typed one digit at a time, the box shows the country's grouping; another country re-formats it
+        for width in (1440, 390):
+            pg.set_viewport_size({"width": width, "height": 900})
+            pg.goto(f"{base}/signin", wait_until="networkidle")
+            box = pg.get_by_role("textbox", name="Mobile number")
+
+            def typed(box=box, steps=steps, digits=digits) -> None:  # type: ignore[no-untyped-def]
+                box.fill("")
+                seen = []
+                for d in digits:
+                    box.press_sequentially(d)
+                    seen.append(box.input_value())
+                _assert(seen == steps, seen)
+            check(f"R39 phone as you type {market} {width} px: {steps[-1]} digit by digit", typed)
+
+            def switch(box=box, other=other, switched=switched, country=country, full=steps[-1]) -> None:  # type: ignore[no-untyped-def]
+                pg.get_by_label("Country code").select_option(other)
+                expect(box).to_have_value(switched)
+                pg.get_by_label("Country code").select_option(country)
+                expect(box).to_have_value(full)
+            check(f"R39 phone {market} {width} px: switching the country re-formats the number", switch)
+            if market == "us":  # the brief's example: part-way through a US number
+                box.fill("")
+                box.press_sequentially(digits[:8])
+                check("R39 phone us: part-way reads (208) 555-01", lambda box=box: expect(box).to_have_value("(208) 555-01"))
+            shot(pg, f"r39-2-web{width}-{market}")
+
+        # Item 1: checkout, signed in, one dish in the cart
+        pg.set_viewport_size({"width": 1440, "height": 900})
+        for attempt in range(3):  # sign-in is limited per minute (R38)
+            pg.goto(f"{base}/signin", wait_until="networkidle")
+            try:
+                sign_in(pg, phone, country)
+                pg.wait_for_url(re.compile(r"^(?!.*/signin)"), timeout=20000)
+                break
+            except Exception:  # noqa: BLE001
+                pg.wait_for_timeout(20000)
+        pg.evaluate("localStorage.removeItem('bhojango-bag')")
+        pg.goto(base + path, wait_until="networkidle")
+        pg.get_by_role("button", name=f"Add {dish}").first.click()
+        if pg.get_by_role("dialog").count():
+            pg.get_by_role("dialog").get_by_role("button", name=re.compile("^Add to cart")).click()
+        for width in (360, 390, 414):
+            pg.set_viewport_size({"width": width, "height": 800})
+            pg.goto(f"{base}/checkout", wait_until="networkidle")
+            expect(pg.get_by_test_id("pay-bar").get_by_role("button")).to_be_visible(timeout=20000)
+            pg.wait_for_timeout(300)
+
+            def bottom(pg=pg) -> None:  # type: ignore[no-untyped-def]
+                m: dict = {}
+                for _ in range(5):  # the box takes its height a frame after a scroll or a resize: measure once it has
+                    pg.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+                    pg.evaluate("(() => { const b = document.querySelector(\"[data-testid='checkout-scroll']\"); b.scrollTop = b.scrollHeight })()")
+                    pg.wait_for_timeout(300)
+                    m = pg.evaluate(LAST_BOTTOM)
+                    if m["last"] <= m["payTop"] + 0.5:
+                        break
+                _assert(m["last"] <= m["payTop"] + 0.5, m)
+            check(f"R39 checkout {market} {width} px: scrolled to the bottom, the last content ends above the Pay button", bottom)
+            check(f"R39 checkout {market} {width} px: no text behind the Pay button at any scroll position",
+                  lambda pg=pg: _assert(not (hidden := scroll_positions(pg)), hidden[:8]))
+            check(f"R39 checkout {market} {width} px: no sideways scroll", lambda pg=pg, width=width: no_sideways_scroll_at(pg, width))
+            if width == 390:
+                pg.evaluate("window.scrollTo(0, 0)")
+                pg.evaluate("(() => { const b = document.querySelector(\"[data-testid='checkout-scroll']\"); b.scrollTop = b.scrollHeight })()")
+                pg.wait_for_timeout(200)
+                pg.screenshot(path=f"{OUT}/r39-1-web390-{market}.png")  # the screen as the customer sees it
+        pg.set_viewport_size({"width": 1440, "height": 900})
+        pg.goto(f"{base}/checkout", wait_until="networkidle")
+        check(f"R39 checkout {market} 1440 px: the Pay button sits in the summary (no bar on a desktop)", lambda pg=pg: (
+            expect(pg.get_by_test_id("pay-bar")).to_be_hidden(),
+            expect(pg.get_by_role("complementary").get_by_role("button", name=re.compile("^Pay"))).to_be_visible(timeout=20000)))
+        shot(pg, f"r39-1-web1440-{market}")
+        ctx.close()
+
+    # Item 5: a new restaurant in Boise gives its food permit in "Add your restaurant"; Hyderabad keeps FSSAI
+    APPLY = {"us": ("US-ID-BOI", "Sawtooth Grill", f"208345{random.randint(1000, 9999)}", "(208) 345-",
+                    ("1110 W Grove St", "Downtown", "83702", "American, Grill")),
+             "in": ("IN-TG-HYD", "Lata's Tiffins", f"90003{random.randint(10000, 99999)}", "90003 ",
+                    ("Plot 9, Road 12", "Madhapur", "500081", "Kerala, Thali"))}
+    for market, (city_code, rname, rphone, shown_prefix, (street, area, zip_code, cuisines)) in APPLY.items():
+        kc = b.new_context(viewport={"width": 1440, "height": 900})
+        kc.add_cookies([{"name": "bg_city", "value": city_code, "url": base}])
+        k = kc.new_page()
+        k.goto(base + "/partner", wait_until="networkidle")
+        k.get_by_test_id("partner-start").click()
+        form = k.get_by_test_id("partner-form")
+        email = f"r39.{market}.{random.randint(10000, 99999)}@example.com"
+        form.get_by_label("Restaurant name").fill(rname)
+        form.get_by_label("City").select_option(city_code)
+        form.get_by_label("Your name").fill("Alex Rivera" if market == "us" else "Lata Menon")
+        form.get_by_label("Mobile number").press_sequentially(rphone)
+        check(f"R39 restaurant sign-up {market}: the phone is grouped as it is typed",
+              lambda form=form, shown_prefix=shown_prefix: expect(form.get_by_label("Mobile number")).to_have_value(re.compile("^" + re.escape(shown_prefix))))
+        form.get_by_label("Email").fill(email)
+        form.get_by_label("Password", exact=True).fill("a long enough password")
+        form.get_by_role("checkbox").check()
+        form.get_by_role("button", name="Create account and continue").click()
+        expect(k.get_by_test_id("partner-code")).to_be_visible(timeout=20000)
+        k.get_by_label("6-digit code").fill(OTP)
+        k.get_by_test_id("partner-verify").click()
+        expect(k.get_by_test_id("partner-application")).to_have_attribute("data-current", "business", timeout=20000)
+        step_form = k.get_by_test_id("step-business")
+        for label, value in (("Street address", street), ("Area or neighbourhood", area), ("Postal code", zip_code), ("Cuisines", cuisines)):
+            step_form.get_by_label(label, exact=True).fill(value)
+        step_form.get_by_role("button", name="Save and continue").click()
+        expect(k.get_by_test_id("partner-application")).to_have_attribute("data-current", "fssai", timeout=20000)
+        if market == "us":
+            permit = k.get_by_test_id("permit-form")
+            check("R39 Boise sign-up: the food permit step (number, expiry date, the permit itself)", lambda permit=permit: (
+                expect(permit.get_by_role("heading", name="Food permit")).to_be_visible(timeout=15000),
+                expect(permit).to_contain_text("health district"),
+                expect(permit.get_by_role("button", name="Save and continue")).to_be_disabled()))
+            permit.get_by_label("Permit number").fill("CDH-FE-20417")
+            permit.get_by_label("Expires on").fill("2027-09-30")
+            permit.get_by_test_id("permit-file").set_input_files({"name": "permit.png", "mimeType": "image/png",
+                                                                  "buffer": bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63000100000500010d0a2db40000000049454e44ae426082")})
+            expect(permit.get_by_text(re.compile("uploaded just now"))).to_be_visible(timeout=20000)
+            permit.get_by_role("button", name="Save and continue").click()
+            check("R39 Boise sign-up: the permit is sent and waits for review; the next step opens", lambda: (
+                expect(k.get_by_test_id("partner-application")).to_have_attribute("data-current", "gst_bank", timeout=20000),
+                _assert(api("GET", f"/restaurants/{api('GET', '/restaurants/mine', login(email, 'a long enough password'))[0]['id']}/food-permit",
+                            login(email, "a long enough password"))["status"] == "pending", "not pending")))
+            k.get_by_role("button", name=re.compile("Food permit")).first.click()
+            check("R39 Boise sign-up: the permit step says it is being reviewed", lambda: expect(k.get_by_test_id("permit-status")).to_have_text("Sent: we're reviewing it", timeout=15000))
+        else:
+            check("R39 Hyderabad sign-up: the FSSAI licence step (no US food permit)", lambda: (
+                expect(k.get_by_role("form", name="FSSAI food licence")).to_be_visible(timeout=15000),
+                expect(k.get_by_test_id("permit-form")).to_have_count(0)))
+        shot(k, f"r39-5-web1440-{market}")
+        k.set_viewport_size({"width": 390, "height": 844})
+        k.wait_for_timeout(300)
+        check(f"R39 sign-up {market} 390 px: no sideways scroll", lambda k=k: no_sideways_scroll_at(k, 390))
+        shot(k, f"r39-5-web390-{market}")
+        kc.close()
+
     # ── SEO and headers ──────────────────────────────────────────────────────
     r = page.request.get(f"{base}/sitemap.xml")
     check("sitemap lists city and kitchen pages", lambda: _assert(

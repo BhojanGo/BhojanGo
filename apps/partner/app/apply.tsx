@@ -156,6 +156,7 @@ function StepBody({ app: a, stepKey, onSaved }: { app: Application; stepKey: str
   const step = a.steps.find((x) => x.key === stepKey) as Step | undefined;
   if (!step) return null;
   const text = stepText(tr, step, gst);
+  if (stepKey === "fssai" && a.food_permit) return <Permit app={a} permit={a.food_permit as unknown as FoodPermit} onSaved={onSaved} />;
   if (stepKey === "fssai") return <Fssai app={a} onSaved={onSaved} />;
   if (stepKey === "gst_bank") return <GstBank app={a} onSaved={onSaved} />;
   return (
@@ -255,6 +256,100 @@ function Fssai({ app: a, onSaved }: { app: Application; onSaved: () => Promise<v
       {msg ? <Text style={[type.small, { color: color.chili }]}>{msg}</Text> : null}
       <View style={{ flexDirection: "row", gap: 12, justifyContent: "flex-end" }}>
         <Btn testID="fssai-save" title={tr("partner.apply.save_continue")} kind="primary" height={56} busy={busy} disabled={digits.length !== 14 || !date} onPress={save} />
+      </View>
+    </>
+  );
+}
+
+interface FoodPermit { number: string | null; expires_on: string | null; document: boolean; status: string | null; note: string | null }
+
+/** R39: the US food permit from the health district: number, expiry date and the permit itself; an admin reviews it. */
+function Permit({ permit, onSaved }: { app: Application; permit: FoodPermit; onSaved: () => Promise<void> }) {
+  const kitchen = useKitchen((s) => s.kitchen)!;
+  const { t: tr } = useI18n();
+  const [num, setNum] = useState(permit.number ?? "");
+  const [until, setUntil] = useState(showDate(permit.expires_on));
+  const [doc, setDoc] = useState<{ name: string; size: number; key: string | null } | null>(permit.document ? { name: tr("partner.apply.permit_title"), size: 0, key: null } : null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const date = parseDate(until);
+
+  async function pick() {
+    setMsg(null);
+    const r = await DocumentPicker.getDocumentAsync({ type: ["application/pdf", "image/jpeg", "image/png"], copyToCacheDirectory: true });
+    if (r.canceled || !r.assets[0]) return;
+    const f = r.assets[0];
+    setDoc({ name: f.name, size: f.size ?? 0, key: null });
+    try {
+      const { key } = await uploadFile(f.uri, f.mimeType ?? "application/pdf", "partner_document");
+      setDoc({ name: f.name, size: f.size ?? 0, key });
+    } catch (e) {
+      setDoc(null);
+      setMsg((!(e instanceof TypeError) && (e as Error).message) || tr("partner.upload.failed"));
+    }
+  }
+
+  async function save() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      unwrap(await api.core.PUT("/api/v1/restaurants/{restaurant_id}/food-permit", {
+        params: { path: { restaurant_id: kitchen.id } },
+        body: { number: num.trim(), expires_on: date!, ...(doc?.key ? { document_key: doc.key } : {}) },
+      }));
+      await onSaved();
+    } catch (e) {
+      setMsg(e instanceof ApiError ? e.message : loadErrorText(e, tr).reason);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const status = permit.status === "approved" && permit.expires_on ? tr("partner.apply.permit_approved", { date: showDate(permit.expires_on) })
+    : permit.status === "rejected" ? tr("partner.apply.permit_rejected", { note: permit.note ?? "" })
+      : permit.status === "pending" ? tr("partner.apply.permit_pending") : null;
+  return (
+    <>
+      <Text style={t.big}>{tr("partner.apply.permit_title")}</Text>
+      <Text style={t.body}>{tr("partner.apply.permit_sub")}</Text>
+      {status ? <Text testID="permit-status" style={[type.label, { color: permit.status === "rejected" ? color.chili : color.peacock }]}>{status}</Text> : null}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
+        <View style={{ flex: 1, minWidth: 220, gap: 6 }}>
+          <Text style={t.label}>{tr("partner.apply.permit_number")}</Text>
+          <TextInput disableFullscreenUI testID="permit-number" accessibilityLabel={tr("partner.apply.permit_number")} value={num} maxLength={40}
+            autoCapitalize="characters" onChangeText={setNum} style={[field.bodyLg, s.input]} />
+          <Text style={t.muted}>{tr("partner.apply.permit_number_hint")}</Text>
+        </View>
+        <View style={{ flex: 1, minWidth: 220, gap: 6 }}>
+          <Text style={t.label}>{tr("partner.apply.permit_expires")}</Text>
+          <TextInput disableFullscreenUI testID="permit-expires" accessibilityLabel={tr("partner.apply.permit_expires")} value={until} onChangeText={setUntil}
+            placeholder={tr("partner.apply.date_hint")} placeholderTextColor={color.muted} style={[field.bodyLg, s.input]} />
+        </View>
+      </View>
+      <Text style={t.label}>{tr("partner.apply.permit_document")}</Text>
+      {doc ? (
+        <View style={s.file}>
+          <View style={s.pdf}><Text style={[type.caption, { color: tone.reject }]}>{doc.name.toLowerCase().endsWith(".pdf") ? tr("partner.apply.pdf") : tr("partner.apply.img")}</Text></View>
+          <View style={{ flex: 1 }}>
+            <Text style={type.label}>{doc.name}</Text>
+            <Text style={t.muted}>{doc.key ? tr("partner.apply.uploaded_now") : doc.size ? tr("partner.apply.uploading") : tr("partner.apply.on_file")}</Text>
+          </View>
+          <Btn title={tr("partner.apply.replace")} onPress={pick} />
+        </View>
+      ) : (
+        <Pressable accessibilityRole="button" testID="permit-upload" onPress={pick} style={[s.file, { borderStyle: "dashed", justifyContent: "center" }]}>
+          <Icon name="doc" stroke={color.peacock} />
+          <Text style={[type.label, { color: color.peacock }]}>{tr("partner.apply.permit_document")}</Text>
+        </Pressable>
+      )}
+      <View style={s.info}>
+        <Icon name="info" size={20} stroke={color.peacockDeep} />
+        <Text style={[t.muted, { flex: 1, color: color.kohl }]}>{tr("partner.apply.permit_check")}</Text>
+      </View>
+      {msg ? <Text style={[type.small, { color: color.chili }]}>{msg}</Text> : null}
+      <View style={{ flexDirection: "row", gap: 12, justifyContent: "flex-end" }}>
+        <Btn testID="permit-save" title={tr("partner.apply.save_continue")} kind="primary" height={56} busy={busy}
+          disabled={num.trim().length < 3 || !date || !doc} onPress={save} />
       </View>
     </>
   );

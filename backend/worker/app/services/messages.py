@@ -209,6 +209,17 @@ CATALOGUE: dict[str, dict[str, tuple[str, str]]] = {
         "bn": ("পেআউট পাঠানো হয়েছে", "{period}-এর জন্য {amount} আপনার ব্যাংক অ্যাকাউন্টে পাঠানো হয়েছে।"),
         "es": ("Pago enviado", "Enviamos {amount} a tu cuenta bancaria por {period}."),
     },
+    # R39: catalog/service/permits.py remind_expiring
+    "permit_expiring": {
+        "en": ("Renew your food permit", "The food permit for {restaurant} expires on {date}. Add the renewed permit in the BhojanGo Restaurant app before then, or your listing pauses."),
+        "hi": ("अपना फ़ूड परमिट रिन्यू करें", "{restaurant} का फ़ूड परमिट {date} को खत्म हो रहा है। उससे पहले BhojanGo Restaurant ऐप में नया परमिट जोड़ें, नहीं तो आपकी लिस्टिंग रुक जाएगी।"),
+        "te": ("మీ ఫుడ్ పర్మిట్‌ను రెన్యూ చేయండి", "{restaurant} ఫుడ్ పర్మిట్ {date}న ముగుస్తుంది. ఆలోపు BhojanGo Restaurant యాప్‌లో కొత్త పర్మిట్ జోడించండి, లేకపోతే మీ లిస్టింగ్ ఆగిపోతుంది."),
+        "ta": ("உங்கள் உணவு அனுமதியைப் புதுப்பிக்கவும்", "{restaurant}-இன் உணவு அனுமதி {date} அன்று முடிகிறது. அதற்கு முன் BhojanGo Restaurant செயலியில் புதிய அனுமதியைச் சேர்க்கவும், இல்லையெனில் உங்கள் பட்டியல் நிறுத்தப்படும்."),
+        "kn": ("ನಿಮ್ಮ ಆಹಾರ ಪರವಾನಗಿ ನವೀಕರಿಸಿ", "{restaurant} ಆಹಾರ ಪರವಾನಗಿ {date} ರಂದು ಮುಗಿಯುತ್ತದೆ. ಅದಕ್ಕೂ ಮೊದಲು BhojanGo Restaurant ಆ್ಯಪ್‌ನಲ್ಲಿ ಹೊಸ ಪರವಾನಗಿ ಸೇರಿಸಿ, ಇಲ್ಲದಿದ್ದರೆ ನಿಮ್ಮ ಪಟ್ಟಿ ನಿಲ್ಲುತ್ತದೆ."),
+        "mr": ("तुमचा फूड परमिट नूतनीकरण करा", "{restaurant} चा फूड परमिट {date} रोजी संपतो. त्याआधी BhojanGo Restaurant ॲपमध्ये नवीन परमिट जोडा, नाहीतर तुमची लिस्टिंग थांबेल."),
+        "bn": ("আপনার ফুড পারমিট নবায়ন করুন", "{restaurant}-এর ফুড পারমিট {date}-এ শেষ হচ্ছে। তার আগে BhojanGo Restaurant অ্যাপে নতুন পারমিট যোগ করুন, নইলে আপনার লিস্টিং বন্ধ থাকবে।"),
+        "es": ("Renueva tu permiso de alimentos", "El permiso de alimentos de {restaurant} vence el {date}. Agrega el permiso renovado en la app BhojanGo Restaurant antes de esa fecha o tu restaurante se pausará."),
+    },
     "payout_setup": {
         "en": ("Set up your payouts", "Add your bank details so we can pay you each week. Open this link to finish (it works for 7 days): {link}"),
         "hi": ("अपने पेआउट सेट करें", "अपने बैंक विवरण जोड़ें ताकि हम आपको हर हफ़्ते भुगतान कर सकें। पूरा करने के लिए यह लिंक खोलें (7 दिन तक चलेगा): {link}"),

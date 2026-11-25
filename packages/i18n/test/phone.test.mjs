@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { callingCode, formatAsYouType, formatPhone, isValidPhone, parsePhone, phoneExample, phonePlaceholder, toE164 } from "../phone.js";
+import { callingCode, formatAsYouType, formatPhone, isValidPhone, parsePhone, phoneExample, phonePlaceholder, reformatPhone, toE164, typePhone } from "../phone.js";
 
 test("valid US and India numbers, typed the country's way, become E.164", () => {
   assert.equal(toE164("(208) 555-0123", "US"), "+12085550123");
@@ -43,4 +43,46 @@ test("placeholders and examples follow the country: no Indian example for the US
 test("formatting as you type", () => {
   assert.equal(formatAsYouType("2085550123", "US"), "(208) 555-0123");
   assert.equal(formatAsYouType("9876543210", "IN"), "98765 43210");
+});
+
+/** Types the digits one by one into a box (as a person does), returning what the box shows after each. */
+function typeEach(digits, country, start = "") {
+  const shown = [];
+  let box = start;
+  for (const d of digits) {
+    box = typePhone(box, box + d, country);
+    shown.push(box);
+  }
+  return shown;
+}
+
+test("R39: US digits one by one follow the US grouping", () => {
+  assert.deepEqual(typeEach("2085550123", "US"), [
+    "2", "20", "(208)", "(208) 5", "(208) 55", "(208) 555", "(208) 555-0", "(208) 555-01", "(208) 555-012", "(208) 555-0123"]);
+});
+
+test("R39: India digits one by one follow the Indian grouping", () => {
+  assert.deepEqual(typeEach("9876543210", "IN"), [
+    "9", "98", "987", "9876", "98765", "98765 4", "98765 43", "98765 432", "98765 4321", "98765 43210"]);
+});
+
+test("R39: backspace over a formatting character deletes the digit before it", () => {
+  assert.equal(typePhone("(208)", "(208", "US"), "20");
+  assert.equal(typePhone("(208) 5", "(208) ", "US"), "(208)");
+  assert.equal(typePhone("98765 4", "98765 ", "IN"), "98765");
+  assert.equal(typePhone("98765 43210", "", "IN"), "");
+});
+
+test("R39: switching the country re-formats what is typed", () => {
+  assert.equal(reformatPhone("(987) 654-3210", "IN"), "98765 43210");
+  assert.equal(reformatPhone("98765 43210", "US"), "(987) 654-3210");
+  assert.equal(reformatPhone("20 8555 0123", "US"), "(208) 555-0123");
+  assert.equal(reformatPhone("", "US"), "");
+});
+
+test("R39: a + number keeps its own country's grouping; pasted text is cleaned; 15 digits at most", () => {
+  assert.equal(typePhone("", "+447911123456", "US"), "+44 7911 123456");
+  assert.equal(typePhone("", "+", "IN"), "+");
+  assert.equal(typePhone("", "tel: 208-555-0123", "US"), "(208) 555-0123");
+  assert.equal(typePhone("", "1234567890123456789", "US").replace(/\D/g, "").length, 15);
 });

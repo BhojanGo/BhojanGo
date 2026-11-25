@@ -762,6 +762,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/finance/disputes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Disputes
+         * @description Chargebacks in a country, newest first: open ones hold the restaurant's share from its next payout.
+         */
+        get: operations["list_disputes_api_v1_finance_disputes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/disputes/{dispute_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Dispute */
+        get: operations["get_dispute_api_v1_finance_disputes__dispute_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/disputes/{dispute_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Dispute Evidence
+         * @description A file (photo or PDF: the receipt, a delivery photo, the chat...) and/or a note for the dispute's evidence.
+         */
+        post: operations["add_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/disputes/{dispute_id}/evidence/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** View Dispute Evidence */
+        get: operations["view_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence__number__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/disputes/{dispute_id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Dispute Evidence
+         * @description Send the evidence to the payment provider (once). Stripe decides; its charge.dispute.closed event
+         *     then releases the hold or records the loss. The local fake provider decides at once, as Stripe test
+         *     mode does: a note "winning_evidence" wins, "losing_evidence" loses.
+         */
+        post: operations["submit_dispute_evidence_api_v1_finance_disputes__dispute_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/finance/earnings/me": {
         parameters: {
             query?: never;
@@ -2494,6 +2590,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/alerts/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Test Alert
+         * @description R39 (admin Settings, "Send test alert"): one alert through every channel that is switched on: the
+         *     Operations page (a TestAlert row, resolved at once), the paging webhook and Sentry. Says which
+         *     channels took it, so an admin can check a newly pasted PAGING_WEBHOOK_URL or SENTRY_DSN.
+         */
+        post: operations["send_test_alert_api_v1_ops_alerts_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/help/articles": {
         parameters: {
             query?: never;
@@ -3447,6 +3565,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurants/admin/permits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Permits To Review
+         * @description Admin (partners.view): food permits waiting for review (new restaurants and renewals), in your cities.
+         */
+        get: operations["permits_to_review_api_v1_restaurants_admin_permits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/restaurants/apply": {
         parameters: {
             query?: never;
@@ -3709,6 +3847,47 @@ export interface paths {
         get: operations["delivery_check_api_v1_restaurants__restaurant_id__delivery_check_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/food-permit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Permit */
+        get: operations["get_permit_api_v1_restaurants__restaurant_id__food_permit_get"];
+        /**
+         * Submit Permit
+         * @description The restaurant's food permit (owner, or an admin with partners.edit). Waits for an admin's review.
+         */
+        put: operations["submit_permit_api_v1_restaurants__restaurant_id__food_permit_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/food-permit/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review Permit
+         * @description Admin (partners.edit in the restaurant's city): approve the permit, or turn it down with a reason.
+         */
+        post: operations["review_permit_api_v1_restaurants__restaurant_id__food_permit_review_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5159,6 +5338,10 @@ export interface components {
             current: string | null;
             /** Done */
             done: number;
+            /** Food Permit */
+            food_permit?: {
+                [key: string]: unknown;
+            } | null;
             /** Fssai Document */
             fssai_document: boolean;
             /** Fssai Document Key */
@@ -5421,6 +5604,16 @@ export interface components {
         BlockOut: {
             /** Blocked */
             blocked: boolean;
+        };
+        /** Body_add_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence_post */
+        Body_add_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence_post: {
+            /** File */
+            file?: string | null;
+            /**
+             * Note
+             * @default
+             */
+            note?: string;
         };
         /** Body_upload_api_v1_uploads_post */
         Body_upload_api_v1_uploads_post: {
@@ -8891,6 +9084,21 @@ export interface components {
              */
             hold_days?: number;
         };
+        /** PermitIn */
+        PermitIn: {
+            /** Document Key */
+            document_key?: string | null;
+            /**
+             * Expires On
+             * Format: date
+             */
+            expires_on: string;
+            /**
+             * Number
+             * @description As printed on the permit
+             */
+            number: string;
+        };
         /**
          * PhoneSignInRequest
          * @description Sign in (or sign up) with the code from /auth/send-otp.
@@ -9951,16 +10159,6 @@ export interface components {
             /** Rating */
             rating: number;
         };
-        /** ReviewIn */
-        ReviewIn: {
-            /**
-             * Decision
-             * @enum {string}
-             */
-            decision: "approve" | "reject";
-            /** Note */
-            note?: string | null;
-        };
         /** ReviewResponse */
         ReviewResponse: {
             /** Comment */
@@ -10659,6 +10857,20 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** TestAlertOut */
+        TestAlertOut: {
+            alert: components["schemas"]["OpsAlertOut"];
+            /**
+             * Paging
+             * @enum {string}
+             */
+            paging: "sent" | "off" | "failed";
+            /**
+             * Sentry
+             * @enum {string}
+             */
+            sentry: "sent" | "off" | "failed";
+        };
         /** TicketOut */
         TicketOut: {
             /**
@@ -11038,6 +11250,29 @@ export interface components {
             key: "business" | "fssai" | "gst_bank" | "menu" | "go_live";
             /** Title */
             title: string;
+        };
+        /** ReviewIn */
+        core_api__modules__catalog__api__v1__permits__ReviewIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "approve" | "reject";
+            /**
+             * Note
+             * @description Why it is turned down (the restaurant sees it)
+             */
+            note?: string | null;
+        };
+        /** ReviewIn */
+        core_api__modules__identity__api__v1__riders__ReviewIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "approve" | "reject";
+            /** Note */
+            note?: string | null;
         };
         /** StepOut */
         core_api__modules__identity__api__v1__riders__StepOut: {
@@ -12269,6 +12504,173 @@ export interface operations {
             };
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_disputes_api_v1_finance_disputes_get: {
+        parameters: {
+            query: {
+                country: string;
+                state?: "open" | "closed" | "all";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_dispute_api_v1_finance_disputes__dispute_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dispute_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dispute_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_add_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    view_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence__number__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dispute_id: string;
+                number: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_dispute_evidence_api_v1_finance_disputes__dispute_id__submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dispute_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -15382,6 +15784,26 @@ export interface operations {
             };
         };
     };
+    send_test_alert_api_v1_ops_alerts_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestAlertOut"];
+                };
+            };
+        };
+    };
     list_articles_api_v1_ops_help_articles_get: {
         parameters: {
             query?: {
@@ -17094,6 +17516,40 @@ export interface operations {
             };
         };
     };
+    permits_to_review_api_v1_restaurants_admin_permits_get: {
+        parameters: {
+            query?: {
+                state?: "pending" | "all";
+                country?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     kitchen_apply_api_v1_restaurants_apply_post: {
         parameters: {
             query?: never;
@@ -17557,6 +18013,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DeliveryCheckResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_permit_api_v1_restaurants__restaurant_id__food_permit_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_permit_api_v1_restaurants__restaurant_id__food_permit_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermitIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_permit_api_v1_restaurants__restaurant_id__food_permit_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["core_api__modules__catalog__api__v1__permits__ReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -18535,7 +19098,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ReviewIn"];
+                "application/json": components["schemas"]["core_api__modules__identity__api__v1__riders__ReviewIn"];
             };
         };
         responses: {

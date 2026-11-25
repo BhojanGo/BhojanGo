@@ -195,6 +195,10 @@ async def _alert(db: AsyncSession, pool: Pool, month: date, threshold: int, used
         await db.execute(update(OpsAlert).where(OpsAlert.fingerprint == fp).values(**values))
     else:
         await db.execute(insert(OpsAlert).values(fingerprint=fp, **values))
+        if stopped:  # R39: offers stopped for the month: page whoever is on call (PAGING_WEBHOOK_URL)
+            from shared import paging
+
+            await paging.page(values["summary"], values["description"], "critical", {"alert": ALERT_NAME, "city": pool.code})
     logger.warning("platform_offer_budget_alert", pool=pool.key, month=month.isoformat(), threshold=threshold,
                    spent=str(used), budget=str(pool.monthly))
 

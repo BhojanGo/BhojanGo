@@ -550,6 +550,14 @@ async def approve_restaurant(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Restaurant is already '{restaurant.status}', not pending approval",
         )
+    from datetime import UTC, datetime
+
+    from core_api.modules.catalog.service import permits
+
+    # R39: where a food permit is required (the US), only with an approved, unexpired one
+    problem = permits.problem(restaurant, datetime.now(UTC).date(), await permits.required(db, restaurant.country))
+    if problem:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "FOOD_PERMIT", "message": f"{problem}: review it first"})
     updated = await repo.update(restaurant_id, status="active")
     logger.info("restaurant_approved", restaurant_id=str(restaurant_id))
     return RestaurantResponse.model_validate(updated)

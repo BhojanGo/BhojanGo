@@ -1,7 +1,25 @@
 // Kitchen partners sign in with their email (first: the kitchen's account is an email
 // and a password) or the kitchen's phone and a code by SMS (round 8, D5).
 import {
-  codeSendErrorText, EmailSignIn, errorMessage, field, LoadError, type MarketCountry, PhoneCountryButton, phoneExample, phonePlaceholder, SignInLegal, type SignInWay, SignInWays, toE164, type, useCountry, useI18n, useSession,
+  codeSendErrorText,
+  EmailSignIn,
+  errorMessage,
+  field,
+  LoadError,
+  PhoneCountryButton,
+  phoneExample,
+  phonePlaceholder,
+  reformatPhone,
+  SignInLegal,
+  SignInWays,
+  toE164,
+  type,
+  type MarketCountry,
+  type SignInWay,
+  typePhone,
+  useCountry,
+  useI18n,
+  useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -79,8 +97,8 @@ export default function SignIn() {
           <Text style={t.muted}>{tr("partner.sign_in.sub")}</Text>
           <Text style={[t.label, { marginTop: 8 }]}>{tr("partner.sign_in.mobile")}</Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
-            <PhoneCountryButton value={country} onChange={setPicked} />
-            <TextInput disableFullscreenUI testID="phone" accessibilityLabel={tr("partner.sign_in.mobile")} value={number} onChangeText={setNumber} keyboardType="phone-pad"
+            <PhoneCountryButton value={country} onChange={(c) => { setPicked(c); setNumber((n) => reformatPhone(n, c?.code)); }} />
+            <TextInput disableFullscreenUI testID="phone" accessibilityLabel={tr("partner.sign_in.mobile")} value={number} onChangeText={(v) => setNumber((n) => typePhone(n, v, country?.code))} keyboardType="phone-pad"
               placeholder={phonePlaceholder(country?.code)} placeholderTextColor={color.muted} maxLength={20}
               style={[field.bodyLg, s.number]} />
           </View>

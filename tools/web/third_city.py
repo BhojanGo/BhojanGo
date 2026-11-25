@@ -366,8 +366,28 @@ def partner_kitchen(m: dict) -> None:
                                                             "description": f"{name}, made in {m['city']}.", "sort_order": i})
     api("POST", "/finance/payout-accounts", tok, {"payee_type": "restaurant", "restaurant_id": rid})
     app = api("GET", f"/restaurants/{rid}/application", tok)
+    if app.get("food_permit"):  # type: ignore[union-attr]  # R39: a US restaurant gives its health-district permit
+        key = upload_permit(tok)
+        api("PUT", f"/restaurants/{rid}/food-permit", tok, {"number": f"PERMIT-{m['city'][:3].upper()}-0417",
+                                                             "expires_on": "2030-06-30", "document_key": key})
+        app = api("GET", f"/restaurants/{rid}/application", tok)
     assert app["done"] >= app["total"] - 1, app  # type: ignore[index]
     st.update(rid=rid, partner=tok)
+
+
+def upload_permit(tok: str) -> str:
+    """POST /uploads (a partner document): a tiny PNG standing in for the permit's photo."""
+    png = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63000100000500010d0a2db40000000049454e44ae426082")
+    b = uuid.uuid4().hex
+    crlf = chr(13) + chr(10)
+    head = (f"--{b}{crlf}Content-Disposition: form-data; name=\"purpose\"{crlf}{crlf}partner_document{crlf}"
+            f"--{b}{crlf}Content-Disposition: form-data; name=\"file\"; filename=\"permit.png\"{crlf}"
+            f"Content-Type: image/png{crlf}{crlf}")
+    body = head.encode() + png + f"{crlf}--{b}--{crlf}".encode()
+    req = urllib.request.Request(f"{CORE}/api/v1/uploads", method="POST", data=body,
+                                 headers={"Content-Type": f"multipart/form-data; boundary={b}", "Authorization": f"Bearer {tok}"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return json.loads(r.read())["key"]
 
 
 def approve(page, m: dict) -> None:  # type: ignore[no-untyped-def]
@@ -375,6 +395,13 @@ def approve(page, m: dict) -> None:  # type: ignore[no-untyped-def]
     page.get_by_role("link", name="Partners", exact=True).first.click()
     page.wait_for_url("**/partners**")
     page.get_by_role("navigation", name="Partners", exact=True).get_by_role("button", name="Applications").click()
+    # R39: where a food permit is required, it is approved first (Food permits to review)
+    permits = page.get_by_role("region", name="Food permits to review")
+    row = permits.get_by_test_id("permit-row").filter(has_text=m["kitchen"])
+    if m["country"] == "US":  # the US asks for one (Markets food_permit_required, from the seed)
+        expect(row).to_be_visible(timeout=15000)
+        row.get_by_role("button", name="Approve permit").click()
+        expect(permits.get_by_role("status")).to_contain_text(f"{m['kitchen']}: permit approved", timeout=15000)
     apps = page.get_by_role("region", name="Restaurants applying")
     apps.get_by_role("button", name=re.compile(m["kitchen"])).click()
     detail = page.get_by_role("region", name=f"Application · {m['kitchen']}")

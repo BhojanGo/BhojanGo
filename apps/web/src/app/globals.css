@@ -51,3 +51,11 @@
   .legal-body h2, .legal-body h3 { break-after: avoid; page-break-after: avoid; }
   .legal-body li, .legal-body tr, .legal-body p { break-inside: avoid; page-break-inside: avoid; }
 }
+
+/* R39: checkout on a phone is one screen: its content scrolls inside and the Pay bar sits under it. No footer
+   below it, so the page itself never scrolls and the bar never slides under the sticky header. */
+@media (max-width: 767.98px) {
+  body:has([data-testid="checkout-shell"]) [data-site-footer] {
+    display: none;
+  }
+}

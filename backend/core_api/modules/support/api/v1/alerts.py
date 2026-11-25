@@ -67,6 +67,8 @@ def _authorised(authorization: str | None) -> bool:
 async def alertmanager_webhook(body: AmWebhook, db: DB, authorization: Annotated[str | None, Header()] = None) -> None:
     if not _authorised(authorization):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Alert webhook")
+    from shared import paging
+
     for a in body.alerts:
         name = a.labels.get("alertname", "alert")
         city = a.labels.get("city") or None
@@ -75,11 +77,46 @@ async def alertmanager_webhook(body: AmWebhook, db: DB, authorization: Annotated
         values = {"name": name[:80], "status": a.status, "severity": a.labels.get("severity", "warning")[:20], "city": city,
                   "summary": summary, "description": (a.annotations.get("description") or None),
                   "starts_at": a.startsAt, "ends_at": ends, "updated_at": datetime.now(UTC)}
+        was = (await db.execute(select(OpsAlert.status).where(OpsAlert.fingerprint == a.fingerprint[:64]))).scalar()
         await db.execute(insert(OpsAlert).values(fingerprint=a.fingerprint[:64], **values)
                          .on_conflict_do_update(index_elements=["fingerprint"], set_=values))
+        # R39: a critical alert that starts firing pages whoever is on call (PAGING_WEBHOOK_URL)
+        if a.status == "firing" and was != "firing" and values["severity"] in ("critical", "page"):
+            await paging.page(summary, values["description"] or "", values["severity"], {"alert": name, "city": city})
         # The log line is the other delivery: it lands in Loki with the service's logs.
         (logger.warning if a.status == "firing" else logger.info)(
             "alert_" + a.status, alert=name, city=city, severity=values["severity"], summary=summary)
+
+
+class TestAlertOut(BaseModel):
+    paging: Literal["sent", "off", "failed"]
+    sentry: Literal["sent", "off", "failed"]
+    alert: OpsAlertOut
+
+
+@router.post("/test", response_model=TestAlertOut)
+async def send_test_alert(admin: Annotated[AdminContext, Depends(require_permission("admins.grant"))], db: DB) -> TestAlertOut:
+    """R39 (admin Settings, "Send test alert"): one alert through every channel that is switched on: the
+    Operations page (a TestAlert row, resolved at once), the paging webhook and Sentry. Says which
+    channels took it, so an admin can check a newly pasted PAGING_WEBHOOK_URL or SENTRY_DSN."""
+    from core_api.modules.support.service.alerts import raise_alert, resolve_alert
+    from shared.observability import send_test_event
+
+    admin.require("admins.grant", "*")
+    from shared import paging
+
+    now = datetime.now(UTC)
+    fp = "test-alert"
+    summary = "Test alert from admin Settings: paging works"
+    text = f"Sent from admin Settings at {now:%Y-%m-%d %H:%M} UTC. Nothing is wrong."
+    await raise_alert(db, fp, "TestAlert", summary, text, severity="critical", now=now)
+    paged = await paging.page(summary, text, "critical", {"alert": "TestAlert"})
+    sentry = send_test_event(summary)
+    await resolve_alert(db, fp, now)
+    await db.flush()
+    row = (await db.execute(select(OpsAlert).where(OpsAlert.fingerprint == fp))).scalar_one()
+    logger.info("test_alert_sent", paging=paged, sentry=sentry)
+    return TestAlertOut(paging=paged, sentry=sentry, alert=OpsAlertOut.model_validate(row))  # type: ignore[arg-type]
 
 
 @router.get("", response_model=list[OpsAlertOut])

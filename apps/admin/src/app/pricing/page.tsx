@@ -4,7 +4,7 @@
 // draft; on a live rule, a new version, end it (now or at a date; the inherited rule
 // applies again) or roll back to an earlier version. Live rules are never deleted.
 // Each row says where the rule comes from ("Inherited from United States · 20%
-// (tier B)" / "Set for Boise · 15%" / "Set for Spice Route Kitchen · 12% until 14
+// (tier B)" / "Set for Boise · 0%" / "Set for Spice Route Kitchen · 12% until 14
 // Feb 2027"). A commission draft shows what it would have done to the last 7 days'
 // payouts before it's submitted. Money rules (and batching) need a second admin.
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -63,7 +63,7 @@ function Pill({ v, all }: { v: Rule; all?: Rule[] }) {
   return <span className={`rounded-lg px-2 py-1 text-caption ${STATUS_STYLE[s.key] ?? "bg-line-soft"}`}>{s.label}</span>;
 }
 
-/** The short form for a row: "20% (tier B)", "15%", "$1.00 per order"; otherwise the full sentence. */
+/** The short form for a row: "20% (tier B)", "0%", "$1.00 per order"; otherwise the full sentence. */
 function short(r: Rule, units: Units): string {
   const p = r.params as Record<string, unknown>;
   if (r.template === "percent") return `${Number(p.percent)}%`;
@@ -109,7 +109,7 @@ function useKitchens(scope: string) {
   });
 }
 
-/** "Inherited from United States · 20% (tier B)" / "Set for Boise · 15%" / "Set for Spice Route Kitchen · 12% until 14 Feb 2027". */
+/** "Inherited from United States · 20% (tier B)" / "Set for Boise · 0%" / "Set for Spice Route Kitchen · 12% until 14 Feb 2027". */
 function source(r: Rule, scope: string, names: Record<string, string>, kitchens: Record<string, string>, units: Units): string {
   const who = r.scope_level === "restaurant" ? kitchens[r.scope_id] ?? "a restaurant" : names[r.market_scope] ?? r.market_scope;
   const inherited = r.scope_level !== "restaurant" && r.market_scope !== scope && scope !== "*" && r.market_scope.length < scope.length;

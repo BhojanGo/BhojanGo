@@ -370,6 +370,12 @@ class Settings(BaseSettings):
     SENTRY_DSN: str = ""
     # Alertmanager's webhook to core_api (P23): a shared token, empty = refused.
     ALERT_WEBHOOK_TOKEN: str = ""
+    # R39: the paging channel (docs/launch/monitoring.md). A webhook URL that takes a JSON POST: Slack or
+    # Discord incoming webhooks, ntfy, a PagerDuty/Opsgenie integration URL... Empty = no paging (alerts still
+    # show on the Operations page and in the logs). Pages: Alertmanager's critical alerts, alerts the code
+    # raises as critical (chargebacks, offer budget used up), and admin Settings' "Send test alert".
+    PAGING_WEBHOOK_URL: str = ""
+    PAGING_TIMEOUT_SECONDS: float = 5.0
 
     # Database (realtime does not use it, so it is not required at import time;
     # shared.db refuses to start without it)

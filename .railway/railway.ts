@@ -96,6 +96,8 @@ export default defineRailway((ctx, project) => {
     ...(prod ? { OTP_FIXED_CODE: "" } : {}),
     // Error reports (Sentry, free plan; shared/observability.py): one backend project, sealed.
     ...(prod ? { SENTRY_DSN: preserve() } : {}),
+    // R39: the paging channel (docs/launch/monitoring.md): a webhook URL, sealed. Test it: admin Settings > Send test alert.
+    ...(prod ? { PAGING_WEBHOOK_URL: preserve() } : {}),
     // R31: road distance from the private OSRM service below (QA). R32: production too (the same image, Boise
     // and Hyderabad roads); staging keeps the straight-line estimate. OSRM down: straight-line x 1.3, logged
     // (routing_fallback), and admin Operations alerts when over 5% of an hour's deliveries fall back.

@@ -190,3 +190,17 @@ async def test_pickup_ready_sends_the_code_and_collected_is_the_receipt() -> Non
     done = await plan(ev("order.status_changed", new_status="delivered"), d)  # type: ignore[arg-type]
     assert [o.key for o in done] == ["order_collected"] and done[0].total == "₹638.22"
     assert await plan(ev("order.status_changed", new_status="ready"), FakeDirectory()) == []  # type: ignore[arg-type]
+
+
+async def test_food_permit_reminder_goes_to_the_owner_in_their_language() -> None:  # R39
+    from app.services import messages as m
+
+    out = await plan({"event_type": "restaurant.permit_expiring", "payload": {  # type: ignore[arg-type]
+        "restaurant_id": REST, "owner_id": OWNER, "restaurant": "Boise Bowl Co.", "expires_on": "2026-12-24", "days_left": 30}},
+        FakeDirectory())
+    assert [(o.user_id, o.key, o.params) for o in out] == [(OWNER, "permit_expiring", {"restaurant": "Boise Bowl Co.", "date": "24 Dec 2026"})]
+    assert POLICY["permit_expiring"] == ("push", "email")
+    en = m.render("permit_expiring", "en", restaurant="Boise Bowl Co.", date="24 Dec 2026")
+    assert en.title == "Renew your food permit" and "expires on 24 Dec 2026" in en.body and "BhojanGo Restaurant app" in en.body
+    assert "24 Dec 2026" in m.render("permit_expiring", "es", restaurant="X", date="24 Dec 2026").body
+    assert await plan({"event_type": "restaurant.permit_expiring", "payload": {"restaurant_id": REST}}, FakeDirectory()) == []  # type: ignore[arg-type]

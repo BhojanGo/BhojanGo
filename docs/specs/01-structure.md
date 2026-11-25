@@ -76,7 +76,7 @@ Six levels; the most specific level that has a value wins:
 | State / Region | Tax that differs inside a country, labour rules, rider pay minimums | Idaho sales tax |
 | City | Launch status (draft, beta, live, paused), service hours, fee plans, surge windows, rider pay plan, dispatch settings, promos | Hyderabad live, 7:00–23:30, surge 19:00–21:30 |
 | Zone (map polygon) | Delivery area, min order, extra fee or surge, temporary pause | Hitech City: min order ₹149 |
-| Restaurant | Commission plan, packaging levy, prep time, radius, hours, own free-delivery offer | Tier B: 15%, ₹10 packaging |
+| Restaurant | Commission plan, packaging levy, prep time, radius, hours, own free-delivery offer | 0% commission (a restaurant deal may set one), ₹10 packaging |
 
 Money rules (tax, commission, rider pay) are set by country or city managers only.
 Restaurants change only their own menu, hours, prep time and offers.
@@ -137,7 +137,7 @@ Admins build rules from fixed templates, never free-form formulas.
 
 | Who gets it | How | ₹ |
 | --- | --- | --- |
-| Restaurant | 560 food + 10 packaging − 15% commission on 560 | 486.00 |
+| Restaurant | 560 food + 10 packaging − 15% commission on 560 (the original spec; since round 29 commission is 0% and the restaurant pays only the card fee) | 486.00 |
 | Rider | ₹25 base + ₹6/km × 4.2 + tip | 70.20 |
 | Government | GST collected | 37.02 |
 | Platform | What remains | 45.00 |

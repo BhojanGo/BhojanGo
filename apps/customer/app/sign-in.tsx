@@ -1,7 +1,33 @@
 // CustomerSignIn.html: Phone and Email as two equal ways in (round 8, D5). Phone: a code by
 // SMS, no password. Email: a password, an email code, or a new account (EmailSignIn).
 import {
-  Button, codeSendErrorText, color, EmailSignIn, errorMessage, field, LanguagePill, LoadError, LogoMark, type MarketCountry, PhoneCountryButton, phoneExample, phonePlaceholder, radius, SafeAreaView, SignInLegal, type SignInWay, SignInWays, space, toE164, Txt, type, useCountry, useI18n, useSession,
+  Button,
+  codeSendErrorText,
+  color,
+  EmailSignIn,
+  errorMessage,
+  field,
+  LanguagePill,
+  LoadError,
+  LogoMark,
+  PhoneCountryButton,
+  phoneExample,
+  phonePlaceholder,
+  radius,
+  reformatPhone,
+  SafeAreaView,
+  SignInLegal,
+  SignInWays,
+  space,
+  toE164,
+  Txt,
+  type,
+  type MarketCountry,
+  type SignInWay,
+  typePhone,
+  useCountry,
+  useI18n,
+  useSession,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -71,12 +97,12 @@ export default function SignIn() {
                 <Txt variant="small" style={{ color: color.muted }}>{t("signin.help")}</Txt>
                 <Text style={[type.label, styles.label]}>{t("signin.mobile")}</Text>
                 <View style={styles.phone}>
-                  <PhoneCountryButton value={country} onChange={setPicked} />
+                  <PhoneCountryButton value={country} onChange={(c) => { setPicked(c); setNumber((n) => reformatPhone(n, c?.code)); }} />
                   <TextInput
                     testID="phone"
                     accessibilityLabel={t("signin.mobile")}
                     value={number}
-                    onChangeText={setNumber}
+                    onChangeText={(v) => setNumber((n) => typePhone(n, v, country?.code))}
                     keyboardType="phone-pad"
                     placeholder={phonePlaceholder(country?.code)}
                     placeholderTextColor={color.muted}

@@ -197,6 +197,12 @@ async def _handle_webhook(gateway_name: str, request: Request, db: AsyncSession)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if event.get("kind") == "refund":
         return await apply_refund_event(db, gateway_name, event)
+    if event.get("kind") == "dispute":  # R39: chargebacks
+        if event.get("event_id") and not await _first_delivery(db, gateway_name, event["event_id"]):
+            return {"received": True, "duplicate": True}
+        from core_api.modules.payments.service.disputes import apply_dispute_event
+
+        return await apply_dispute_event(db, gateway_name, event)
     return await apply_payment_event(db, gateway_name, event)
 
 

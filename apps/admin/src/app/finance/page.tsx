@@ -17,6 +17,7 @@ import Link from "next/link";
 import { Suspense, useState } from "react";
 
 import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
+import { Disputes } from "@/components/finance/Disputes";
 import { type PayeeKind, SetupLinkButton, SetupPill, type SetupState } from "@/components/finance/PayoutSetup";
 import { adminApi } from "@/lib/api";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
@@ -264,6 +265,7 @@ function FinancePage() {
           ) : null}
         </section>
       ) : null}
+      {target && can(me, "finance.view", target) ? <Disputes country={target} /> : null}
       {collect.data && collect.data.length > 0 ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Restaurants to collect from" data-testid="to-collect">
           <h2 className="m-0 mb-1 text-h3">Restaurants to collect from</h2>

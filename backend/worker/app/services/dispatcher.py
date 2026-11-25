@@ -18,7 +18,7 @@ event never sends twice.
 """
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -53,6 +53,7 @@ POLICY: dict[str, tuple[str, ...]] = {
     "partner_new_order": ("push", "sms_fallback"),
     "payout_paid": ("push", "email"),
     "payout_setup": ("push", "email"),
+    "permit_expiring": ("push", "email"),  # R39: the food permit, 30 days before it expires
     "order_message": ("push",),
     # R17: admin's bulk incident messages (shared.texts.INCIDENT_MESSAGES), by push and email
     **{f"incident_{k}": ("push", "email") for k in m.INCIDENT_MESSAGES},
@@ -99,6 +100,15 @@ async def plan(event: dict, d: Directory) -> list[Outgoing]:
             return []
         return [Outgoing(str(user), "payout_setup", {"link": p.get("link", "")},
                          data={"screen": "payouts", "link": p.get("link", "")})]
+    if kind == "restaurant.permit_expiring":  # R39: remind the owner to renew the food permit
+        if not p.get("owner_id"):
+            return []
+        try:
+            on = date.fromisoformat(p["expires_on"]).strftime("%d %b %Y")
+        except (KeyError, ValueError):
+            on = str(p.get("expires_on", ""))
+        return [Outgoing(str(p["owner_id"]), "permit_expiring", {"restaurant": p.get("restaurant", ""), "date": on},
+                         data={"screen": "permit", "restaurant_id": str(p.get("restaurant_id", ""))})]
     if kind == "incident.message":  # R17: one customer of an admin's bulk message, in their own language
         params = dict(p.get("params") or {})
         if order_id:

@@ -269,10 +269,15 @@ async def open_carries(db: AsyncSession, country: str, before: date, lock: bool 
     return {rid: c for rid, cs in found.items() if (c := S.combine(cs)) is not None}
 
 
-def kitchen_balances(week: WeekStatements, carries: dict[str, S.Carry], start: date) -> dict[str, S.Balance]:
+def kitchen_balances(week: WeekStatements, carries: dict[str, S.Carry], start: date,
+                     disputes: dict[str, int] | None = None) -> dict[str, S.Balance]:
     """R23: every kitchen on the run, with what it carries in: the week's kitchens and any
-    kitchen with a balance below zero and no orders this week (a statement with only the carry)."""
+    kitchen with a balance below zero and no orders this week (a statement with only the carry).
+    R39: ``disputes``: each kitchen's chargeback holds, releases and losses (minor units), in its net."""
+    disputes = disputes or {}
     nets = {rid: _minor(total) for rid, total, _, _ in week.restaurants}
+    for rid, amount in disputes.items():
+        nets[rid] = nets.get(rid, 0) + amount
     return {rid: S.balance(nets.get(rid, 0), carries.get(rid), start) for rid in [*nets, *(r for r in carries if r not in nets)]}
 
 
@@ -294,7 +299,10 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
         raise FinanceError(f"Payouts for {overlapping.period_start}–{overlapping.period_end} already cover part of this period")
     week = await week_statements(db, country, start, end)
     carries = await open_carries(db, country, start, lock=True)
-    balances = kitchen_balances(week, carries, start)
+    from core_api.modules.payments.service import disputes as DS
+
+    held = await DS.payout_adjustments(db, country, lock=True)  # R39: chargebacks
+    balances = kitchen_balances(week, carries, start, {rid: sum(a.amount for a in adj) for rid, adj in held.items()})
 
     run = PayoutRun(country=country, currency=c.currency, period_start=start, period_end=end, status="draft", created_by=actor)
     db.add(run)
@@ -310,12 +318,18 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
         summary, lines = own.get(rid) or S.restaurant_statement([])[1:]
         if bal.carried_in:  # R23: "Carried from last week", netted into this week's amount
             summary = {**summary, "carried_from_last_week": S.major(bal.carried_in), "amount": S.major(bal.amount)}
+        if rid in held:  # R39: chargeback holds (-), releases (+) and losses (-), netted into the amount
+            summary = {**summary, "disputes": S.major(sum(a.amount for a in held[rid])),
+                       "dispute_lines": DS.summary_lines(held[rid]), "amount": S.major(bal.amount)}
         st = PayoutStatement(run_id=run.id, payee_type="restaurant", payee_id=uuid.UUID(rid), payee_name=r.name if r else "",
                              currency=c.currency, amount=bal.amount, summary=summary, lines=lines, carried_in=bal.carried_in,
                              negative_weeks=bal.negative_weeks, negative_since=bal.negative_since)
         db.add(st)
         if rid in carries:
             carried.append((st, carries[rid]))
+        if rid in held:
+            await db.flush()
+            DS.mark_applied(held[rid], st.id)
     for rider_id, total, summary, lines, _ in week.riders:
         profile = await user_profile(db, uuid.UUID(rider_id)) or {}
         db.add(PayoutStatement(run_id=run.id, payee_type="rider", payee_id=uuid.UUID(rider_id), payee_name=profile.get("name", ""),
@@ -559,7 +573,11 @@ async def _period_balances(db: AsyncSession, country: str, start: date, end: dat
     run_id = (await db.execute(select(PayoutRun.id).where(
         PayoutRun.country == country, PayoutRun.period_start == start, PayoutRun.period_end == end))).scalar()
     if run_id is None:
-        return list(kitchen_balances(week, await open_carries(db, country, start), start).values())
+        from core_api.modules.payments.service import disputes as DS
+
+        held = await DS.payout_adjustments(db, country)
+        return list(kitchen_balances(week, await open_carries(db, country, start), start,
+                                     {rid: sum(a.amount for a in adj) for rid, adj in held.items()}).values())
     stmts = (await db.execute(select(PayoutStatement).where(
         PayoutStatement.run_id == run_id, PayoutStatement.payee_type == "restaurant"))).scalars().all()
     return [S.Balance(s.amount - s.carried_in, s.carried_in, s.amount, s.negative_weeks, s.negative_since) for s in stmts]

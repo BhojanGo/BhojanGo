@@ -1,6 +1,23 @@
 // CustomerOutOfArea.html: we don't deliver here yet; leave a number to hear when we do.
 import {
-  api, Button, color, e164, errorMessage, Input, liveCityNames, phoneExample, phonePlaceholder, SafeAreaView, space, toE164, Txt, type, unwrap, useCountry, useI18n,
+  api,
+  Button,
+  color,
+  e164,
+  errorMessage,
+  Input,
+  liveCityNames,
+  phoneExample,
+  phonePlaceholder,
+  SafeAreaView,
+  space,
+  toE164,
+  Txt,
+  type,
+  typePhone,
+  unwrap,
+  useCountry,
+  useI18n,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -54,7 +71,7 @@ export default function OutOfArea() {
           <Txt variant="label" style={{ color: color.peacock }}>{place ? t("app.out_of_area.thanks", { place }) : t("app.out_of_area.thanks_here")}</Txt>
         ) : (
           <>
-            <Input label={t("signin.mobile")} keyboardType="phone-pad" value={phone} onChangeText={setPhone} error={error ?? undefined}
+            <Input label={t("signin.mobile")} keyboardType="phone-pad" value={phone} onChangeText={(v) => setPhone((n) => typePhone(n, v, point?.country))} error={error ?? undefined}
               placeholder={phonePlaceholder(point?.country)} hint={t("common.phone_example", { example: phoneExample(point?.country) })} />
             <Button title={t("app.out_of_area.notify")} size="lg" block disabled={!point || phone.replace(/\D/g, "").length < 8} onPress={join} />
           </>

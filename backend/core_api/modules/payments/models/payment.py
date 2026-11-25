@@ -95,3 +95,37 @@ class Refund(Base):
     provider_refund_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="succeeded")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class PaymentDispute(Base):
+    """R39: a chargeback (Stripe charge.dispute.*). While it is open the restaurant's share of the
+    order is held from its next payout; when it closes the hold is released (won) or the loss is
+    recorded per the restaurant agreement (payments/service/disputes.py). Amounts in minor units."""
+
+    __tablename__ = "payment_disputes"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    provider: Mapped[str] = mapped_column(String(20), nullable=False)
+    provider_dispute_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    provider_payment_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    order_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    restaurant_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    country: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    market_city: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    amount: Mapped[int] = mapped_column(Integer, nullable=False)
+    reason: Mapped[str] = mapped_column(String(40), nullable=False, default="general")
+    status: Mapped[str] = mapped_column(String(30), nullable=False, index=True)  # the provider's status
+    outcome: Mapped[str | None] = mapped_column(String(10), nullable=True)  # won | lost (closed)
+    held: Mapped[int] = mapped_column(Integer, nullable=False, default=0)  # the restaurant's share, held while open
+    restaurant_loss: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    platform_loss: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    loss_bearer: Mapped[str | None] = mapped_column(String(12), nullable=True)  # restaurant | platform
+    hold_statement_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)  # the payout that held it
+    settle_statement_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)  # released / charged
+    evidence: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    evidence_submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    evidence_due_by: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

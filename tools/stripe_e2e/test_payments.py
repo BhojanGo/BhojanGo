@@ -172,6 +172,53 @@ def case_refund_by_item_through_stripe(h: H) -> None:
     assert (rows[0][2] or "").startswith("tax_"), f"no Stripe Tax reversal: {rows}"
 
 
+def _disputed_order(h: H, card: str) -> tuple[dict, list[str]]:
+    """A Boise order paid with one of Stripe's dispute test cards: Stripe opens a dispute moments after the
+    charge, and charge.dispute.created reaches the webhook (R39)."""
+    customer = h.api(CUSTOMER)
+    rest, address, q, cart = h.boise_quote(customer)
+    order = h.place(customer, rest, address, q, cart)
+    pi_id = h.initiate(customer, order["id"])["checkout"]["payment_intent_client_secret"].split("_secret_")[0]
+    h.stripe.PaymentIntent.confirm(pi_id, payment_method=card, return_url="https://example.com/return")
+    h.wait_payment(customer, order["id"], "succeeded")
+    row = h.wait(lambda: (r := h.sql(f"SELECT id, reason, held, status, provider_dispute_id, restaurant_id FROM payment_disputes "
+                                      f"WHERE order_id = '{order['id']}'")) and r[0], 180, 3, "charge.dispute.created")
+    return order, row
+
+
+def _evidence_and_wait(h: H, dispute_id: str, note: str) -> list[str]:
+    admin = h.api(ADMIN)
+    admin.call("POST", f"/finance/disputes/{dispute_id}/evidence", 201, data={"note": note})
+    out = admin.call("POST", f"/finance/disputes/{dispute_id}/submit", 200)
+    assert out["evidence_submitted_at"], out
+    return h.wait(lambda: (r := h.sql(f"SELECT outcome, loss_bearer, restaurant_loss, platform_loss, amount FROM payment_disputes "
+                                       f"WHERE id = '{dispute_id}'")) and r[0][0] and r[0], 300, 5, "charge.dispute.closed")
+
+
+def case_dispute_card_opens_a_chargeback_and_winning_evidence_releases_it(h: H) -> None:
+    """R39: pm_card_createDispute (4000 0000 0000 0259, reason fraudulent): the dispute is recorded against the
+    order with the restaurant's share held and an Operations alert; finance's evidence ("winning_evidence", Stripe
+    test mode's word for a win) goes to Stripe, and charge.dispute.closed marks it won: nothing lost."""
+    order, (did, reason, held, status, dp, rest) = _disputed_order(h, "pm_card_createDispute")
+    assert dp.startswith(("dp_", "du_")) and reason == "fraudulent" and int(held) > 0 and rest, (dp, reason, held, rest)
+    alert = h.sql(f"SELECT status FROM ops_alerts WHERE fingerprint = 'dispute:{dp}'")
+    assert alert and alert[0][0] == "firing", alert
+    listed = h.api(ADMIN).call("GET", "/finance/disputes", 200, params={"country": "US", "state": "open"})
+    assert any(d["id"] == did and d["next_payout"] == -int(held) for d in listed), listed
+    outcome, bearer, restaurant_loss, platform_loss, _ = _evidence_and_wait(h, did, "winning_evidence")
+    assert (outcome, int(restaurant_loss), int(platform_loss)) == ("won", 0, 0), (outcome, bearer, restaurant_loss, platform_loss)
+    assert h.sql(f"SELECT status FROM ops_alerts WHERE fingerprint = 'dispute:{dp}'")[0][0] == "resolved"
+
+
+def case_dispute_lost_for_not_received_is_borne_by_bhojango(h: H) -> None:
+    """R39: pm_card_createDisputeProductNotReceived (reason product_not_received): "losing_evidence" loses it;
+    not a food-quality reason, so BhojanGo bears the whole amount and the restaurant nothing."""
+    order, (did, reason, held, status, dp, rest) = _disputed_order(h, "pm_card_createDisputeProductNotReceived")
+    assert reason == "product_not_received", reason
+    outcome, bearer, restaurant_loss, platform_loss, amount = _evidence_and_wait(h, did, "losing_evidence")
+    assert (outcome, bearer, int(restaurant_loss), int(platform_loss)) == ("lost", "platform", 0, int(amount)), (outcome, bearer)
+
+
 # ── the Payment Element in a real browser (headless Chromium) ────────────────
 class _Quiet(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a) -> None:  # type: ignore[no-untyped-def]

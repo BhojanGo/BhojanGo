@@ -730,6 +730,18 @@
             "title": "Done",
             "type": "integer"
           },
+          "food_permit": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Food Permit"
+          },
           "fssai_document": {
             "title": "Fssai Document",
             "type": "boolean"
@@ -1492,6 +1504,30 @@
           "blocked"
         ],
         "title": "BlockOut",
+        "type": "object"
+      },
+      "Body_add_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence_post": {
+        "properties": {
+          "file": {
+            "anyOf": [
+              {
+                "contentMediaType": "application/octet-stream",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "title": "Body_add_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence_post",
         "type": "object"
       },
       "Body_upload_api_v1_uploads_post": {
@@ -10917,6 +10953,40 @@
         "title": "PayoutTerms",
         "type": "object"
       },
+      "PermitIn": {
+        "properties": {
+          "document_key": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Key"
+          },
+          "expires_on": {
+            "format": "date",
+            "title": "Expires On",
+            "type": "string"
+          },
+          "number": {
+            "description": "As printed on the permit",
+            "maxLength": 40,
+            "minLength": 3,
+            "title": "Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "expires_on"
+        ],
+        "title": "PermitIn",
+        "type": "object"
+      },
       "PhoneSignInRequest": {
         "description": "Sign in (or sign up) with the code from /auth/send-otp.",
         "properties": {
@@ -13769,35 +13839,6 @@
         "title": "ReviewCreateRequest",
         "type": "object"
       },
-      "ReviewIn": {
-        "properties": {
-          "decision": {
-            "enum": [
-              "approve",
-              "reject"
-            ],
-            "title": "Decision",
-            "type": "string"
-          },
-          "note": {
-            "anyOf": [
-              {
-                "maxLength": 500,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Note"
-          }
-        },
-        "required": [
-          "decision"
-        ],
-        "title": "ReviewIn",
-        "type": "object"
-      },
       "ReviewResponse": {
         "properties": {
           "comment": {
@@ -15533,6 +15574,38 @@
         "title": "StatusTimelineEntry",
         "type": "object"
       },
+      "TestAlertOut": {
+        "properties": {
+          "alert": {
+            "$ref": "#/components/schemas/OpsAlertOut"
+          },
+          "paging": {
+            "enum": [
+              "sent",
+              "off",
+              "failed"
+            ],
+            "title": "Paging",
+            "type": "string"
+          },
+          "sentry": {
+            "enum": [
+              "sent",
+              "off",
+              "failed"
+            ],
+            "title": "Sentry",
+            "type": "string"
+          }
+        },
+        "required": [
+          "paging",
+          "sentry",
+          "alert"
+        ],
+        "title": "TestAlertOut",
+        "type": "object"
+      },
       "TicketOut": {
         "properties": {
           "created_at": {
@@ -16628,6 +16701,65 @@
           "detail"
         ],
         "title": "StepOut",
+        "type": "object"
+      },
+      "core_api__modules__catalog__api__v1__permits__ReviewIn": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "approve",
+              "reject"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why it is turned down (the restaurant sees it)",
+            "title": "Note"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "ReviewIn",
+        "type": "object"
+      },
+      "core_api__modules__identity__api__v1__riders__ReviewIn": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "approve",
+              "reject"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "ReviewIn",
         "type": "object"
       },
       "core_api__modules__identity__api__v1__riders__StepOut": {
@@ -18622,6 +18754,286 @@
           }
         ],
         "summary": "Contribution",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
+    "/api/v1/finance/disputes": {
+      "get": {
+        "description": "Chargebacks in a country, newest first: open ones hold the restaurant's share from its next payout.",
+        "operationId": "list_disputes_api_v1_finance_disputes_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "country",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Z]{2}$",
+              "title": "Country",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "enum": [
+                "open",
+                "closed",
+                "all"
+              ],
+              "title": "State",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response List Disputes Api V1 Finance Disputes Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "List Disputes",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
+    "/api/v1/finance/disputes/{dispute_id}": {
+      "get": {
+        "operationId": "get_dispute_api_v1_finance_disputes__dispute_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dispute_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Dispute Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Dispute Api V1 Finance Disputes  Dispute Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Get Dispute",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
+    "/api/v1/finance/disputes/{dispute_id}/evidence": {
+      "post": {
+        "description": "A file (photo or PDF: the receipt, a delivery photo, the chat...) and/or a note for the dispute's evidence.",
+        "operationId": "add_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dispute_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Dispute Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_add_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Add Dispute Evidence Api V1 Finance Disputes  Dispute Id  Evidence Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Add Dispute Evidence",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
+    "/api/v1/finance/disputes/{dispute_id}/evidence/{number}": {
+      "get": {
+        "operationId": "view_dispute_evidence_api_v1_finance_disputes__dispute_id__evidence__number__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dispute_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Dispute Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "View Dispute Evidence",
+        "tags": [
+          "Finance"
+        ]
+      }
+    },
+    "/api/v1/finance/disputes/{dispute_id}/submit": {
+      "post": {
+        "description": "Send the evidence to the payment provider (once). Stripe decides; its charge.dispute.closed event\nthen releases the hold or records the loss. The local fake provider decides at once, as Stripe test\nmode does: a note \"winning_evidence\" wins, \"losing_evidence\" loses.",
+        "operationId": "submit_dispute_evidence_api_v1_finance_disputes__dispute_id__submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dispute_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Dispute Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Submit Dispute Evidence Api V1 Finance Disputes  Dispute Id  Submit Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Submit Dispute Evidence",
         "tags": [
           "Finance"
         ]
@@ -23569,6 +23981,33 @@
         ]
       }
     },
+    "/api/v1/ops/alerts/test": {
+      "post": {
+        "description": "R39 (admin Settings, \"Send test alert\"): one alert through every channel that is switched on: the\nOperations page (a TestAlert row, resolved at once), the paging webhook and Sentry. Says which\nchannels took it, so an admin can check a newly pasted PAGING_WEBHOOK_URL or SENTRY_DSN.",
+        "operationId": "send_test_alert_api_v1_ops_alerts_test_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestAlertOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Send Test Alert",
+        "tags": [
+          "Operations"
+        ]
+      }
+    },
     "/api/v1/ops/help/articles": {
       "get": {
         "description": "Every article you may see, filtered. status=changes: published with unpublished changes.",
@@ -26713,6 +27152,81 @@
         ]
       }
     },
+    "/api/v1/restaurants/admin/permits": {
+      "get": {
+        "description": "Admin (partners.view): food permits waiting for review (new restaurants and renewals), in your cities.",
+        "operationId": "permits_to_review_api_v1_restaurants_admin_permits_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "default": "pending",
+              "enum": [
+                "pending",
+                "all"
+              ],
+              "title": "State",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "country",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[A-Z]{2}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Permits To Review Api V1 Restaurants Admin Permits Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Permits To Review",
+        "tags": [
+          "Food permit"
+        ]
+      }
+    },
     "/api/v1/restaurants/apply": {
       "post": {
         "description": "Apply with a kitchen from a signed-in account (a customer account with no\norders becomes the kitchen partner's): it's created pending approval in a live,\nbeta or coming-soon city, and the partner application (business details, FSSAI,\nGST and bank, menu) follows. Admins approve it in Partners -> Applications.\nA new visitor uses POST /kitchens/apply (email and password) instead.",
@@ -27569,6 +28083,176 @@
         "summary": "Delivery Check",
         "tags": [
           "Restaurants"
+        ]
+      }
+    },
+    "/api/v1/restaurants/{restaurant_id}/food-permit": {
+      "get": {
+        "operationId": "get_permit_api_v1_restaurants__restaurant_id__food_permit_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Permit Api V1 Restaurants  Restaurant Id  Food Permit Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Get Permit",
+        "tags": [
+          "Food permit"
+        ]
+      },
+      "put": {
+        "description": "The restaurant's food permit (owner, or an admin with partners.edit). Waits for an admin's review.",
+        "operationId": "submit_permit_api_v1_restaurants__restaurant_id__food_permit_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PermitIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Submit Permit Api V1 Restaurants  Restaurant Id  Food Permit Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Submit Permit",
+        "tags": [
+          "Food permit"
+        ]
+      }
+    },
+    "/api/v1/restaurants/{restaurant_id}/food-permit/review": {
+      "post": {
+        "description": "Admin (partners.edit in the restaurant's city): approve the permit, or turn it down with a reason.",
+        "operationId": "review_permit_api_v1_restaurants__restaurant_id__food_permit_review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/core_api__modules__catalog__api__v1__permits__ReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Review Permit Api V1 Restaurants  Restaurant Id  Food Permit Review Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Review Permit",
+        "tags": [
+          "Food permit"
         ]
       }
     },
@@ -29203,7 +29887,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ReviewIn"
+                "$ref": "#/components/schemas/core_api__modules__identity__api__v1__riders__ReviewIn"
               }
             }
           },

@@ -273,11 +273,11 @@ function billLineLabel(t, line) {
   return inc ? t("bill.line_tax_included", { tax: out }) : out;
 }
 
-const { formatPhone, parsePhone, toE164, isValidPhone, callingCode, phonePlaceholder, phoneExample, formatAsYouType } = require("./phone.js");
+const { formatPhone, parsePhone, toE164, isValidPhone, callingCode, phonePlaceholder, phoneExample, formatAsYouType, typePhone, reformatPhone } = require("./phone.js");
 const { opensWhen, opensLabel, wallClock } = require("./hours.js");
 
 module.exports = {
-  formatPhone, parsePhone, toE164, isValidPhone, callingCode, phonePlaceholder, phoneExample, formatAsYouType, opensWhen, opensLabel, wallClock,
+  formatPhone, parsePhone, toE164, isValidPhone, callingCode, phonePlaceholder, phoneExample, formatAsYouType, typePhone, reformatPhone, opensWhen, opensLabel, wallClock,
   LANGUAGES, DEFAULT_LANGUAGE, languageOf, languagesFor, languageList, pickLanguage, chooseLanguage, detectCountry,
   resolveLocation, formatLocale, dateLocale, createTranslator, pluralSelector, cuisineKey, cuisineName, billLineLabel,
 };

@@ -1,0 +1,104 @@
+# R39 item 2 (run by ../r39-phone.yaml): the sign-in phone box groups the digits as they are typed, in the
+# country's own way (US "(208) 555-0123", India "98765 43210"), and switching the country re-formats them.
+appId: com.bhojango.partner
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Sign in to your restaurant"
+    timeout: 120000
+- tapOn:
+    id: "way-phone"
+- repeat:
+    while:
+      notVisible:
+        id: "phone-country-${COUNTRY}"
+    times: 6
+    commands:
+      - tapOn:
+          id: "phone-country-.*"
+- tapOn:
+    id: "phone"
+- inputText: "${D1}"
+- hideKeyboard
+- assertVisible:
+    id: "phone"
+    text: '${S1}'
+- tapOn:
+    id: "phone"
+- inputText: "${D2}"
+- hideKeyboard
+- assertVisible:
+    id: "phone"
+    text: '${S2}'
+- tapOn:
+    id: "phone"
+- inputText: "${D3}"
+- hideKeyboard
+- assertVisible:
+    id: "phone"
+    text: '${S3}'
+- tapOn:
+    id: "phone"
+- inputText: "${D4}"
+- hideKeyboard
+- assertVisible:
+    id: "phone"
+    text: '${S4}'
+- tapOn:
+    id: "phone"
+- inputText: "${D5}"
+- hideKeyboard
+- assertVisible:
+    id: "phone"
+    text: '${S5}'
+- tapOn:
+    id: "phone"
+- inputText: "${D6}"
+- hideKeyboard
+- assertVisible:
+    id: "phone"
+    text: '${S6}'
+- tapOn:
+    id: "phone"
+- inputText: "${D7}"
+- hideKeyboard
+- assertVisible:
+    id: "phone"
+    text: '${S7}'
+- tapOn:
+    id: "phone"
+- inputText: "${D8}"
+- hideKeyboard
+- assertVisible:
+    id: "phone"
+    text: '${S8}'
+- tapOn:
+    id: "phone"
+- inputText: "${D9}"
+- hideKeyboard
+- assertVisible:
+    id: "phone"
+    text: '${S9}'
+- tapOn:
+    id: "phone"
+- inputText: "${D10}"
+- hideKeyboard
+- assertVisible:
+    id: "phone"
+    text: '${S10}'
+- takeScreenshot: docs/screenshots/partner/r39-2-app-${MARKET}
+# another country: the same digits in its grouping
+- repeat:
+    while:
+      notVisible:
+        id: "phone-country-${OTHER}"
+    times: 6
+    commands:
+      - tapOn:
+          id: "phone-country-.*"
+- assertVisible:
+    id: "phone"
+    text: '${SWITCHED}'

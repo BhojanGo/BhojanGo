@@ -17,12 +17,13 @@ from datetime import date
 from typing import Annotated, Literal
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import PlainTextResponse, RedirectResponse, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core_api.modules.audit import service as audit
 from core_api.modules.finance.models import PayoutAccount, PayoutRun, PayoutStatement
 from core_api.modules.finance.service import connect, payouts
 from core_api.modules.finance.service import statements as S
@@ -614,3 +615,139 @@ async def reconciliation(
         w.writerow(["issue", issue["issue"], issue["order_id"]])
     return PlainTextResponse(buf.getvalue(), media_type="text/csv",
                              headers={"Content-Disposition": f"attachment; filename=reconciliation-{country}-{start}-{end}.csv"})
+
+
+# ── R39: chargebacks (payments/service/disputes.py) ──────────────────────────
+
+EVIDENCE_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf"}
+EVIDENCE_MAX = 5 * 1024 * 1024
+
+
+async def _dispute(db: AsyncSession, admin: AdminContext, dispute_id: uuid.UUID, permission: str, lock: bool = False):  # type: ignore[no-untyped-def]
+    from core_api.modules.payments.models import PaymentDispute
+
+    d = await db.get(PaymentDispute, dispute_id, with_for_update=lock)
+    if d is None or not admin.can(permission, d.market_city or d.country or "*"):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Dispute not found")
+    return d
+
+
+async def _names(db: AsyncSession, ids: set) -> dict:  # type: ignore[type-arg]
+    from core_api.modules.catalog.models.restaurant import Restaurant
+
+    if not ids:
+        return {}
+    return {r.id: r.name for r in (await db.execute(select(Restaurant).where(Restaurant.id.in_(ids)))).scalars()}
+
+
+@router.get("/disputes")
+async def list_disputes(admin: Annotated[AdminContext, Depends(require_permission("finance.view"))], db: DB,
+                        country: str = Query(pattern=r"^[A-Z]{2}$"),
+                        state: Literal["open", "closed", "all"] = "all") -> list[dict]:
+    """Chargebacks in a country, newest first: open ones hold the restaurant's share from its next payout."""
+    from core_api.modules.payments.models import PaymentDispute
+    from core_api.modules.payments.service.disputes import dispute_out
+
+    admin.require("finance.view", country)
+    q = select(PaymentDispute).where(PaymentDispute.country == country).order_by(PaymentDispute.opened_at.desc()).limit(200)
+    if state == "open":
+        q = q.where(PaymentDispute.outcome.is_(None))
+    elif state == "closed":
+        q = q.where(PaymentDispute.outcome.is_not(None))
+    rows = (await db.execute(q)).scalars().all()
+    names = await _names(db, {d.restaurant_id for d in rows if d.restaurant_id})
+    return [dispute_out(d, names.get(d.restaurant_id)) for d in rows]
+
+
+@router.get("/disputes/{dispute_id}")
+async def get_dispute(dispute_id: uuid.UUID, admin: Annotated[AdminContext, Depends(require_permission("finance.view"))],
+                      db: DB) -> dict:
+    from core_api.modules.payments.service.disputes import dispute_out
+
+    d = await _dispute(db, admin, dispute_id, "finance.view")
+    return dispute_out(d, (await _names(db, {d.restaurant_id} if d.restaurant_id else set())).get(d.restaurant_id))
+
+
+@router.post("/disputes/{dispute_id}/evidence", status_code=status.HTTP_201_CREATED)
+async def add_dispute_evidence(dispute_id: uuid.UUID, admin: Annotated[AdminContext, Depends(require_permission("finance.edit"))],
+                               db: DB, note: Annotated[str, Form(max_length=4000)] = "",
+                               file: Annotated[UploadFile | None, File()] = None) -> dict:
+    """A file (photo or PDF: the receipt, a delivery photo, the chat...) and/or a note for the dispute's evidence."""
+    from datetime import UTC, datetime
+
+    from core_api.modules.payments.service.disputes import dispute_out
+    from shared.providers.storage import get_storage
+
+    d = await _dispute(db, admin, dispute_id, "finance.edit", lock=True)
+    if d.outcome is not None or d.evidence_submitted_at is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "DISPUTE_CLOSED", "message": "Evidence was already sent for this dispute"})
+    if file is None and not note.strip():
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "EVIDENCE_EMPTY", "message": "Add a file or a note"})
+    entry: dict = {"n": len(d.evidence or []) + 1, "note": note.strip()[:4000], "uploaded_at": datetime.now(UTC).isoformat(),
+                   "by": str(admin.user.id)}
+    if file is not None:
+        ctype = (file.content_type or "").split(";")[0]
+        if ctype not in EVIDENCE_TYPES:
+            raise HTTPException(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                                detail={"code": "FILE_TYPE", "message": "Send a JPEG, PNG or WebP photo, or a PDF"})
+        data = await file.read(EVIDENCE_MAX + 1)
+        if not data or len(data) > EVIDENCE_MAX:
+            raise HTTPException(status.HTTP_413_CONTENT_TOO_LARGE, detail={"code": "FILE_SIZE", "message": "Files can be up to 5 MB"})
+        key = f"dispute_evidence/{d.id}/{uuid.uuid4()}.{EVIDENCE_TYPES[ctype]}"
+        await get_storage().put(key, data, ctype)
+        entry.update({"key": key, "name": (file.filename or f"evidence.{EVIDENCE_TYPES[ctype]}")[:120], "content_type": ctype,
+                      "size": len(data)})
+    d.evidence = [*(d.evidence or []), entry]
+    await db.flush()
+    return dispute_out(d)
+
+
+@router.get("/disputes/{dispute_id}/evidence/{number}", response_class=Response)
+async def view_dispute_evidence(dispute_id: uuid.UUID, number: int,
+                                admin: Annotated[AdminContext, Depends(require_permission("finance.view"))], db: DB) -> Response:
+    from shared.providers.storage import get_storage
+
+    d = await _dispute(db, admin, dispute_id, "finance.view")
+    e = next((e for e in d.evidence or [] if e.get("n") == number and e.get("key")), None)
+    got = await get_storage().get(e["key"]) if e else None
+    if got is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Not found")
+    return Response(content=got[0], media_type=got[1], headers={"Cache-Control": "private, no-store"})
+
+
+@router.post("/disputes/{dispute_id}/submit")
+async def submit_dispute_evidence(dispute_id: uuid.UUID, admin: Annotated[AdminContext, Depends(require_permission("finance.edit"))],
+                                  db: DB) -> dict:
+    """Send the evidence to the payment provider (once). Stripe decides; its charge.dispute.closed event
+    then releases the hold or records the loss. The local fake provider decides at once, as Stripe test
+    mode does: a note "winning_evidence" wins, "losing_evidence" loses."""
+    from datetime import UTC, datetime
+
+    from core_api.modules.payments.service import disputes as DS
+    from core_api.modules.payments.service import stripe_svc
+    from shared.providers.storage import get_storage
+
+    d = await _dispute(db, admin, dispute_id, "finance.edit", lock=True)
+    if d.outcome is not None or d.evidence_submitted_at is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail={"code": "DISPUTE_CLOSED", "message": "Evidence was already sent for this dispute"})
+    if not d.evidence:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "EVIDENCE_EMPTY", "message": "Add evidence first"})
+    text = "\n\n".join(e["note"] for e in d.evidence if e.get("note"))
+    if d.provider == "stripe":
+        files = []
+        for e in d.evidence:
+            if e.get("key") and (got := await get_storage().get(e["key"])):
+                files.append((e.get("name") or "evidence", got[0], got[1]))
+        try:
+            await stripe_svc.submit_dispute_evidence(d.provider_dispute_id, text, files)
+        except Exception as e:  # noqa: BLE001 - the provider refused: say so, keep it unsent
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail={"code": "PROVIDER_ERROR", "message": str(e)[:300]})
+    d.evidence_submitted_at = datetime.now(UTC)
+    d.status = "under_review"
+    await audit.record(db, actor_id=admin.user.id, action="dispute.evidence_submitted", entity_type="payment_dispute",
+                       entity_id=d.id, scope=d.market_city or d.country or "*", after={"items": len(d.evidence)})
+    if d.provider == "fake" and ("winning_evidence" in text or "losing_evidence" in text):
+        await DS.apply_dispute_event(db, "fake", {"dispute": {
+            "id": d.provider_dispute_id, "status": "won" if "winning_evidence" in text else "lost"}})
+    await db.flush()
+    return DS.dispute_out(d)
