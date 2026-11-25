@@ -714,7 +714,7 @@ async def _build() -> Ctx:
 
             dispute = PaymentDispute(provider="fake", provider_dispute_id=f"dp_sweep_{uuid.uuid4().hex[:12]}",
                                      order_id=uuid.UUID(c.order), restaurant_id=uuid.UUID(c.spice), country="IN",
-                                     market_city="IN-TG-HYD", currency="INR", amount=100, reason="general",
+                                     market_city="IN-TG-HYD", currency="INR", amount=45000, reason="product_unacceptable",  # R41: ₹450, a real order size
                                      status="needs_response", held=0, restaurant_loss=0, platform_loss=0, evidence=[])
             db.add(dispute)
             await db.flush()

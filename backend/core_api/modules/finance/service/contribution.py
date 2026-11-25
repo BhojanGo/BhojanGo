@@ -52,6 +52,7 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
                await _in_period(db, country, start, end, Order.actual_delivery_time),
                *([Order.id.in_([uuid.UUID(i) for i in order_ids])] if order_ids is not None else []))
     )).all()
+    rows = [(o, snap) for o, snap in rows if not (snap.context or {}).get("review")]  # R41: as the payout run and Reconciliation
     ids = [o.id for o, _ in rows]
     from core_api.modules.payments.models.payment import PaymentIntent
 
@@ -126,5 +127,8 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
     cities = [out(code, counts[code], v) for code, v in sorted(by_city.items())]
     total = {k: sum((v[k] for v in by_city.values()), Decimal(0)) for k in FIELDS}
     n = sum(counts.values())
+    from core_api.modules.finance.service.payouts import payout_tz
+
     return {"scope": scope, "currency": c.currency, "period": {"start": start.isoformat(), "end": end.isoformat()},
+            "definition": f"Delivered between Monday 00:00 and Sunday 23:59 ({payout_tz(c)}), by delivered time",
             "cities": cities, "all": out(scope, n, total), "fees_estimated": estimated, "fees_actual": n - estimated}

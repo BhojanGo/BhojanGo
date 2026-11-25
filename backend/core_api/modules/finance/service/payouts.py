@@ -22,7 +22,7 @@ from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.audit import service as audit
-from core_api.modules.finance.models import PayoutAccount, PayoutRun, PayoutStatement
+from core_api.modules.finance.models import PayoutAccount, PayoutRun, PayoutRunOrder, PayoutStatement
 from core_api.modules.finance.service import statements as S
 from core_api.modules.finance.service.providers import (
     NoPayoutProvider,
@@ -164,6 +164,14 @@ def check_week(start: date, end: date, today: date) -> None:
     if end > today:
         raise FinanceError(f"The week {start.isoformat()} to {(end - timedelta(days=1)).isoformat()} hasn't ended yet; "
                            f"prepare it from Monday {end.isoformat()}")
+
+
+def week_of(at: datetime, tz: ZoneInfo) -> tuple[date, date]:
+    """R41: the payout week an instant belongs to: Monday 00:00 to the next Monday 00:00 in the payout zone (so
+    Sunday 23:59:59 is still that week, Monday 00:00 is the next). Weeks never overlap and leave no gap."""
+    local = at.astimezone(tz).date()
+    monday = local - timedelta(days=local.weekday())
+    return monday, monday + timedelta(days=7)
 
 
 def ended_weeks(today: date, n: int = 8) -> list[tuple[date, date]]:
@@ -335,6 +343,7 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
         db.add(PayoutStatement(run_id=run.id, payee_type="rider", payee_id=uuid.UUID(rider_id), payee_name=profile.get("name", ""),
                                currency=c.currency, amount=_minor(total), summary=summary, lines=lines))
     await db.flush()
+    await _claim_orders(db, run, [o.order_id for o in week.orders])
     for st, carry in carried:  # each balance is carried once: the update only takes statements no run has carried
         done = await db.execute(update(PayoutStatement).where(
             PayoutStatement.id.in_([uuid.UUID(i) for i in carry.statements]), PayoutStatement.carried_to.is_(None))
@@ -354,6 +363,28 @@ async def create_run(db: AsyncSession, actor: uuid.UUID, country: str, start: da
     await audit.record(db, actor_id=actor, action="payout_run.created", entity_type="payout_run", entity_id=run.id,
                        scope=country, after={"period": f"{start}..{end}", **run.totals})
     return run
+
+
+async def _claim_orders(db: AsyncSession, run: PayoutRun, order_ids: list[str]) -> None:
+    """R41: an order is paid by one payout run only. payout_run_orders has the order as its primary key; runs
+    prepared before it (no rows there) are checked through their statement lines."""
+    from sqlalchemy import text
+    from sqlalchemy.dialects.postgresql import insert
+    from sqlalchemy.exc import IntegrityError
+
+    if not order_ids:
+        return
+    legacy = (await db.execute(text(
+        "SELECT line->>'order_id', s.run_id FROM payout_statements s, jsonb_array_elements(s.lines) AS line "
+        "WHERE s.run_id <> :run AND s.payee_type = 'restaurant' AND line->>'order_id' = ANY(:ids) LIMIT 1"),
+        {"run": run.id, "ids": order_ids})).first()
+    if legacy:
+        raise FinanceError(f"Order {legacy[0][:8].upper()} is already on payout run {str(legacy[1])[:8]}: an order is paid once")
+    try:
+        async with db.begin_nested():
+            await db.execute(insert(PayoutRunOrder), [{"order_id": uuid.UUID(o), "run_id": run.id} for o in order_ids])
+    except IntegrityError as e:
+        raise FinanceError("An order of this week is already on another payout run: an order is paid once") from e
 
 
 async def preview_restaurant(db: AsyncSession, country: str, start: date, end: date, restaurant_id: uuid.UUID) -> dict:
@@ -615,6 +646,7 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
     from core_api.modules.pricing.models import OrderPricingSnapshot
 
     c = await _country(db, country)
+    payout_zone_name = str(payout_tz(c))
     orders = (await db.execute(select(Order).where(
         await _in_period(db, country, start, end, Order.created_at)))).scalars().all()
     ids = [o.id for o in orders]
@@ -679,8 +711,13 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
     not_in_run = await _not_in_run(db, country, start, end, week)
     return {
         "country": country, "currency": c.currency, "period": {"start": start.isoformat(), "end": end.isoformat()},
-        "orders": {"total": len(orders), "delivered": len(delivered), "cancelled": sum(1 for o in orders if o.status == "cancelled"),
-                   "open": sum(1 for o in orders if o.status not in ("delivered", "cancelled"))},
+        # R41: "delivered" is the week's orders as Contribution and the payout run count them: delivered between
+        # Monday 00:00 and the next Monday 00:00 in the payout zone, by delivered time (review orders left out);
+        # cancelled and still open are of the orders placed in the week.
+        "orders": {"total": len(orders), "delivered": len(week.orders), "cancelled": sum(1 for o in orders if o.status == "cancelled"),
+                   "open": sum(1 for o in orders if o.status not in ("delivered", "cancelled")),
+                   "definition": f"Delivered between Monday 00:00 and Sunday 23:59 ({payout_zone_name}), by delivered time",
+                   "placed": len(orders), "placed_delivered": len(delivered)},
         "money": {"captured": captured_total, "refunded": refunded_total, "net_collected": captured_total - refunded_total,
                   "delivered_gmv": S._minor_str(sum((S.D(s.total) for s in week_snaps.values()), Decimal(0))),
                   "tax_owed": S._minor_str(tax), "restaurant_payable": S._minor_str(kitchens),

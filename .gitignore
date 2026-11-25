@@ -94,3 +94,6 @@ tools/load/out/
 backups/
 tools/soak/out/
 tools/a11y/vendor/
+
+# R41: the validation sweep writes here (CI uploads it as an artifact)
+docs/screenshots/sweep/

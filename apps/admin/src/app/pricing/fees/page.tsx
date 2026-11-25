@@ -190,7 +190,7 @@ function Fees() {
           <div className="text-small text-muted" data-testid="fee-chain">
             {data.data.chain.map((c) => `${LEVEL_WORD[c.level][0].toUpperCase()}${LEVEL_WORD[c.level].slice(1)}: ${c.name}`).join(" → ")}
           </div>
-          <table className="w-full rounded-2xl bg-white text-left" data-testid="fee-table">
+          <table className="table-stack w-full rounded-2xl bg-white text-left [--stack-inset:1rem]" data-testid="fee-table">
             <thead>
               <tr className="text-small text-muted">
                 <th className="p-3">Fee</th><th className="p-3">Effective value</th><th className="p-3">Comes from</th>
@@ -276,13 +276,13 @@ function FeeRow({ row, sym, unit, level, scope, canEdit, canClear, onDone }: {
 
   return (
     <tr className="border-t border-line-soft align-top" data-field={row.field}>
-      <td className="p-3"><b>{meta.label}</b><div className="text-small text-muted">{meta.hint}</div></td>
-      <td className="p-3 text-label tabular-nums" data-testid="effective">{show(row.field, row.effective, sym, unit)}</td>
-      <td className="p-3 text-small" data-testid="source">
+      <td className="stack-title p-3"><b>{meta.label}</b><div className="text-small text-muted">{meta.hint}</div></td>
+      <td className="p-3 text-label tabular-nums" data-label="Effective value" data-testid="effective">{show(row.field, row.effective, sym, unit)}</td>
+      <td className="p-3 text-small" data-label="Comes from" data-testid="source">
         {src ? (row.inherited ? <>Inherited from: <b>{src.name}</b></> : <>Set here</>) : "Not set anywhere"}
         {src ? <div className="text-muted">version {src.version}</div> : null}
       </td>
-      <td className="p-3 text-small">
+      <td className="p-3 text-small" data-label={`Set for this ${LEVEL_WORD[level]}`}>
         {row.own ? <>{show(row.field, row.own.value, sym, unit)} · from {day(row.own.effective_from)}{row.own.effective_to ? ` to ${day(row.own.effective_to)}` : ""}</> : <span className="text-muted">—</span>}
         {row.scheduled.map((s) => <div key={s.rule_id} className="text-peacock-dark">Scheduled: {show(row.field, s.value, sym, unit)} from {day(s.effective_from)}</div>)}
         {row.pending.map((p) => <div key={p.rule_id} className="text-kesar-ink">Waiting for approval: {show(row.field, p.value, sym, unit)} from {day(p.effective_from)}</div>)}
@@ -318,7 +318,7 @@ function FeeRow({ row, sym, unit, level, scope, canEdit, canClear, onDone }: {
           </div>
         ) : null}
       </td>
-      <td className="p-3 text-right">
+      <td className="stack-actions p-3 text-right">
         {canEdit && !editing && row.pending.length === 0 ? (
           <button type="button" onClick={() => setEditing(true)} className="text-label text-peacock">{row.own ? "Change" : "Set here"}</button>
         ) : null}

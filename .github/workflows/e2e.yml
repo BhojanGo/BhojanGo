@@ -63,6 +63,12 @@ jobs:
         if: always()
         run: sh tools/web/i18n_layout.sh
 
+      # R41: every website and admin page, a US and an India user, 1440 and 390 px: status, page errors, overflow,
+      # cut-off text, text under bottom bars, wording, untranslated keys, currency, phone format, weekday vs date.
+      - name: Every page swept (R41)
+        if: always()
+        run: sh tools/sweep/sweep.sh
+
       # R9: axe-core runs on the main pages of both suites (serious or critical fails them);
       # every finding, of every impact, goes to the run's summary and the screenshots artifact.
       - name: Accessibility report (axe)
@@ -85,6 +91,7 @@ jobs:
             docs/screenshots/web
             docs/screenshots/admin
             docs/screenshots/web-i18n
+            docs/screenshots/sweep
           retention-days: 7
 
       - name: Stop

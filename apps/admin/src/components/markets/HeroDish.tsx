@@ -13,7 +13,9 @@ import { useState } from "react";
 import library from "@/content/photo-library.json";
 import { apiError, can, type CountrySummary, marketsApi, useAdminMe } from "@/lib/markets";
 
-const SLUGS = library as string[];
+// R41: a hero is a dish: the library's two photos that aren't food (the website leaves them out too) aren't offered
+const NOT_FOOD = new Set(["delivery-partner-scooter", "kitchen-cook"]);
+const SLUGS = (library as string[]).filter((s) => !NOT_FOOD.has(s));
 
 /** "south-indian-thali" -> "South indian thali" */
 function dishName(slug: string): string {

@@ -20,6 +20,17 @@ class MarketsTests(unittest.TestCase):
     def setUp(self) -> None:
         self.ms = md.markets()
 
+    def test_r41_documents_restaurants_need_say_restaurant(self) -> None:
+        """R41 sweep: the documents list (website /partner, admin Partners) is BhojanGo's words: never "kitchen", in
+        any language (restaurants' own trading names aside, which aren't here)."""
+        import json
+        import re
+
+        kitchen = re.compile(r"kitchen|किचन|కిచెన్|சமையலறை|ಕಿಚನ್|কিচেন", re.I)
+        for c in COUNTRIES:
+            docs = json.dumps((c.get("settings") or {}).get("kitchen_documents") or [], ensure_ascii=False)
+            self.assertIsNone(kitchen.search(docs), (c["code"], kitchen.findall(docs)))
+
     def test_boise_is_the_only_open_city(self) -> None:
         statuses = md.city_statuses(self.ms)
         self.assertEqual([c for c, s in statuses.items() if s in md.OPEN], ["US-ID-BOI"])

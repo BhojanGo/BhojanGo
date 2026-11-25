@@ -697,6 +697,29 @@ No migration. The model and the audit of every finance number: [launch/finance-m
 - **Reconciliation test** to the cent and the paisa (US and India; delivery, pickup, tip, offer, refunds,
   cancellation, chargeback) and the worked Boise example (`tools/finance/worked_example.py`).
 
+## Payout weeks and the validation sweep (round 41, 2026-11-24)
+
+Migration `0054_payout_weeks` (a new table `payout_run_orders` and a NOT VALID check on `payout_runs`; no row changed;
+it logs any existing run that isn't Monday to Monday, overlaps another, or shares an order).
+
+- **Week labels say the year.** "Mon 15 Dec" was 15 Dec 2008 (a Monday: the round 40 worked example's own old week)
+  and "Mon 25 Oct – Sun 31 Oct" an India test run in an earlier year; shown without a year they read as 2026's. The
+  weeks themselves were right: Monday 00:00 to the next Monday 00:00 in the payout zone (America/Boise,
+  Asia/Kolkata). Labels now read "Mon 16 Nov – Sun 22 Nov 2026".
+- **An order is paid by one run only:** `payout_run_orders` (the order is the key), written when a run is prepared;
+  runs from before it are checked through their statements. A run must be a Monday-to-Monday week (database check).
+- **No delivery in the future:** an order's delivered time is the server's clock; a later one is refused.
+- **One order count:** Contribution and Reconciliation both count orders delivered in the week by delivered time in
+  the payout zone (review orders left out), and say so on screen.
+- **Realistic test data:** the negative-balance test uses ₹45,000 (was ₹10,00,000); the access sweep's chargeback is
+  ₹450 for food quality (was ₹1 "Other"); a test keeps recent weeks within ±₹50,000 / ±$1,000 and disputes at
+  least ₹100 / $5. (Neither was seed data: both came from tests run on the local stack.)
+- `tools/finance/check_payout_weeks.py` lists misaligned or overlapping runs, orders on two runs and future
+  deliveries, read-only.
+- **Validation sweep:** every website and admin page as a US and an India user at 1440 and 390 px
+  (`tools/sweep/sweep_web.py`, in CI), and new Maestro sweep flows for the app screens no flow opened: see
+  `qa-artifacts/r41/sweep/index.md`.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.
