@@ -336,6 +336,13 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("PUT", f"{R}/option-groups/{{group_id}}"): user("customer", "rider", "other_partner", "ops_boi",
                                                      body=lambda c: OPTION_GROUP),
     ("DELETE", f"{R}/option-groups/{{group_id}}"): user("customer", "rider", "other_partner", "ops_boi"),
+    # R43: menu editing (the owner, or an admin with partners.edit for the city; history: partners.view)
+    ("GET", f"{R}/menu/manage"): user("customer", "rider", "other_partner", "ops_boi"),
+    ("GET", f"{R}/menu/history"): user("customer", "rider", "other_partner", "ops_boi"),
+    ("POST", f"{R}/categories"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"name": "Sweep"}),
+    ("PUT", f"{R}/categories/{{category_id}}"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"name": "Sweep"}),
+    ("PUT", f"{R}/categories-order"): user("customer", "rider", "other_partner", "ops_boi",
+                                         body=lambda c: {"category_ids": [c.category]}),
     ("POST", f"{R}/reviews"): user("other_customer", "partner", "rider",
                                    body=lambda c: {"order_id": c.order, "rating": 5, "comment": "sweep"}),
     # ── admin: rules, markets, audit, admins, users ──────────────────────────
@@ -519,9 +526,10 @@ class Ctx:
     bulk_refund: str = ""
     message: str = ""
     dispute: str = ""  # R39
+    category: str = ""  # R43
 
     def path(self, template: str) -> str:
-        values = {"order_id": self.order, "restaurant_id": self.spice, "item_id": self.item, "group_id": self.group,
+        values = {"order_id": self.order, "restaurant_id": self.spice, "item_id": self.item, "group_id": self.group, "category_id": self.category,
                   "address_id": self.address, "quote_id": self.quote, "payment_intent_id": self.intent,
                   "rule_id": self.rule, "zone_id": self.zone, "run_id": self.run, "statement_id": self.statement,
                   "assignment_id": self.assignment, "user_id": self.customer_id, "rider_id": self.rider_id,
@@ -643,6 +651,8 @@ async def _build() -> Ctx:
         c.quote = r.json()["quote_id"]
         r = await client.post(f"{R.format(restaurant_id=c.spice)}/option-groups", headers=partner, json=OPTION_GROUP)
         c.group = r.json()["id"]
+        r = await client.get(f"{R.format(restaurant_id=c.spice)}/menu/manage", headers=partner)  # R43
+        c.category = r.json()["categories"][0]["id"]
         r = await client.post(f"{R.format(restaurant_id=c.spice)}/callback", headers=partner, json={"topic": "other", "note": "Access sweep"})
         c.ticket = r.json()["id"]
         # R21: a kitchen offer that never applies (minimum far above any cart); ended in teardown

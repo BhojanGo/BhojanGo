@@ -27,6 +27,32 @@
    "maestro": "r36-pickup-closed"
   },
   {
+   "id": "menu-change",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "The restaurant changes a dish's price; the customer opens the restaurant",
+   "expected": "The new price shows within 60 s (measured from the change)",
+   "verify": "UI vs GET /restaurants/{id}/menu (scripts/r43_menu.js)",
+   "run": "maestro: apps/customer/.maestro/r43-propagation-{user}.yaml",
+   "maestro": "r43-propagation-{user}"
+  },
+  {
+   "id": "dish-hours",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A dish served only at other hours, spice Medium",
+   "expected": "'Served … – …', no Add; '🌶🌶 Medium'",
+   "verify": "UI vs the menu API",
+   "run": "maestro: apps/customer/.maestro/r43-propagation-{user}.yaml",
+   "maestro": "r43-propagation-{user}"
+  },
+  {
    "id": "na-permission",
    "kind": "permission",
    "na": "the way in: anyone may open it"

@@ -27,6 +27,110 @@
    "maestro": "menu"
   },
   {
+   "id": "add-edit-delete",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Add a dish (name, description, price, category, veg/non-veg in India, spice); edit every field; delete it",
+   "expected": "Saved as typed (API equal field by field); deleted: off the menu, kept on past orders",
+   "verify": "UI; API GET /menu/manage, /menu",
+   "run": "maestro: apps/partner/.maestro/r43-menu-edit-{user}.yaml",
+   "maestro": "r43-menu-edit-{user}"
+  },
+  {
+   "id": "price-rules",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A price of 0, ₹120.50 (India) / $12.999 (US), then a change of more than 50%",
+   "expected": "Refused with the rule in words; the big change asks 'Change the price by N%?' and saves only on Change price",
+   "verify": "UI; API price unchanged until confirmed",
+   "run": "maestro: apps/partner/.maestro/r43-menu-edit-{user}.yaml",
+   "maestro": "r43-menu-edit-{user}"
+  },
+  {
+   "id": "photo",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open a dish's photo from the editor (camera or gallery)",
+   "expected": "The photo screen with the preview",
+   "verify": "UI",
+   "run": "maestro: apps/partner/.maestro/r43-menu-edit-{user}.yaml",
+   "maestro": "r43-menu-edit-{user}"
+  },
+  {
+   "id": "categories",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Add a category, rename it, set its hours, hide it, drag it to the top",
+   "expected": "Each saved; the order customers see follows",
+   "verify": "UI; API GET /menu/manage, /menu (order, names, hidden)",
+   "run": "maestro: apps/partner/.maestro/r43-categories-{user}.yaml",
+   "maestro": "r43-categories-{user}"
+  },
+  {
+   "id": "options",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A new option group (required, at least 1 / at most 1, priced options) on a dish",
+   "expected": "Saved; the quote adds the option's price",
+   "verify": "UI; API POST /pricing/quote",
+   "run": "maestro: apps/partner/.maestro/r43-options-{user}.yaml",
+   "maestro": "r43-options-{user}"
+  },
+  {
+   "id": "schedule",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Serve a dish only at set hours",
+   "expected": "Saved; customers see its hours and can't order it outside them",
+   "verify": "UI; API menu available_now",
+   "run": "maestro: apps/partner/.maestro/r43-options-{user}.yaml",
+   "maestro": "r43-options-{user}"
+  },
+  {
+   "id": "history",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open History after the changes",
+   "expected": "Each change: who, when, old → new; as the API's history",
+   "verify": "UI vs GET /menu/history",
+   "run": "maestro: apps/partner/.maestro/r43-menu-edit-{user}.yaml",
+   "maestro": "r43-menu-edit-{user}"
+  },
+  {
+   "id": "wrong-role",
+   "kind": "permission",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A customer's token on the restaurant's menu editing API",
+   "expected": "403",
+   "verify": "API",
+   "run": "maestro: apps/partner/.maestro/r43-menu-edit-{user}.yaml",
+   "maestro": "r43-menu-edit-{user}"
+  },
+  {
    "id": "api-down",
    "kind": "error",
    "users": [
@@ -38,11 +142,6 @@
    "verify": "UI text",
    "run": "maestro: apps/partner/.maestro/r42-api-down.yaml",
    "maestro": "r42-api-down"
-  },
-  {
-   "id": "na-permission",
-   "kind": "permission",
-   "na": "own menu"
   },
   {
    "id": "na-empty",

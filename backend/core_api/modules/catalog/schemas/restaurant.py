@@ -1,6 +1,6 @@
 import re
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Annotated, Any, Literal
 
@@ -200,13 +200,25 @@ class MenuItemCreateRequest(BaseModel):
     prep_time_minutes: int = Field(default=15, ge=1, le=120)
     calories: int | None = Field(default=None, ge=0)
     sort_order: int = Field(default=0)
+    # R43
+    image_url: PhotoUrl = None
+    spice_level: int | None = Field(default=None, ge=0, le=3, description="0 none, 1 mild, 2 medium, 3 hot")
+    available_from: time | None = Field(default=None, description="Served from this local time (with available_until)")
+    available_until: time | None = None
 
 
 class MenuItemUpdateRequest(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    """Fields left out stay as they are. spice_level, available_from/until and image_url may be sent as null
+    to clear them (R43)."""
+    name: str | None = Field(default=None, min_length=2, max_length=255)
+    description: str | None = Field(default=None, max_length=1000)
     price: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
     category: str | None = None
+    category_id: uuid.UUID | None = None
+    spice_level: int | None = Field(default=None, ge=0, le=3)
+    available_from: time | None = None
+    available_until: time | None = None
+    confirm_price_change: bool = Field(default=False, description="Needed when the price changes by more than 50%")
     is_veg: bool | None = None
     is_available: bool | None = None
     allergens: list[str] | None = None
@@ -236,6 +248,11 @@ class MenuItemResponse(BaseModel):
     option_groups: list[dict[str, Any]] = []
     customizations: list[dict[str, Any]] = []
     sold_out_today: bool = False
+    # R43: spice (0 none .. 3 hot), and when it's served: {"from": "07:00", "until": "11:00"} (its own or its
+    # category's); available_now is False outside it (it can't be ordered then)
+    spice_level: int | None = None
+    schedule: dict[str, str] | None = None
+    available_now: bool = True
     sort_order: int
     prep_time_minutes: int
     calories: int | None
@@ -252,6 +269,8 @@ class MenuCategoryResponse(BaseModel):
     description: str | None
     sort_order: int
     is_active: bool
+    available_from: time | None = None  # R43
+    available_until: time | None = None
     items: list[MenuItemResponse] = []
 
 

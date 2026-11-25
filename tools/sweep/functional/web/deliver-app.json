@@ -22,8 +22,8 @@
     "us"
    ],
    "action": "Open the page with core-api stopped",
-   "expected": "It renders in full (it needs nothing from core-api)",
-   "verify": "UI: body text, no Next.js error page",
+   "expected": "It renders in full (it needs nothing from core-api); in under 4 s (R43)",
+   "verify": "UI: body text, no Next.js error page; the page's navigation timing (DOMContentLoaded < 4 s)",
    "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
    "test": "web/deliver/app#api-down"
   },

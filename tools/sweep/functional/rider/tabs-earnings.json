@@ -35,9 +35,9 @@
    ],
    "action": "A rider with no trips this week",
    "expected": "Zero, said plainly",
-   "verify": "UI",
-   "run": "not automated yet (NOT RUN)",
-   "test": "none"
+   "verify": "UI vs GET /finance/earnings/me (0)",
+   "run": "maestro: apps/rider/.maestro/r43-no-trips-{user}.yaml",
+   "maestro": "r43-no-trips-{user}"
   },
   {
    "id": "open-payouts",

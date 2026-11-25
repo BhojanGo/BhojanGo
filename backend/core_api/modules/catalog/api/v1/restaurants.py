@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core_api.modules.catalog.service import menu as menu_svc
+from core_api.modules.catalog.service import menu_edit as edit
 from core_api.modules.catalog.api.dependencies import CurrentUser, get_current_user
 from core_api.modules.catalog.service import access
 from shared import authz
@@ -228,14 +229,28 @@ async def _menu(db: AsyncSession, restaurant_id: uuid.UUID, viewer: uuid.UUID | 
     now = datetime.now(UTC)
     # "Sold out today" ends at the kitchen's midnight: keep the answer no longer than that.
     ends = [i.sold_out_until for i in restaurant.menu_items if i.sold_out_until is not None and i.sold_out_until > now]
-    until = min([MENU_CACHE_SECONDS, *((e - now).total_seconds() for e in ends)])
-    return restaurant.country, restaurant.city, await _menu_out(db, restaurant), until
+    local = now.astimezone((await menu_svc.restaurant_market(db, restaurant))[1])
+    # R43: nor past the next time a dish or category schedule starts or ends ("available_now")
+    windows = [(x.available_from, x.available_until) for x in [*restaurant.menu_items, *restaurant.categories]
+               if x.available_from is not None and x.available_until is not None]
+    edge = edit.seconds_to_next_edge(windows, local)
+    until = min([MENU_CACHE_SECONDS, *((e - now).total_seconds() for e in ends), *([edge] if edge else [])])
+    return restaurant.country, restaurant.city, await _menu_out(db, restaurant, local), until
 
 
-async def _menu_out(db: AsyncSession, restaurant) -> RestaurantMenuResponse:  # type: ignore[no-untyped-def]
+async def _menu_out(db: AsyncSession, restaurant, local=None) -> RestaurantMenuResponse:  # type: ignore[no-untyped-def]
+    """Customers' menu: shown categories in order, each one's available dishes (R43: never a deleted one;
+    a dish outside its schedule is listed with available_now False)."""
+    from datetime import UTC, datetime
+
     from core_api.modules.catalog.schemas.restaurant import MenuCategoryResponse
 
-    groups = await menu_svc.groups_for_items(db, [i.id for i in restaurant.menu_items])
+    if local is None:
+        local = datetime.now(UTC).astimezone((await menu_svc.restaurant_market(db, restaurant))[1])
+    live = [i for i in restaurant.menu_items if i.deleted_at is None]
+    groups = await menu_svc.groups_for_items(db, [i.id for i in live])
+    by_id = {c.id: c for c in restaurant.categories}
+    order = lambda i: (i.sort_order, i.name)  # noqa: E731
     categories = [
         MenuCategoryResponse(
             id=cat.id,
@@ -244,16 +259,19 @@ async def _menu_out(db: AsyncSession, restaurant) -> RestaurantMenuResponse:  # 
             description=cat.description,
             sort_order=cat.sort_order,
             is_active=cat.is_active,
-            items=[item_out(item, groups.get(item.id, [])) for item in cat.items if item.is_available],
+            available_from=cat.available_from,
+            available_until=cat.available_until,
+            items=[item_out(item, groups.get(item.id, []), cat, local)
+                   for item in sorted(cat.items, key=order) if item.is_available and item.deleted_at is None],
         )
-        for cat in sorted(restaurant.categories, key=lambda c: c.sort_order)
+        for cat in sorted(restaurant.categories, key=lambda c: (c.sort_order, c.name))
         if cat.is_active
     ]
 
     uncategorized = [
-        item_out(item, groups.get(item.id, []))
-        for item in restaurant.menu_items
-        if item.category_id is None and item.is_available
+        item_out(item, groups.get(item.id, []), None, local)
+        for item in sorted(live, key=order)
+        if (item.category_id is None or item.category_id not in by_id) and item.is_available
     ]
 
     return RestaurantMenuResponse(
@@ -263,12 +281,14 @@ async def _menu_out(db: AsyncSession, restaurant) -> RestaurantMenuResponse:  # 
     )
 
 
-def item_out(item, groups) -> MenuItemResponse:  # type: ignore[no-untyped-def]
+def item_out(item, groups, category=None, local=None) -> MenuItemResponse:  # type: ignore[no-untyped-def]
     base = MenuItemResponse.model_validate(item)
     return base.model_copy(update={
         "option_groups": [menu_svc.group_out(g) for g in groups],
         "customizations": menu_svc.legacy_customizations(groups),
         "sold_out_today": menu_svc.is_sold_out(item),
+        "schedule": edit.schedule_of(item, category),
+        "available_now": True if local is None else edit.served_now(item, category, local),
     })
 
 
@@ -427,20 +447,47 @@ async def create_menu_item(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> MenuItemResponse:
-    await access.manage(db, current_user, restaurant_id)
-    repo = RestaurantRepository(db)
-
-    item_repo = MenuItemRepository(db)
+    """Add a dish. R43: the price rules (more than 0, 2 decimals, whole rupees in India); a category_id
+    of this restaurant sets the category's name too; a schedule needs both times. Goes to the menu's history."""
+    r = await access.manage(db, current_user, restaurant_id)
+    _own_photos(current_user, r.owner_id, data.image_url)
     fields = data.model_dump()
     customizations = fields.pop("customizations", [])
-    item = await item_repo.create(restaurant_id=restaurant_id, **fields)
+    try:
+        edit.check_price(data.price, r.currency)
+        edit.check_window(data.available_from, data.available_until)
+        if data.category_id is not None:
+            fields["category"] = (await _category(db, restaurant_id, data.category_id)).name
+    except edit.RuleError as e:
+        raise _rule_error(e)
+    item = await MenuItemRepository(db).create(restaurant_id=restaurant_id, **fields)
     if customizations:
         try:
             await menu_svc.groups_from_legacy(db, item, customizations)
         except menu_svc.MenuError as e:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
+    await edit.record(db, r, current_user, entity="dish", entity_id=item.id, name=item.name, action="added",
+                      changes=[{"field": k, "old": None, "new": v} for k, v in edit.snapshot(item, edit.DISH_FIELDS).items()
+                               if v not in (None, "", False)])
     groups = await menu_svc.groups_for_items(db, [item.id])
     return item_out(item, groups.get(item.id, []))
+
+
+def _rule_error(e: "edit.RuleError") -> HTTPException:
+    status_code = status.HTTP_409_CONFLICT if e.code == "PRICE_CONFIRM" else status.HTTP_422_UNPROCESSABLE_CONTENT
+    return HTTPException(status_code=status_code, detail={"code": e.code, "message": str(e), **e.details})
+
+
+async def _category(db: AsyncSession, restaurant_id: uuid.UUID, category_id: uuid.UUID):  # type: ignore[no-untyped-def]
+    from core_api.modules.catalog.models.menu import MenuCategory
+
+    c = await db.get(MenuCategory, category_id)
+    if c is None or c.restaurant_id != restaurant_id:
+        raise edit.RuleError("NO_SUCH_CATEGORY", "That category isn't on this menu")
+    return c
+
+
+NULLABLE_ON_UPDATE = ("spice_level", "available_from", "available_until", "image_url")
 
 
 @router.put("/{restaurant_id}/menu-items/{item_id}", response_model=MenuItemResponse)
@@ -451,24 +498,43 @@ async def update_menu_item(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> MenuItemResponse:
+    """Change a dish. R43: the price rules; a price changed by more than 50% answers 409 PRICE_CONFIRM
+    (old, new, percent) until it's sent again with confirm_price_change; every changed field goes to the
+    menu's history (old and new)."""
     r = await access.manage(db, current_user, restaurant_id)
     _own_photos(current_user, r.owner_id, data.image_url)
-    repo = RestaurantRepository(db)
-
     item_repo = MenuItemRepository(db)
     current = await item_repo.get_by_id(item_id)
-    if not current or current.restaurant_id != restaurant_id:  # an item of another restaurant: not yours
+    if not current or current.restaurant_id != restaurant_id or current.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
+    before = edit.snapshot(current, edit.DISH_FIELDS)
     fields = data.model_dump(exclude_none=True)
+    fields.pop("confirm_price_change", None)
+    for f in NULLABLE_ON_UPDATE:  # sent as null: cleared
+        if f in data.model_fields_set and getattr(data, f) is None:
+            fields[f] = None
     customizations = fields.pop("customizations", None)
+    try:
+        if data.price is not None:
+            edit.check_price(data.price, r.currency)
+            edit.confirm_needed(current.price, data.price, data.confirm_price_change)
+        edit.check_window(fields.get("available_from", current.available_from),
+                          fields.get("available_until", current.available_until))
+        if data.category_id is not None:
+            fields["category"] = (await _category(db, restaurant_id, data.category_id)).name
+    except edit.RuleError as e:
+        raise _rule_error(e)
     item = await item_repo.update(item_id, **fields)
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
+    await db.refresh(item)
     if customizations is not None:
         try:
             await menu_svc.groups_from_legacy(db, item, customizations)
         except menu_svc.MenuError as e:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(e))
+    await edit.record(db, r, current_user, entity="dish", entity_id=item.id, name=item.name, action="changed",
+                      changes=edit.diff(before, edit.snapshot(item, edit.DISH_FIELDS)))
     groups = await menu_svc.groups_for_items(db, [item.id])
     return item_out(item, groups.get(item.id, []))
 
@@ -480,16 +546,18 @@ async def delete_menu_item(
     current_user: Annotated[CurrentUser, Depends(get_current_user)],
     db: AsyncSession = Depends(get_db, scope="function"),
 ) -> None:
-    await access.manage(db, current_user, restaurant_id)
-    repo = RestaurantRepository(db)
+    """Take a dish off the menu. R43: a soft delete: the row stays (deleted_at), so orders, statements and the
+    history keep its name and price; customers can't see or order it."""
+    from datetime import UTC, datetime
 
-    item_repo = MenuItemRepository(db)
-    current = await item_repo.get_by_id(item_id)
-    if not current or current.restaurant_id != restaurant_id:
+    r = await access.manage(db, current_user, restaurant_id)
+    current = await MenuItemRepository(db).get_by_id(item_id)
+    if not current or current.restaurant_id != restaurant_id or current.deleted_at is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
-    deleted = await item_repo.delete(item_id)
-    if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu item not found")
+    current.deleted_at = datetime.now(UTC)
+    await db.flush()
+    await edit.record(db, r, current_user, entity="dish", entity_id=current.id, name=current.name, action="deleted",
+                      changes=[{"field": "price", "old": f"{current.price:.2f}", "new": None}])
 
 
 @router.post("/{restaurant_id}/reviews", response_model=ReviewResponse, status_code=status.HTTP_201_CREATED)

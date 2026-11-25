@@ -13,7 +13,7 @@ import { FairBill } from "@/components/FairBill";
 import { Check, Clock, Close, Pin } from "@/components/Icons";
 import { foodSubtotal, useQuote, type DeliverTo } from "@/components/order/useQuote";
 import { useFitBelowHeader } from "@/lib/bottomSpace";
-import { api, authed, cartItems, useBag, useHydrated, useSession } from "@/lib/client";
+import { api, authed, cartItems, priceChanges, useBag, useHydrated, useSession, type PriceChange } from "@/lib/client";
 import { tipPresetsOf, type TipPresets } from "@/lib/contract";
 import { photo } from "@/lib/format";
 import { useFormat, useLanguage, useT } from "@/lib/i18n";
@@ -171,6 +171,22 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
   const promoApplied = !!promo && !!q?.lines.some((l) => l.code === "promotion" && (l.detail as Record<string, unknown> | null | undefined)?.promo_code === promo);
   const money = (n: number | string) => f.money(n, bag.restaurant?.currency ?? q?.currency);
   const held = q ? Math.max(0, Math.floor((Date.parse(q.expires_at) - now) / 1000)) : 0;
+  // R43: the restaurant changed a price since the dish went in the cart (or since the last, expired, quote):
+  // the cart takes the quote's price and says so above Pay ("Price changed: Paneer Tikka $10.00 → $12.00").
+  const [changes, setChanges] = useState<PriceChange[]>([]);
+  const [seenQuote, setSeenQuote] = useState<string | null>(null);
+  const found = q ? priceChanges(lines, q.items) : [];
+  if (q && q.quote_id !== seenQuote) { // each new quote once: what it priced differently joins the note
+    setSeenQuote(q.quote_id);
+    if (found.length) setChanges((was) => [...was.filter((c) => !found.some((x) => x.key === c.key)),
+      ...found.map((c) => ({ ...c, was: was.find((x) => x.key === c.key)?.was ?? c.was }))]);
+  }
+  const reprice = useBag((s) => s.reprice);
+  const repriced = JSON.stringify(found.map((c) => [c.key, c.now]));
+  useEffect(() => { // the cart keeps the quote's price from now on
+    const pairs = JSON.parse(repriced) as [string, number][];
+    if (pairs.length) reprice(Object.fromEntries(pairs));
+  }, [repriced, reprice]);
   // Tip choices are the city's, from the quote, or from a refusal that knows them (a bag
   // under the minimum); kept while the next quote loads. None set: "Other" only.
   const [tipCfg, setTipCfg] = useState<TipPresets | null>(null);
@@ -343,6 +359,14 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
       )}
     </>
   );
+
+  const changedNote = changes.length ? (
+    <div role="status" data-testid="price-changed" className="mb-3 rounded-xl bg-[#FBF1DC] px-4 py-3 text-label text-[#6B4A0C]">
+      {changes.map((c) => (
+        <p key={c.key} className="m-0 tabular-nums">{t("checkout.price_changed", { name: c.name, was: money(c.was), now: money(c.now) })}</p>
+      ))}
+    </div>
+  ) : null;
 
   const payButton = q && held === 0 ? (
     <button type="button" onClick={() => setNonce((n) => n + 1)} className="h-[60px] w-full rounded-full bg-[#0B5D66] text-h3 text-white">{t("checkout.fresh_price")}</button>
@@ -577,7 +601,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
                 </p>
               )}
               {error && <p role="alert" className="m-0 mt-3 rounded-xl bg-[#F1E3E1] px-4 py-3 text-label text-[#8C1D18]">{error}</p>}
-              <div className="mt-4 hidden md:block">{payButton}</div>
+              <div className="mt-4 hidden md:block">{changedNote}{payButton}</div>
             </div>
           </div>
         </aside>
@@ -600,7 +624,7 @@ export function Checkout({ place, countryMethods }: { place: Place | null; count
       )}
     </div>
     {/* R39: the phone's Pay bar: under the content, never over it */}
-    <div data-testid="pay-bar" className="shrink-0 border-t border-[#E2E7E8] bg-white px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 md:hidden">{payButton}</div>
+    <div data-testid="pay-bar" className="shrink-0 border-t border-[#E2E7E8] bg-white px-4 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 md:hidden">{changedNote}{payButton}</div>
     </div>
   );
 }

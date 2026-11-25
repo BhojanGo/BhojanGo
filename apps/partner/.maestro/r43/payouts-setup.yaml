@@ -1,0 +1,49 @@
+# R43 (r42 gap): a restaurant with no payout account (REST) taps Set up payouts: the payout provider's set-up page
+# opens (the browser), and back in the app the account is there, waiting for the restaurant (scripts/r43_empty.js).
+appId: com.bhojango.partner
+---
+- runFlow:
+    file: ../sign-in-email.yaml
+    env:
+      EMAIL: ${EMAIL}
+- extendedWaitUntil:
+    visible: 'Which restaurant is this tablet for\?'
+    timeout: 60000
+- tapOn: ${REST}
+- extendedWaitUntil:
+    visible: "Payouts"
+    timeout: 30000
+- tapOn: "Payouts"
+- extendedWaitUntil:
+    visible:
+      id: "payout-set-up"
+    timeout: 30000
+- runScript:
+    file: ../scripts/r43_empty.js
+    env: { STEP: before, MARKET: "${MARKET}", REST: "${REST}" }
+- takeScreenshot: docs/screenshots/partner/r43-payouts-setup-${MARKET}-before
+- tapOn:
+    id: "payout-set-up"
+# a real provider (Stripe Connect) opens its set-up page in the browser: come back to the app; the local test
+# provider sets the account up at once (no page)
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: docs/screenshots/partner/r43-payouts-setup-${MARKET}-provider
+- runScript:
+    file: ../scripts/r43_empty.js
+    env: { STEP: after, MARKET: "${MARKET}", REST: "${REST}" }
+- runFlow:
+    when:
+      notVisible:
+        id: "payouts-screen"
+    commands:
+      - back
+- extendedWaitUntil:
+    visible:
+      id: "payouts-screen"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "payout-state-${output.state}"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/partner/r43-payouts-setup-${MARKET}-after

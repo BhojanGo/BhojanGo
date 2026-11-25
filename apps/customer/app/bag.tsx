@@ -1,6 +1,6 @@
 // CustomerCheckout.html: your bag, the tip, the fair bill (from a quote), pay.
 import {
-  api, ApiError, appEnv, Button, cartItems, color, type CoreSchemas, errorMessage, FairBill, FIRST_LOAD_TIMEOUT_MS, LoadError, num, quoteRefusal, type QuoteRefusal, radius, SafeAreaView, Segmented, Sheet, space, textFont, timeoutFetch, Txt, type, unwrap, useBag, useCountry, useI18n,
+  api, ApiError, appEnv, Button, cartItems, color, type CoreSchemas, errorMessage, FairBill, priceChanges, type PriceChange, FIRST_LOAD_TIMEOUT_MS, LoadError, num, quoteRefusal, type QuoteRefusal, radius, SafeAreaView, Segmented, Sheet, space, textFont, timeoutFetch, Txt, type, unwrap, useBag, useCountry, useI18n,
 } from "@bhojango/mobile-core";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -22,6 +22,7 @@ export default function Bag() {
   const bag = useBag();
   const { point, market } = useWhere();
   const [quote, setQuote] = useState<Quote | null>(null);
+  const [changes, setChanges] = useState<PriceChange[]>([]); // R43: prices changed since the dish was added
   const [error, setError] = useState<string | null>(null);
   const [refusal, setRefusal] = useState<QuoteRefusal | null>(null);
   /** The quote got no answer (offline, our servers): LoadError and Retry instead of a spinner. */
@@ -118,6 +119,14 @@ export default function Bag() {
         if (!live) return;
         const q = unwrap(r);
         setQuote(q);
+        // R43: a price the restaurant changed since the dish went in the cart: the cart takes the quote's
+        // price and says so above Pay ("Price changed: <dish> <old> → <new>")
+        const found = priceChanges(lines, q.items);
+        if (found.length) {
+          setChanges((was) => [...was.filter((c) => !found.some((x) => x.key === c.key)),
+            ...found.map((c) => ({ ...c, was: was.find((x) => x.key === c.key)?.was ?? c.was }))]);
+          useBag.getState().reprice(Object.fromEntries(found.map((c) => [c.key, c.now])));
+        }
         setUnreachable(null);
         setPresets(q.tip_presets ?? null);
         setError(null);
@@ -356,6 +365,15 @@ export default function Bag() {
             <Text style={{ color: color.muted }}> · {t(`checkout.method_${method}_sub`)}</Text>
           </Text>
         </View>
+        {changes.length ? (
+          <View testID="price-changed" accessibilityRole="alert" style={styles.changed}>
+            {changes.map((c) => (
+              <Text key={c.key} style={[type.label, num, { color: "#6B4A0C" }]}>
+                {t("checkout.price_changed", { name: c.name, was: bill(c.was, quote?.currency), now: bill(c.now, quote?.currency) })}
+              </Text>
+            ))}
+          </View>
+        ) : null}
         {point?.browse && !pickup ? (
           // A city picked on "Change city" is for browsing: the order needs a real address.
           <Button testID="set-location" title={t("location.set")} size="lg" block onPress={() => router.push("/where")} />
@@ -395,6 +413,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", justifyContent: "center", gap: space[4], paddingHorizontal: space[6] },
   top: { flexDirection: "row", alignItems: "center", gap: 4, paddingLeft: space[2], paddingRight: space[5], paddingTop: space[3], paddingBottom: space[2] },
   back: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  changed: { borderRadius: radius.card, backgroundColor: "#FBF1DC", paddingHorizontal: space[4], paddingVertical: space[3], gap: 4 },
   held: { borderRadius: radius.pill, backgroundColor: color.white, borderWidth: 1, borderColor: "#D5E4E5", paddingHorizontal: 11, paddingVertical: 7 },
   card: { backgroundColor: color.white, borderRadius: radius.card, padding: space[4], gap: 10 },
   rule: { height: 1, backgroundColor: color.divider },

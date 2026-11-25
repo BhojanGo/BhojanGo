@@ -78,9 +78,11 @@ e2e_env() {
     JWT_PRIVATE_KEY="$E2E_JWT_KEY" APP_ENV=e2e DATABASE_URL="$E2E_DB_URL" REDIS_URL="$E2E_REDIS" EVENT_BUS=redis EVENT_BUS_REDIS_URL="$E2E_REDIS" \
     JWT_SECRET_KEY="$JWT_SECRET" PAYMENT_PROVIDER=auto TAX_PROVIDER=auto PAYOUT_PROVIDER="${STRIPE_E2E_PAYOUT_PROVIDER:-auto}" \
     SMS_PROVIDER=log PUSH_PROVIDER=log EMAIL_PROVIDER=log OTP_FIXED_CODE=123456 \
-    STRIPE_WEBHOOK_SECRET="${WHSEC:-}" "$@"
+    STRIPE_WEBHOOK_SECRET="${WHSEC:-}" INTERNAL_SERVICE_SECRET="$E2E_INTERNAL" "$@"
 }
 JWT_SECRET="$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+# R43: this run's own service-to-service secret (the harness assigns the rider as realtime would; never QA's)
+E2E_INTERNAL="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 # Outside development and test core-api needs a real signing key: a throwaway one for this run only
 # (never QA's: the test stack must not mint tokens QA would accept).
 E2E_JWT_KEY="$(uv run --frozen python -c 'from cryptography.hazmat.primitives.asymmetric import rsa

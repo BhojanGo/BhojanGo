@@ -1,0 +1,110 @@
+# R43: categories on the tablet (MARKET): add one, rename it, set its hours, hide it, drag it to the top; the API
+# follows each (scripts/r43_menu.js), customers don't see it while hidden; the order is put back afterwards.
+appId: com.bhojango.partner
+---
+- runFlow: open-menu.yaml
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: setup, MARKET: "${MARKET}" }
+- tapOn:
+    id: "manage-categories"
+- extendedWaitUntil:
+    visible:
+      id: "categories-editor"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/partner/r43-categories-${MARKET}-before
+- scrollUntilVisible:
+    element:
+      id: "new-category"
+    direction: DOWN
+- tapOn:
+    id: "new-category"
+- inputText: ${output.cat}
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
+- tapOn:
+    id: "add-category"
+- extendedWaitUntil:
+    visible: ${output.cat}
+    timeout: 15000
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: cats, MARKET: "${MARKET}" }
+- scrollUntilVisible:
+    element:
+      id: "category-name-${output.last}"
+    direction: DOWN
+- tapOn:
+    id: "category-name-${output.last}"
+- eraseText: 40
+- inputText: ${output.cat2}
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
+- tapOn:
+    id: "category-rename-${output.last}"
+- extendedWaitUntil:
+    visible: ${output.cat2}
+    timeout: 15000
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
+- scrollUntilVisible:
+    element:
+      id: "category-from-${output.last}"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "category-from-${output.last}"
+- inputText: "07:00"
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
+- scrollUntilVisible:
+    element:
+      id: "category-until-${output.last}"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "category-until-${output.last}"
+- inputText: "11:00"
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
+- scrollUntilVisible:
+    element:
+      id: "category-hours-${output.last}"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "category-hours-${output.last}"
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
+- scrollUntilVisible:
+    element:
+      id: "category-shown-${output.last}"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "category-shown-${output.last}"
+- extendedWaitUntil:
+    visible: "Hidden"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/partner/r43-categories-${MARKET}-edited
+# drag the ☰ handle up past every row: it lands first
+- scrollUntilVisible:
+    element:
+      id: "category-drag-${output.last}"
+    direction: DOWN
+    timeout: 10000
+- swipe:
+    from:
+      id: "category-drag-${output.last}"
+    direction: UP
+    duration: 2500
+- waitForAnimationToEnd:
+    timeout: 5000
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: cat, MARKET: "${MARKET}", NAME2: "${output.cat2}", FROM: "07:00", UNTIL: "11:00" }
+- scrollUntilVisible:
+    element:
+      id: "category-row-0"
+    direction: UP
+- assertVisible:
+    id: "category-name-0"
+    text: ${output.cat2}
+- takeScreenshot: docs/screenshots/partner/r43-categories-${MARKET}-dragged
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: catback, MARKET: "${MARKET}", ORDER: "${output.order}" }

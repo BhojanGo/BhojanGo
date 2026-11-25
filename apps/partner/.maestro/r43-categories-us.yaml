@@ -1,0 +1,8 @@
+# R43: categories on the tablet (us). See r43/categories.yaml.
+appId: com.bhojango.partner
+env:
+  MARKET: "us"
+  EMAIL: "partner.boi@example.com"
+  REST: "Boise Bowl Co."
+---
+- runFlow: r43/categories.yaml

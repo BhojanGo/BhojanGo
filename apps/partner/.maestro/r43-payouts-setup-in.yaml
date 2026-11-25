@@ -1,0 +1,8 @@
+# R43: payouts-setup (in, Curry Leaf). See r43/payouts-setup.yaml.
+appId: com.bhojango.partner
+env:
+  MARKET: "in"
+  EMAIL: "partner.hyd@example.com"
+  REST: "Curry Leaf"
+---
+- runFlow: r43/payouts-setup.yaml

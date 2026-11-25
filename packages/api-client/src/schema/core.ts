@@ -3833,6 +3833,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/restaurants/{restaurant_id}/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Category */
+        post: operations["add_category_api_v1_restaurants__restaurant_id__categories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/categories-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Order Categories
+         * @description Every category of the menu, in the new order (the list must name each one once).
+         */
+        put: operations["order_categories_api_v1_restaurants__restaurant_id__categories_order_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change Category
+         * @description Rename (its dishes follow), hide or show, or set a schedule (both times) or clear it (both null).
+         */
+        put: operations["change_category_api_v1_restaurants__restaurant_id__categories__category_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/restaurants/{restaurant_id}/delivery-check": {
         parameters: {
             query?: never;
@@ -4003,7 +4060,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create Menu Item */
+        /**
+         * Create Menu Item
+         * @description Add a dish. R43: the price rules (more than 0, 2 decimals, whole rupees in India); a category_id
+         *     of this restaurant sets the category's name too; a schedule needs both times. Goes to the menu's history.
+         */
         post: operations["create_menu_item_api_v1_restaurants__restaurant_id__menu_items_post"];
         delete?: never;
         options?: never;
@@ -4019,10 +4080,19 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Update Menu Item */
+        /**
+         * Update Menu Item
+         * @description Change a dish. R43: the price rules; a price changed by more than 50% answers 409 PRICE_CONFIRM
+         *     (old, new, percent) until it's sent again with confirm_price_change; every changed field goes to the
+         *     menu's history (old and new).
+         */
         put: operations["update_menu_item_api_v1_restaurants__restaurant_id__menu_items__item_id__put"];
         post?: never;
-        /** Delete Menu Item */
+        /**
+         * Delete Menu Item
+         * @description Take a dish off the menu. R43: a soft delete: the row stays (deleted_at), so orders, statements and the
+         *     history keep its name and price; customers can't see or order it.
+         */
         delete: operations["delete_menu_item_api_v1_restaurants__restaurant_id__menu_items__item_id__delete"];
         options?: never;
         head?: never;
@@ -4062,6 +4132,46 @@ export interface paths {
          * @description Sold out today: the item can't be ordered until the restaurant's next midnight.
          */
         put: operations["sold_out_api_v1_restaurants__restaurant_id__menu_items__item_id__sold_out_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/menu/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Menu History
+         * @description Who changed what on the menu, newest first: {"changes": [...], "next": <before for the next page> | null}.
+         */
+        get: operations["menu_history_api_v1_restaurants__restaurant_id__menu_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/restaurants/{restaurant_id}/menu/manage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Manage Menu
+         * @description The whole menu as the restaurant edits it (customers' menu hides hidden categories and unavailable dishes).
+         */
+        get: operations["manage_menu_api_v1_restaurants__restaurant_id__menu_manage_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -5802,6 +5912,37 @@ export interface components {
             options?: components["schemas"]["OptionPick"][];
             /** Quantity */
             quantity: number;
+        };
+        /** CategoryIn */
+        CategoryIn: {
+            /** Available From */
+            available_from?: string | null;
+            /** Available Until */
+            available_until?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Name
+             * @example Breakfast
+             */
+            name: string;
+        };
+        /**
+         * CategoryPatch
+         * @description Fields left out stay as they are; available_from/until sent as null clear the schedule.
+         */
+        CategoryPatch: {
+            /** Available From */
+            available_from?: string | null;
+            /** Available Until */
+            available_until?: string | null;
+            /**
+             * Is Active
+             * @description False hides the category and its dishes from customers
+             */
+            is_active?: boolean | null;
+            /** Name */
+            name?: string | null;
         };
         /**
          * ChangePasswordRequest
@@ -7711,6 +7852,10 @@ export interface components {
         };
         /** MenuCategoryResponse */
         MenuCategoryResponse: {
+            /** Available From */
+            available_from?: string | null;
+            /** Available Until */
+            available_until?: string | null;
             /** Description */
             description: string | null;
             /**
@@ -7742,6 +7887,13 @@ export interface components {
              * @default []
              */
             allergens?: string[];
+            /**
+             * Available From
+             * @description Served from this local time (with available_until)
+             */
+            available_from?: string | null;
+            /** Available Until */
+            available_until?: string | null;
             /** Calories */
             calories?: number | null;
             /** Category */
@@ -7760,6 +7912,8 @@ export interface components {
              * @default
              */
             description?: string;
+            /** Image Url */
+            image_url?: string | null;
             /**
              * Is Veg
              * @default false
@@ -7784,11 +7938,21 @@ export interface components {
              * @default 0
              */
             sort_order?: number;
+            /**
+             * Spice Level
+             * @description 0 none, 1 mild, 2 medium, 3 hot
+             */
+            spice_level?: number | null;
         };
         /** MenuItemResponse */
         MenuItemResponse: {
             /** Allergens */
             allergens: string[];
+            /**
+             * Available Now
+             * @default true
+             */
+            available_now?: boolean;
             /** Calories */
             calories: number | null;
             /** Category */
@@ -7840,6 +8004,10 @@ export interface components {
              * Format: uuid
              */
             restaurant_id: string;
+            /** Schedule */
+            schedule?: {
+                [key: string]: string;
+            } | null;
             /**
              * Sold Out Today
              * @default false
@@ -7847,20 +8015,38 @@ export interface components {
             sold_out_today?: boolean;
             /** Sort Order */
             sort_order: number;
+            /** Spice Level */
+            spice_level?: number | null;
             /**
              * Updated At
              * Format: date-time
              */
             updated_at: string;
         };
-        /** MenuItemUpdateRequest */
+        /**
+         * MenuItemUpdateRequest
+         * @description Fields left out stay as they are. spice_level, available_from/until and image_url may be sent as null
+         *     to clear them (R43).
+         */
         MenuItemUpdateRequest: {
             /** Allergens */
             allergens?: string[] | null;
+            /** Available From */
+            available_from?: string | null;
+            /** Available Until */
+            available_until?: string | null;
             /** Calories */
             calories?: number | null;
             /** Category */
             category?: string | null;
+            /** Category Id */
+            category_id?: string | null;
+            /**
+             * Confirm Price Change
+             * @description Needed when the price changes by more than 50%
+             * @default false
+             */
+            confirm_price_change?: boolean;
             /** Customizations */
             customizations?: {
                 [key: string]: unknown;
@@ -7879,6 +8065,8 @@ export interface components {
             prep_time_minutes?: number | null;
             /** Price */
             price?: number | string | null;
+            /** Spice Level */
+            spice_level?: number | null;
         };
         /** MessageIn */
         MessageIn: {
@@ -8488,6 +8676,11 @@ export interface components {
              * @default 0
              */
             tip?: number;
+        };
+        /** OrderIn */
+        OrderIn: {
+            /** Category Ids */
+            category_ids: string[];
         };
         /** OrderItemCustomizationInput */
         OrderItemCustomizationInput: {
@@ -9427,6 +9620,12 @@ export interface components {
              * @default delivery
              */
             fulfillment?: string;
+            /**
+             * Items
+             * @description R43: each dish at the price this quote holds (unit_price: the dish and its options, one of it)
+             * @default []
+             */
+            items?: components["schemas"]["QuotedItem"][];
             /** Lines */
             lines: components["schemas"]["BillLineOut"][];
             /**
@@ -9492,6 +9691,22 @@ export interface components {
              * @default 0
              */
             tip?: number | string;
+        };
+        /** QuotedItem */
+        QuotedItem: {
+            /** Menu Item Id */
+            menu_item_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Options
+             * @default []
+             */
+            options?: string[];
+            /** Quantity */
+            quantity: number;
+            /** Unit Price */
+            unit_price: string;
         };
         /**
          * RatingDisplay
@@ -17992,6 +18207,118 @@ export interface operations {
             };
         };
     };
+    add_category_api_v1_restaurants__restaurant_id__categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    order_categories_api_v1_restaurants__restaurant_id__categories_order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_category_api_v1_restaurants__restaurant_id__categories__category_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delivery_check_api_v1_restaurants__restaurant_id__delivery_check_get: {
         parameters: {
             query: {
@@ -18528,6 +18855,78 @@ export interface operations {
                 "application/json": components["schemas"]["SoldOutIn"];
             };
         };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    menu_history_api_v1_restaurants__restaurant_id__menu_history_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                /** @description Older than this (the last row's `at`) */
+                before?: string | null;
+                /** @description Only this dish, category or group */
+                item_id?: string | null;
+            };
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    manage_menu_api_v1_restaurants__restaurant_id__menu_manage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

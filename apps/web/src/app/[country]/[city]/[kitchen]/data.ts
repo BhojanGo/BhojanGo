@@ -1,5 +1,6 @@
 // Kitchen page helpers (server): the path slug, today's availability, the
 // distance from the visitor's address. Everything here is computed from data.
+import { coreFetch } from "@/lib/coreFetch";
 
 const CORE = process.env.CORE_API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_CORE_URL ?? "http://localhost:8001";
 
@@ -27,7 +28,7 @@ export interface Availability {
 
 export async function availability(id: string): Promise<Availability | null> {
   try {
-    const r = await fetch(`${CORE}/api/v1/restaurants/${id}/availability`, { next: { revalidate: 60 } });
+    const r = await coreFetch(`${CORE}/api/v1/restaurants/${id}/availability`, { next: { revalidate: 60 } });
     return r.ok ? ((await r.json()) as Availability) : null;
   } catch {
     return null;

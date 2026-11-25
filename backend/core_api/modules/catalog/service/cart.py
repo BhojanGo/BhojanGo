@@ -12,9 +12,10 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core_api.modules.catalog.models.menu import MenuItem
+from core_api.modules.catalog.models.menu import MenuCategory, MenuItem
 from core_api.modules.catalog.models.restaurant import Restaurant
 from core_api.modules.catalog.service.menu import availability, groups_for_items, is_sold_out
+from core_api.modules.catalog.service.menu_edit import schedule_of, served_now
 
 
 class CartError(ValueError):
@@ -44,20 +45,33 @@ class RestaurantInfo:
 
 
 async def price_cart(db: AsyncSession, restaurant_id: uuid.UUID, items: list[dict], *,
-                     check_open: bool = True, now: datetime | None = None) -> tuple[RestaurantInfo, list[PricedLine]]:
+                     check_open: bool = True, now: datetime | None = None,
+                     check_schedule: bool = True) -> tuple[RestaurantInfo, list[PricedLine]]:
     """``items``: [{"menu_item_id", "quantity", "options": [{"group", "option"}]}].
-    ``check_open=False`` prices a closed restaurant (the admin simulator)."""
+    ``check_open=False`` prices a closed restaurant (the quote checks opening itself, later);
+    ``check_schedule=False`` also prices a dish outside its hours (R43; the admin simulator)."""
     r = await db.get(Restaurant, restaurant_id)
     if r is None or not r.is_active or r.deleted_at is not None:
         raise CartError("This restaurant isn't taking orders")
+    local = None
     if check_open:
         avail = await availability(db, r.id, now)
         if not avail.open_now:
             raise CartError(f"{r.name}: {avail.reason}")
+        local = avail.local_time
 
     ids = [uuid.UUID(str(i["menu_item_id"])) for i in items]
     menu = {m.id: m for m in (await db.execute(select(MenuItem).where(MenuItem.id.in_(ids)))).scalars()}
     groups_by_item = await groups_for_items(db, list(menu))
+    cat_ids = {m.category_id for m in menu.values() if m.category_id is not None}
+    cats = {c.id: c for c in (await db.execute(select(MenuCategory).where(MenuCategory.id.in_(cat_ids)))).scalars()} if cat_ids else {}
+    timed = any(x.available_from is not None for x in [*menu.values(), *cats.values()])
+    if check_schedule and timed and local is None:  # R43: the restaurant's local time, for dish and category hours
+        from datetime import UTC
+
+        from core_api.modules.catalog.service.menu import restaurant_market
+
+        local = (now or datetime.now(UTC)).astimezone((await restaurant_market(db, r))[1])
 
     lines: list[PricedLine] = []
     for raw in items:
@@ -66,6 +80,12 @@ async def price_cart(db: AsyncSession, restaurant_id: uuid.UUID, items: list[dic
             raise CartError("An item in your cart is no longer on the menu")
         if not m.is_available or is_sold_out(m, now):
             raise CartError(f"{m.name} is sold out today")
+        cat = cats.get(m.category_id) if m.category_id else None
+        if cat is not None and not cat.is_active:  # R43: its category is hidden
+            raise CartError("An item in your cart is no longer on the menu")
+        if check_schedule and local is not None and not served_now(m, cat, local):  # R43: e.g. breakfast 07:00-11:00
+            w = schedule_of(m, cat) or {}
+            raise CartError(f"{m.name} is served {w.get('from')}–{w.get('until')}")
         qty = int(raw["quantity"])
         if not 1 <= qty <= 50:
             raise CartError("Quantity must be between 1 and 50")

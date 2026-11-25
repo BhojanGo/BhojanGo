@@ -23,10 +23,10 @@
     "in"
    ],
    "action": "A new customer's Orders",
-   "expected": "'No orders yet'",
-   "verify": "UI",
-   "run": "not automated yet (NOT RUN)",
-   "test": "none"
+   "expected": "'No orders yet.'",
+   "verify": "UI; API: GET /orders is empty",
+   "run": "maestro: apps/customer/.maestro/r43-new-account-{user}.yaml",
+   "maestro": "r43-new-account-{user}"
   },
   {
    "id": "api-down",

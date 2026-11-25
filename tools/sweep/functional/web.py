@@ -8,7 +8,7 @@ import re
 import time
 from decimal import Decimal
 
-from framework import (MARKET, OTP, Fail, T, amounts, amounts_backed, api, dates_backed, down_state, fn, money, na, ok,
+from framework import (MARKET, OTP, Fail, T, amounts, amounts_backed, api, dates_backed, down_state, fn, render_ms, money, na, ok,
                        sessions, sql, token)
 
 W = "web"
@@ -1370,6 +1370,7 @@ def _(t: T) -> str:
     verify="UI: the page's heading and text")
 def _(t: T) -> str:
     p = t.open("/in/visakhapatnam", who="anon")
+    ms = render_ms(p)
     body = p.locator("body").inner_text()
     ok(not re.search(r"can.t find that page", body, re.I), "a real city shown as 'We can't find that page'")
     return down_state(t, "/in/visakhapatnam", "anon", cached_ok=True)
@@ -1393,8 +1394,9 @@ for route, path in DOWN.items():
         action="Open the page with core-api stopped",
         expected=("It renders in full (it needs nothing from core-api)" if route in STATIC else
                   "It still renders (no crash page, no blank) and says it couldn't load" if route in SIGNED else
-                  "It still renders: its last good copy (the server's page cache) or a message that it couldn't load"),
-        verify="UI: body text, no Next.js error page")
+                  "It still renders: its last good copy (the server's page cache) or a message that it couldn't load")
+                 + "; in under 4 s (R43)",
+        verify="UI: body text, no Next.js error page; the page's navigation timing (DOMContentLoaded < 4 s)")
     def _(t: T, route: str = route, path: str = path) -> str:
         o = orders(t)
         url = path.format(path=t.m["path"], rest=t.m["rest"], placed=o.get("placed", "00000000-0000-0000-0000-000000000000"))
@@ -1405,8 +1407,9 @@ for route, path in DOWN.items():
             return down_state(t, url, who)
         if route in STATIC:
             p = t.open(url, who=who)
+            ms = render_ms(p)
             body = p.locator("body").inner_text()
             ok(len(body.strip()) > 40 and not re.search(r"Application error|Internal Server Error", body), body[:160])
             t.shot("api-down")
-            return "renders in full"
+            return f"renders in full in {ms / 1000:.1f} s"
         return down_state(t, url, who, cached_ok=route not in SIGNED)

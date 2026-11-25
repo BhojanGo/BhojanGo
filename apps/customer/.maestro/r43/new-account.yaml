@@ -1,0 +1,52 @@
+# R43 (r42 gaps): a brand-new customer (a new phone number, MARKET): every empty state. Orders: "No orders yet.";
+# saved addresses: "No saved addresses yet."; favourites: "Nothing saved yet…"; the cart with nothing in it: "Your
+# cart is empty"; search for nonsense: "Nothing matches “…” nearby." The API says the same (scripts/r43_customer.js).
+appId: com.bhojango.app
+---
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: phone, MARKET: "${MARKET}" }
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: ${output.phone}
+      COUNTRY: "${MARKET == 'us' ? 'US' : 'IN'}"
+# a new account may first ask for a name or a place: the screens below are opened by their links
+- openLink: bhojango://orders
+- extendedWaitUntil:
+    visible: 'No orders yet\.'
+    timeout: 30000
+- takeScreenshot: docs/screenshots/customer/r43-new-account-${MARKET}-orders
+- openLink: bhojango://account/addresses
+- extendedWaitUntil:
+    visible:
+      id: "no-addresses"
+    timeout: 30000
+- assertVisible: 'No saved addresses yet\.'
+- takeScreenshot: docs/screenshots/customer/r43-new-account-${MARKET}-addresses
+- openLink: bhojango://favourites
+- extendedWaitUntil:
+    visible: 'Nothing saved yet\..*'
+    timeout: 30000
+- takeScreenshot: docs/screenshots/customer/r43-new-account-${MARKET}-favourites
+- openLink: bhojango://bag
+- extendedWaitUntil:
+    visible: "Your cart is empty"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/customer/r43-new-account-${MARKET}-cart
+- openLink: bhojango://search
+- extendedWaitUntil:
+    visible:
+      id: "search-input"
+    timeout: 30000
+- tapOn:
+    id: "search-input"
+- inputText: "zzqxv"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Nothing matches “zzqxv” nearby\.'
+    timeout: 20000
+- takeScreenshot: docs/screenshots/customer/r43-new-account-${MARKET}-search
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: empty, MARKET: "${MARKET}", PHONE: "${output.phone}" }

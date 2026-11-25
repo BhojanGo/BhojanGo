@@ -13,7 +13,7 @@ from fastapi import FastAPI
 import asyncio
 from datetime import UTC, datetime
 
-from core_api.modules.catalog.api.v1 import discover, internal, kitchens, menu, partner, permits, restaurants
+from core_api.modules.catalog.api.v1 import discover, internal, kitchens, menu, menu_edit, partner, permits, restaurants
 
 logger = structlog.get_logger(__name__)
 
@@ -64,6 +64,7 @@ def register(app: FastAPI) -> None:
     app.include_router(kitchens.router, prefix="/api/v1")
     app.include_router(permits.router, prefix="/api/v1")  # R39 (its /restaurants/admin/permits before /{id})
     app.include_router(menu.router, prefix="/api/v1")
+    app.include_router(menu_edit.router, prefix="/api/v1")  # R43
     app.include_router(partner.router, prefix="/api/v1")  # before /restaurants/{id}: it has /restaurants/mine
     app.include_router(restaurants.router, prefix="/api/v1")
     app.include_router(internal.router, prefix="/api/v1")  # R27: realtime's kitchen socket asks who is staff

@@ -1,0 +1,98 @@
+# R43: options and hours on the tablet (MARKET): on this run's own dish, a new option group "Size" (customers must
+# choose, at least 1 / at most 1: Half +0, Full +price) and hours that aren't now. The API has them; the quote
+# refuses the dish outside its hours and, with the hours cleared, adds Full's price (scripts/r43_menu.js).
+appId: com.bhojango.partner
+---
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: optdish, MARKET: "${MARKET}" }
+- runFlow: open-menu.yaml
+- tapOn:
+    id: "menu-search"
+- inputText: ${output.name}
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: ${output.name}
+    timeout: 20000
+- tapOn:
+    id: "menu-item-0"  # the one row the search leaves (its name is also in the search box)
+- extendedWaitUntil:
+    visible:
+      id: "dish-editor"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "new-group"
+    direction: DOWN
+- tapOn:
+    id: "new-group"
+- extendedWaitUntil:
+    visible:
+      id: "group-editor"
+    timeout: 10000
+- tapOn:
+    id: "group-name"
+- inputText: "Size"
+- hideKeyboard
+- tapOn: "Choice Customers must choose"
+- tapOn:
+    id: "option-name-0"
+- inputText: "Half"
+- pressKey: Enter
+- tapOn:
+    id: "add-option"
+- tapOn:
+    id: "option-name-1"
+- inputText: "Full"
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: "option-price-1"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "option-price-1"
+- eraseText: 5
+- inputText: ${output.full}
+- pressKey: Enter
+- takeScreenshot: docs/screenshots/partner/r43-options-${MARKET}-group
+- tapOn:
+    id: "group-save"
+- extendedWaitUntil:
+    notVisible:
+      id: "group-editor"
+    timeout: 15000
+- scrollUntilVisible:
+    element: "When it's served Set hours"
+    direction: UP
+- tapOn: "When it's served Set hours"
+- tapOn:
+    id: "dish-from"
+- eraseText: 5
+- inputText: ${output.from}
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: "dish-until"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "dish-until"
+- eraseText: 5
+- inputText: ${output.until}
+- pressKey: Enter
+- takeScreenshot: docs/screenshots/partner/r43-options-${MARKET}-hours
+- scrollUntilVisible:
+    element:
+      id: "dish-save"
+    direction: DOWN
+- tapOn:
+    id: "dish-save"
+- extendedWaitUntil:
+    notVisible:
+      id: "dish-editor"
+    timeout: 20000
+- takeScreenshot: docs/screenshots/partner/r43-options-${MARKET}-saved
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: options, MARKET: "${MARKET}", NAME: "${output.name}", FROM: "${output.from}", UNTIL: "${output.until}" }

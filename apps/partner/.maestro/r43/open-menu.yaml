@@ -1,0 +1,23 @@
+# R43: signed in as the market's partner (EMAIL), on the restaurant's Menu (REST).
+appId: com.bhojango.partner
+---
+- runFlow:
+    file: ../sign-in-email.yaml
+    env:
+      EMAIL: ${EMAIL}
+- extendedWaitUntil:
+    visible: 'Which restaurant is this tablet for\?|Ready for pickup|Menu'
+    timeout: 60000
+- runFlow:
+    when:
+      visible: 'Which restaurant is this tablet for\?'
+    commands:
+      - tapOn: ${REST}
+- extendedWaitUntil:
+    visible: "Menu"
+    timeout: 30000
+- tapOn: "Menu"
+- extendedWaitUntil:
+    visible:
+      id: "add-dish"
+    timeout: 30000

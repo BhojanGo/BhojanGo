@@ -1,0 +1,8 @@
+# R43: wrong-code (us). See r43/wrong-code.yaml.
+appId: com.bhojango.app
+env:
+  MARKET: "us"
+  PHONE: "2085550102"
+  COUNTRY: "US"
+---
+- runFlow: r43/wrong-code.yaml

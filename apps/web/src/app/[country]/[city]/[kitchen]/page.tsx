@@ -55,6 +55,9 @@ export default async function KitchenPage({ params }: { params: Params }) {
   // restaurant's old delivery_fee column, which isn't what the bill charges.
   const [m, avail, near, pauses, cityInfo] = await Promise.all([menu(r.id), availability(r.id), place ? discover({ lat: place.lat, lng: place.lng }) : Promise.resolve(null), orderingPauses(),
     place ? Promise.resolve(null) : cityPage(cc, citySlug)]);
+  // R43: the menu isn't cached by the website (a change shows at once), so with core_api unreachable it can't be read:
+  // the error page ("Try again"), never "The menu isn't available right now" (that's a kitchen with no dishes)
+  if (m === null) throw new Error("core_api unavailable: the menu couldn't be loaded");
   // R18: ordering paused where this kitchen is (the city, its country or everywhere): the bag says so
   const orderingPaused = shownPauses(pauses, path).length > 0;
   const card: KitchenCard | null = near?.restaurants?.find((k) => k.id === r.id) ?? null;

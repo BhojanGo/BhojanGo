@@ -1,0 +1,21 @@
+# R43 (r42 gap): a delivery partner with no trips this week (RIDER, signing in with PHONE): Earnings shows 0 for the
+# week and "No deliveries yet today."; the API says the same (scripts/r43_no_trips.js).
+appId: com.bhojango.rider
+---
+- runFlow: sign-in.yaml
+- tapOn: "Earnings"
+- extendedWaitUntil:
+    visible:
+      id: "week-total"
+    timeout: 30000
+- runScript:
+    file: scripts/r43_no_trips.js
+    env: { RIDER: "${RIDER}" }
+- assertVisible:
+    id: "week-total"
+    text: ${output.zero}
+- scrollUntilVisible:
+    element: 'No deliveries yet today\.'
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: docs/screenshots/rider/r43-no-trips-${MARKET}

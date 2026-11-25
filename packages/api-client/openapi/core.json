@@ -2055,6 +2055,116 @@
         "title": "CartItem",
         "type": "object"
       },
+      "CategoryIn": {
+        "properties": {
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Until"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "name": {
+            "examples": [
+              "Breakfast"
+            ],
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "CategoryIn",
+        "type": "object"
+      },
+      "CategoryPatch": {
+        "description": "Fields left out stay as they are; available_from/until sent as null clear the schedule.",
+        "properties": {
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Until"
+          },
+          "is_active": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "False hides the category and its dishes from customers",
+            "title": "Is Active"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "CategoryPatch",
+        "type": "object"
+      },
       "ChangePasswordRequest": {
         "description": "Required when the account has a password; leave out to set a first one.",
         "properties": {
@@ -7289,6 +7399,30 @@
       },
       "MenuCategoryResponse": {
         "properties": {
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Until"
+          },
           "description": {
             "anyOf": [
               {
@@ -7352,6 +7486,31 @@
             "title": "Allergens",
             "type": "array"
           },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Served from this local time (with available_until)",
+            "title": "Available From"
+          },
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Until"
+          },
           "calories": {
             "anyOf": [
               {
@@ -7397,6 +7556,18 @@
             "title": "Description",
             "type": "string"
           },
+          "image_url": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
           "is_veg": {
             "default": false,
             "title": "Is Veg",
@@ -7436,6 +7607,20 @@
             "default": 0,
             "title": "Sort Order",
             "type": "integer"
+          },
+          "spice_level": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "0 none, 1 mild, 2 medium, 3 hot",
+            "title": "Spice Level"
           }
         },
         "required": [
@@ -7454,6 +7639,11 @@
             },
             "title": "Allergens",
             "type": "array"
+          },
+          "available_now": {
+            "default": true,
+            "title": "Available Now",
+            "type": "boolean"
           },
           "calories": {
             "anyOf": [
@@ -7554,6 +7744,20 @@
             "title": "Restaurant Id",
             "type": "string"
           },
+          "schedule": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule"
+          },
           "sold_out_today": {
             "default": false,
             "title": "Sold Out Today",
@@ -7562,6 +7766,17 @@
           "sort_order": {
             "title": "Sort Order",
             "type": "integer"
+          },
+          "spice_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spice Level"
           },
           "updated_at": {
             "format": "date-time",
@@ -7592,6 +7807,7 @@
         "type": "object"
       },
       "MenuItemUpdateRequest": {
+        "description": "Fields left out stay as they are. spice_level, available_from/until and image_url may be sent as null\nto clear them (R43).",
         "properties": {
           "allergens": {
             "anyOf": [
@@ -7606,6 +7822,30 @@
               }
             ],
             "title": "Allergens"
+          },
+          "available_from": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available From"
+          },
+          "available_until": {
+            "anyOf": [
+              {
+                "format": "time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Until"
           },
           "calories": {
             "anyOf": [
@@ -7629,6 +7869,24 @@
             ],
             "title": "Category"
           },
+          "category_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category Id"
+          },
+          "confirm_price_change": {
+            "default": false,
+            "description": "Needed when the price changes by more than 50%",
+            "title": "Confirm Price Change",
+            "type": "boolean"
+          },
           "customizations": {
             "anyOf": [
               {
@@ -7647,6 +7905,7 @@
           "description": {
             "anyOf": [
               {
+                "maxLength": 1000,
                 "type": "string"
               },
               {
@@ -7692,6 +7951,8 @@
           "name": {
             "anyOf": [
               {
+                "maxLength": 255,
+                "minLength": 2,
                 "type": "string"
               },
               {
@@ -7725,6 +7986,19 @@
               }
             ],
             "title": "Price"
+          },
+          "spice_level": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spice Level"
           }
         },
         "title": "MenuItemUpdateRequest",
@@ -9390,6 +9664,24 @@
           "quote_token"
         ],
         "title": "OrderCreateRequest",
+        "type": "object"
+      },
+      "OrderIn": {
+        "properties": {
+          "category_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Category Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "category_ids"
+        ],
+        "title": "OrderIn",
         "type": "object"
       },
       "OrderItemCustomizationInput": {
@@ -11822,6 +12114,15 @@
             "title": "Fulfillment",
             "type": "string"
           },
+          "items": {
+            "default": [],
+            "description": "R43: each dish at the price this quote holds (unit_price: the dish and its options, one of it)",
+            "items": {
+              "$ref": "#/components/schemas/QuotedItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
           "lines": {
             "items": {
               "$ref": "#/components/schemas/BillLineOut"
@@ -11976,6 +12277,42 @@
           "items"
         ],
         "title": "QuoteRequest",
+        "type": "object"
+      },
+      "QuotedItem": {
+        "properties": {
+          "menu_item_id": {
+            "title": "Menu Item Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "options": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "quantity": {
+            "title": "Quantity",
+            "type": "integer"
+          },
+          "unit_price": {
+            "title": "Unit Price",
+            "type": "string"
+          }
+        },
+        "required": [
+          "menu_item_id",
+          "name",
+          "quantity",
+          "unit_price"
+        ],
+        "title": "QuotedItem",
         "type": "object"
       },
       "RatingDisplay": {
@@ -28020,6 +28357,201 @@
         ]
       }
     },
+    "/api/v1/restaurants/{restaurant_id}/categories": {
+      "post": {
+        "operationId": "add_category_api_v1_restaurants__restaurant_id__categories_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Add Category Api V1 Restaurants  Restaurant Id  Categories Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Add Category",
+        "tags": [
+          "Menu editing"
+        ]
+      }
+    },
+    "/api/v1/restaurants/{restaurant_id}/categories-order": {
+      "put": {
+        "description": "Every category of the menu, in the new order (the list must name each one once).",
+        "operationId": "order_categories_api_v1_restaurants__restaurant_id__categories_order_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Order Categories Api V1 Restaurants  Restaurant Id  Categories Order Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Order Categories",
+        "tags": [
+          "Menu editing"
+        ]
+      }
+    },
+    "/api/v1/restaurants/{restaurant_id}/categories/{category_id}": {
+      "put": {
+        "description": "Rename (its dishes follow), hide or show, or set a schedule (both times) or clear it (both null).",
+        "operationId": "change_category_api_v1_restaurants__restaurant_id__categories__category_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "category_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Category Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Change Category Api V1 Restaurants  Restaurant Id  Categories  Category Id  Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Change Category",
+        "tags": [
+          "Menu editing"
+        ]
+      }
+    },
     "/api/v1/restaurants/{restaurant_id}/delivery-check": {
       "get": {
         "description": "Hyper-local radius check: can this restaurant deliver to the given point?",
@@ -28645,6 +29177,7 @@
     },
     "/api/v1/restaurants/{restaurant_id}/menu-items": {
       "post": {
+        "description": "Add a dish. R43: the price rules (more than 0, 2 decimals, whole rupees in India); a category_id\nof this restaurant sets the category's name too; a schedule needs both times. Goes to the menu's history.",
         "operationId": "create_menu_item_api_v1_restaurants__restaurant_id__menu_items_post",
         "parameters": [
           {
@@ -28703,6 +29236,7 @@
     },
     "/api/v1/restaurants/{restaurant_id}/menu-items/{item_id}": {
       "delete": {
+        "description": "Take a dish off the menu. R43: a soft delete: the row stays (deleted_at), so orders, statements and the\nhistory keep its name and price; customers can't see or order it.",
         "operationId": "delete_menu_item_api_v1_restaurants__restaurant_id__menu_items__item_id__delete",
         "parameters": [
           {
@@ -28752,6 +29286,7 @@
         ]
       },
       "put": {
+        "description": "Change a dish. R43: the price rules; a price changed by more than 50% answers 409 PRICE_CONFIRM\n(old, new, percent) until it's sent again with confirm_price_change; every changed field goes to the\nmenu's history (old and new).",
         "operationId": "update_menu_item_api_v1_restaurants__restaurant_id__menu_items__item_id__put",
         "parameters": [
           {
@@ -28957,6 +29492,158 @@
         "summary": "Sold Out",
         "tags": [
           "Menu and hours"
+        ]
+      }
+    },
+    "/api/v1/restaurants/{restaurant_id}/menu/history": {
+      "get": {
+        "description": "Who changed what on the menu, newest first: {\"changes\": [...], \"next\": <before for the next page> | null}.",
+        "operationId": "menu_history_api_v1_restaurants__restaurant_id__menu_history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Older than this (the last row's `at`)",
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Older than this (the last row's `at`)",
+              "title": "Before"
+            }
+          },
+          {
+            "description": "Only this dish, category or group",
+            "in": "query",
+            "name": "item_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only this dish, category or group",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Menu History Api V1 Restaurants  Restaurant Id  Menu History Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Menu History",
+        "tags": [
+          "Menu editing"
+        ]
+      }
+    },
+    "/api/v1/restaurants/{restaurant_id}/menu/manage": {
+      "get": {
+        "description": "The whole menu as the restaurant edits it (customers' menu hides hidden categories and unavailable dishes).",
+        "operationId": "manage_menu_api_v1_restaurants__restaurant_id__menu_manage_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Manage Menu Api V1 Restaurants  Restaurant Id  Menu Manage Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Manage Menu",
+        "tags": [
+          "Menu editing"
         ]
       }
     },

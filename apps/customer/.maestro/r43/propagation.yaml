@@ -1,0 +1,55 @@
+# R43 (brief item 1): a menu change reaches the customer app. The restaurant changes dish A's price (API, as the
+# tablet does); the customer reopens the restaurant until the new price shows: the time from the change is measured
+# (limit 60 s; R43_SECONDS in the log). Dish B is served only at other hours: its hours, no Add, '🌶🌶 Medium'.
+appId: com.bhojango.app
+---
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: setup, MARKET: "${MARKET}" }
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: ${PHONE}
+      COUNTRY: ${COUNTRY}
+- openLink: bhojango://restaurant/${output.rid}
+- scrollUntilVisible:
+    element: ${output.a}
+    direction: DOWN
+    timeout: 30000
+- assertVisible: ${output.base}
+- takeScreenshot: docs/screenshots/customer/r43-propagation-${MARKET}-before
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: change, MARKET: "${MARKET}", AID: "${output.aid}" }
+- repeat:
+    while:
+      notVisible: ${output.next}
+    times: 30
+    commands:
+      # leave the restaurant and open it again (the screen loads its menu when it opens)
+      - openLink: bhojango://search
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - openLink: bhojango://restaurant/${output.rid}
+      - scrollUntilVisible:
+          element: ${output.a}
+          direction: DOWN
+          timeout: 15000
+- assertVisible: ${output.next}
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: elapsed, MARKET: "${MARKET}", T0: "${output.t0}" }
+- takeScreenshot: docs/screenshots/customer/r43-propagation-${MARKET}-after
+# dish B: outside its hours
+- scrollUntilVisible:
+    element: ${output.b}
+    direction: DOWN
+    timeout: 15000
+- assertVisible: "Served .* – .*"
+- assertVisible: ".*🌶🌶 Medium.*"
+- assertNotVisible:
+    id: "dish-add-${output.bid}"
+- takeScreenshot: docs/screenshots/customer/r43-propagation-${MARKET}-hours
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: cleanup, MARKET: "${MARKET}", AID: "${output.aid}", BID: "${output.bid}" }

@@ -1,0 +1,38 @@
+# R43 (r42 gap): a wrong sign-in code is refused with a message, the right one signs in (MARKET, PHONE).
+appId: com.bhojango.app
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Sign in or create an account"
+    timeout: 120000
+- tapOn:
+    id: "way-phone"
+- repeat:
+    while:
+      notVisible:
+        id: 'phone-country-${COUNTRY}'
+    times: 6
+    commands:
+      - tapOn:
+          id: "phone-country-.*"
+- tapOn:
+    id: "phone"
+- inputText: ${PHONE}
+- hideKeyboard
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Enter the 6-digit code"
+    timeout: 15000
+- inputText: "000000"
+- extendedWaitUntil:
+    visible: ".*(code didn.t work|doesn.t match|wrong|incorrect|invalid|expired).*"
+    timeout: 15000
+- assertVisible: "Enter the 6-digit code"
+- takeScreenshot: docs/screenshots/customer/r43-wrong-code-${MARKET}
+- eraseText: 6
+- inputText: "123456"
+- extendedWaitUntil:
+    notVisible: "Enter the 6-digit code"
+    timeout: 60000
+- takeScreenshot: docs/screenshots/customer/r43-wrong-code-${MARKET}-signed-in

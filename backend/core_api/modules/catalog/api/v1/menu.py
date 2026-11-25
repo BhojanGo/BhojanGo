@@ -19,6 +19,7 @@ from core_api.modules.catalog.models.options import OptionGroup, StoreHours, Sto
 from core_api.modules.catalog.models.restaurant import Restaurant
 from core_api.modules.catalog.service import access
 from core_api.modules.catalog.service import menu as svc
+from core_api.modules.catalog.service import menu_edit as edit
 from core_api.modules.catalog.service.lookup import restaurant_city_code
 from shared import authz
 from shared.db import get_db
@@ -91,6 +92,19 @@ def _menu_error(e: svc.MenuError) -> HTTPException:
     return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "MENU_RULE", "message": str(e)})
 
 
+def _option_prices(r: Restaurant, data: "GroupIn") -> None:
+    """R43: an option's extra price: 0 or more, 2 decimals, whole rupees in India."""
+    for o in data.options:
+        problem = edit.price_problem(o.price, r.currency, allow_zero=True)
+        if problem:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "PRICE_RULE", "message": f"{o.name}: {problem}"})
+
+
+def _group_snapshot(g: dict) -> dict:
+    return {"name": g["name"], "min_picks": g["min_picks"], "max_picks": g["max_picks"],
+            "options": ", ".join(f"{o['name']} +{o['price']}" + ("" if o["is_available"] else " (off)") for o in g["options"])}
+
+
 # ── availability ──────────────────────────────────────────────────────────────
 
 @router.get("/{restaurant_id}/availability")
@@ -126,13 +140,17 @@ async def list_groups(restaurant_id: uuid.UUID, db: DB) -> list[dict]:
 
 @router.post("/{restaurant_id}/option-groups", status_code=status.HTTP_201_CREATED)
 async def create_group(restaurant_id: uuid.UUID, data: GroupIn, user: User, db: DB) -> dict:
-    await _manage(db, user, restaurant_id)
+    r = await _manage(db, user, restaurant_id)
+    _option_prices(r, data)
     try:
         g = await svc.create_group(db, restaurant_id, data.name, data.min_picks, data.max_picks,
                                    [o.model_dump() for o in data.options])
     except svc.MenuError as e:
         raise _menu_error(e)
-    return svc.group_out(g)
+    out = svc.group_out(g)
+    await edit.record(db, r, user, entity="options", entity_id=g.id, name=g.name, action="added",
+                      changes=edit.diff({}, _group_snapshot(out)))
+    return out
 
 
 async def _group(db: AsyncSession, restaurant_id: uuid.UUID, group_id: uuid.UUID) -> OptionGroup:
@@ -145,21 +163,29 @@ async def _group(db: AsyncSession, restaurant_id: uuid.UUID, group_id: uuid.UUID
 @router.put("/{restaurant_id}/option-groups/{group_id}")
 async def update_group(restaurant_id: uuid.UUID, group_id: uuid.UUID, data: GroupIn, user: User, db: DB) -> dict:
     """Change a group. Send option ids back to keep them; options left out are removed."""
-    await _manage(db, user, restaurant_id)
+    r = await _manage(db, user, restaurant_id)
+    _option_prices(r, data)
     g = await _group(db, restaurant_id, group_id)
+    before = _group_snapshot(svc.group_out(g))
     try:
         g = await svc.replace_group(db, g, data.name, data.min_picks, data.max_picks,
                                     [o.model_dump(mode="json") for o in data.options])
     except svc.MenuError as e:
         raise _menu_error(e)
     await db.refresh(g, ["options"])
-    return svc.group_out(g)
+    out = svc.group_out(g)
+    await edit.record(db, r, user, entity="options", entity_id=g.id, name=g.name, action="changed",
+                      changes=edit.diff(before, _group_snapshot(out)))
+    return out
 
 
 @router.delete("/{restaurant_id}/option-groups/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_group(restaurant_id: uuid.UUID, group_id: uuid.UUID, user: User, db: DB) -> Response:
-    await _manage(db, user, restaurant_id)
-    await db.delete(await _group(db, restaurant_id, group_id))
+    r = await _manage(db, user, restaurant_id)
+    g = await _group(db, restaurant_id, group_id)
+    await edit.record(db, r, user, entity="options", entity_id=g.id, name=g.name, action="deleted",
+                      changes=edit.diff(_group_snapshot(svc.group_out(g)), {}) or [{"field": "name", "old": g.name, "new": None}])
+    await db.delete(g)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -173,21 +199,29 @@ async def _item(db: AsyncSession, restaurant_id: uuid.UUID, item_id: uuid.UUID) 
 @router.put("/{restaurant_id}/menu-items/{item_id}/option-groups")
 async def set_item_groups(restaurant_id: uuid.UUID, item_id: uuid.UUID, data: ItemGroupsIn, user: User, db: DB) -> dict:
     """Which groups the item offers, in this order."""
-    await _manage(db, user, restaurant_id)
+    r = await _manage(db, user, restaurant_id)
     item = await _item(db, restaurant_id, item_id)
+    names = lambda gs: ", ".join(g.name for g in gs) or None  # noqa: E731
+    before = names((await svc.groups_for_items(db, [item.id])).get(item.id, []))
     try:
         await svc.set_item_groups(db, item, data.group_ids)
     except svc.MenuError as e:
         raise _menu_error(e)
     groups = await svc.groups_for_items(db, [item.id])
+    await edit.record(db, r, user, entity="dish", entity_id=item.id, name=item.name, action="changed",
+                      changes=edit.diff({"options": before}, {"options": names(groups.get(item.id, []))}))
     return {"menu_item_id": str(item.id), "option_groups": [svc.group_out(g) for g in groups.get(item.id, [])]}
 
 
 @router.put("/{restaurant_id}/menu-items/{item_id}/sold-out")
 async def sold_out(restaurant_id: uuid.UUID, item_id: uuid.UUID, data: SoldOutIn, user: User, db: DB) -> dict:
     """Sold out today: the item can't be ordered until the restaurant's next midnight."""
-    await _manage(db, user, restaurant_id)
-    item = await svc.set_sold_out_today(db, await _item(db, restaurant_id, item_id), data.sold_out)
+    r = await _manage(db, user, restaurant_id)
+    item = await _item(db, restaurant_id, item_id)
+    was = svc.is_sold_out(item)
+    item = await svc.set_sold_out_today(db, item, data.sold_out)
+    await edit.record(db, r, user, entity="dish", entity_id=item.id, name=item.name, action="changed",
+                      changes=edit.diff({"sold_out_today": was}, {"sold_out_today": svc.is_sold_out(item)}))
     return {"menu_item_id": str(item.id), "sold_out_today": svc.is_sold_out(item),
             "sold_out_until": item.sold_out_until.isoformat() if item.sold_out_until else None}
 

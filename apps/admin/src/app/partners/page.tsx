@@ -12,6 +12,7 @@ import { ConsoleShell, parseScope } from "@/components/console/ConsoleShell";
 import { PayoutSetupPanel } from "@/components/finance/PayoutSetup";
 import { adminApi } from "@/lib/api";
 import { FoodPermits } from "@/components/partners/FoodPermits";
+import { MenuHistory } from "@/components/partners/MenuHistory";
 import { applicationDocs, collected, marketDocs } from "@/lib/kitchenDocs";
 import { can, useAdminMe, useMarkets } from "@/lib/markets";
 import { ago, apiMessage, DOC_LABELS, money, useScope, type Kitchen, type RiderDoc } from "@/lib/ops";
@@ -36,8 +37,8 @@ function useCityNames(scope: string) {
   const { data: markets } = useMarkets();
   const { country, region, city } = parseScope(scope);
   return (markets ?? []).filter((c) => country === "ALL" || c.code === country)
-    .flatMap((c) => c.regions.filter((r) => !region || r.code === region).flatMap((r) => r.cities.filter((x) => !city || x.code === city)))
-    .map((c) => ({ code: c.code, name: c.name }));
+    .flatMap((c) => c.regions.filter((r) => !region || r.code === region).flatMap((r) => r.cities.filter((x) => !city || x.code === city)
+      .map((x) => ({ code: x.code, name: x.name, timezone: x.timezone ?? r.timezone ?? c.timezone }))));
 }
 
 interface Commission {
@@ -168,6 +169,8 @@ function Kitchens({ scope }: { scope: string }) {
       )}
       {opened ? <KitchenCommission key={opened.id} kitchen={opened} /> : null}
       {opened ? <PayoutSetupPanel key={`payouts-${opened.id}`} kind="restaurant" id={opened.id} name={opened.name} /> : null}
+      {opened ? <MenuHistory key={`menu-${opened.id}`} restaurantId={opened.id} currency={opened.country === "IN" ? "INR" : "USD"}
+        timeZone={cities.find((c) => c.name === opened.city)?.timezone ?? undefined} /> : null}
     </section>
   );
 }

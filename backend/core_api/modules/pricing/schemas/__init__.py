@@ -59,6 +59,14 @@ class TipPresetsOut(BaseModel):
     default_index: int | None = None
 
 
+class QuotedItem(BaseModel):
+    menu_item_id: str
+    name: str
+    quantity: int
+    unit_price: Decimal
+    options: list[str] = []
+
+
 class QuoteOut(BaseModel):
     quote_id: uuid.UUID
     token: str = Field(description="Send this when placing the order; valid until expires_at")
@@ -76,6 +84,7 @@ class QuoteOut(BaseModel):
     pickup_address: dict | None = Field(default=None, description="pickup: the restaurant's address (street, city, lat, lng)")
     restaurant_minimum: Decimal | None = Field(default=None, description="R36: the restaurant's own minimum food subtotal (null: none)")
     short_by: Decimal = Field(default=Decimal(0), description="R36: how much more food is needed to reach it (0: met); the order can't be placed until 0")
+    items: list[QuotedItem] = Field(default=[], description="R43: each dish at the price this quote holds (unit_price: the dish and its options, one of it)")
 
 
 class SplitOut(BaseModel):
