@@ -46,7 +46,7 @@ async def week_ids(country: str, start: date) -> set[str]:
     return {o.order_id for o in week.orders}
 
 
-async def paid_order(client: AsyncClient, country: str = "IN") -> str:
+async def paid_order(client: AsyncClient, country: str = "IN") -> str:  # noqa: F811
     """A real paid order in that country (Hyderabad or Boise): its city, currency and money are that country's."""
     if country == "IN":
         cust = await login(client, "customer1.hyd@example.com")
