@@ -605,8 +605,10 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
     R14: the money is the payout run's: the orders delivered in the period (each city's
     Monday to Monday) and the statements a run makes for them (week_statements). So
     "kitchens / delivery partners are owed" is what the run pays, minimum pay top-ups
-    included, and platform revenue is what is left after them:
-        captured = refunded + kitchens owed + delivery partners owed + tax + platform revenue.
+    included, and platform revenue is what is left after them. R40 (the finance model): the
+    restaurant pays the card fee for the whole charge, so it is its own line, out of the
+    restaurants' money and never BhojanGo's:
+        captured = refunded + restaurants owed + card fees + delivery partners owed + tax + BhojanGo.
     Order counts and issues stay per order placed in the period."""
     from core_api.modules.orders.models.order import Order
     from core_api.modules.payments.models.payment import PaymentIntent, Refund
@@ -660,13 +662,11 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
     def split_sum(key: str) -> Decimal:
         return S.m(sum((S.D(s.split.get(key, 0)) for s in week_snaps.values()), Decimal(0)))
 
-    # Payment fees (R15): what the provider reported it kept, else the expected rate (the order's split).
-    fee_of: dict[uuid.UUID, Decimal] = {}
-    for i in week_intents:
-        if isinstance((i.metadata_ or {}).get("provider_fee"), int):
-            fee_of[i.order_id] = fee_of.get(i.order_id, Decimal(0)) + Decimal(i.metadata_["provider_fee"]) / 100
-    fees = S.m(sum((fee_of[oid] if oid in fee_of else S.D(s.split.get("payment_fees", 0)) for oid, s in week_snaps.items()), Decimal(0)))
-    fees_estimated = sum(1 for oid in week_snaps if oid not in fee_of)
+    # R40: card fees as the restaurants' statements take them (the provider's actual fee once reported, else
+    # the estimate); paid by restaurants, so they come out of the restaurants' money, never BhojanGo's.
+    card_fees = week.kitchen_sum("card_fee")
+    fee_reported = {i.order_id for i in week_intents if isinstance((i.metadata_ or {}).get("provider_fee"), int)}
+    fees_estimated = sum(1 for oid in week_snaps if oid not in fee_reported)
     captured_total = sum(i.amount for i in week_intents)
     refunded_total = sum(r.amount for r in week_refunds if r.status not in ("failed", "rejected"))
     kitchens, riders, top_ups = week.restaurants_total, week.riders_total, week.top_ups
@@ -674,8 +674,9 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
     # (both taken from kitchen payouts; the platform owes them).
     tax_by_type = {"customer": split_sum("tax"), "commission": week.kitchen_sum("commission_tax"), "tds": week.kitchen_sum("tds")}
     tax = S.m(sum(tax_by_type.values(), Decimal(0)))
-    platform = Decimal(captured_total - refunded_total) / 100 - kitchens - riders - tax
+    platform = Decimal(captured_total - refunded_total) / 100 - kitchens - card_fees - riders - tax
     carry = carry_totals(await _period_balances(db, country, start, end, week))
+    not_in_run = await _not_in_run(db, country, start, end, week)
     return {
         "country": country, "currency": c.currency, "period": {"start": start.isoformat(), "end": end.isoformat()},
         "orders": {"total": len(orders), "delivered": len(delivered), "cancelled": sum(1 for o in orders if o.status == "cancelled"),
@@ -685,19 +686,41 @@ async def reconciliation(db: AsyncSession, country: str, start: date, end: date)
                   "tax_owed": S._minor_str(tax), "restaurant_payable": S._minor_str(kitchens),
                   # What the payout run pays delivery partners: trip pay, tips and the minimum pay top-ups.
                   "rider_payable": S._minor_str(riders), "min_pay_top_ups": S._minor_str(top_ups),
-                  # What is left after kitchens, delivery partners (top-ups included), tax and refunds.
+                  # R40: card fees, paid by restaurants (out of their food and packaging)
+                  "card_fees": S._minor_str(card_fees),
+                  # What BhojanGo keeps: platform fees less the offers and refunds it pays (and any top-ups).
                   "platform_revenue": S._minor_str(platform),
-                  # What the payment providers keep, and the platform after them (orders priced before
-                  # fees were recorded count as 0 here; the contribution report estimates them).
-                  "payment_fees": S._minor_str(fees),
-                  "platform_after_payment_fees": S._minor_str(platform - fees),
                   # R23: kitchens' balances below zero. "Kitchens are owed" is what the week's orders earned;
                   # the run nets in what earlier weeks left below zero and pays only what is above zero:
                   #   kitchens paid = kitchens are owed + carried from last week - carried to next week
                   "kitchen_carried_in": carry["carried_in"], "kitchen_carried_forward": carry["carried_forward"],
                   "restaurant_to_pay": carry["to_pay"]},
-        "payment_fees_estimated": fees_estimated,
+        "card_fees_estimated": fees_estimated,
+        # R40: why "owed" and the payout run differ for the same week (None: no run yet, or it covers everything)
+        "not_in_run": not_in_run,
         "tax_owed_by_type": {k: S._minor_str(v) for k, v in tax_by_type.items()},  # orders whose fee is the expected rate, not the provider's (R15)
         "by_provider": by_provider, "refunds_not_settled": pending_refunds,
         "issues": issues,
     }
+
+
+async def _not_in_run(db: AsyncSession, country: str, start: date, end: date, week: WeekStatements) -> dict | None:
+    """R40: the week's money that its payout run doesn't pay (yet), and why. "Owed" is worked out now from every
+    order delivered in the week; the run is what was prepared earlier. Minor units."""
+    run = (await db.execute(select(PayoutRun).where(
+        PayoutRun.country == country, PayoutRun.period_start == start, PayoutRun.period_end == end))).scalars().first()
+    if run is None:
+        return None
+    stmts = (await db.execute(select(PayoutStatement).where(PayoutStatement.run_id == run.id))).scalars().all()
+    on_run = {ln.get("order_id") for st in stmts for ln in (st.lines or [])}
+    late = [o.order_id for o in week.orders if o.order_id not in on_run]
+    late_set = set(late)
+    restaurants = sum((S.D(ln["net"]) for _, _, _, lines in week.restaurants for ln in lines if ln["order_id"] in late_set), Decimal(0))
+    riders = sum((S.D(ln.get("total", ln.get("net", 0))) for _, _, _, lines, _ in week.riders for ln in lines
+                  if ln.get("order_id") in late_set), Decimal(0))
+    held = -sum((S.D(st.summary.get("disputes")) for st in stmts if st.payee_type == "restaurant"), Decimal(0))
+    if not late and held == 0:
+        return None
+    return {"run_id": str(run.id), "orders": len(late), "restaurants": _minor(restaurants), "riders": _minor(riders),
+            "reason": "Delivered after this payout run was prepared: they are paid with the next run" if late else None,
+            "chargeback_holds": _minor(held)}

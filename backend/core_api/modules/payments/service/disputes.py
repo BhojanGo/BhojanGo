@@ -1,13 +1,15 @@
 """R39: chargebacks (Stripe ``charge.dispute.created`` / ``.updated`` / ``.closed``).
 
-* Opened: the dispute is recorded against its order (admin Finance > Disputes; the order shows it),
-  ops are alerted (Operations page + the paging webhook), and the restaurant's share of the order
-  (its payout less the card fee, at most the disputed amount) is held from its next payout run.
+* Opened: the dispute is recorded against its order (admin Finance > Disputes; the order shows it) and
+  ops are alerted (Operations page + the paging webhook). R40: only when the restaurant would bear a loss
+  (the reason is the food's quality, ``product_unacceptable``, or the order not received,
+  ``product_not_received``) is its share of the order (its payout less the card fee, at most the disputed
+  amount) held from its next payout run. Fraud and every other reason: BhojanGo bears it, nothing is held.
 * Evidence: finance uploads files and a note in admin, then submits them to the provider.
 * Closed, won (or an inquiry closed with no chargeback): the hold comes back on the next payout run.
 * Closed, lost: the loss is recorded per the restaurant agreement. Default: the restaurant bears the food
-  amount when the reason is about the food (Stripe ``product_unacceptable``); BhojanGo bears everything
-  else (fraud, not received, duplicate, ...). A country may list other restaurant reasons in its Markets
+  amount when the reason is the food's quality or the order not received; BhojanGo bears everything else
+  (fraud, duplicate, ...). A country may list other restaurant reasons in its Markets
   setting ``dispute_restaurant_reasons``. The restaurant's part comes off the next payout (net of what was
   held); BhojanGo's part is recorded as ``platform_loss``. The provider's dispute fee is BhojanGo's.
 Amounts are minor units. Each event is applied once (processed_webhook_events), in any order.
@@ -29,7 +31,7 @@ from shared import outbox
 
 logger = structlog.get_logger(__name__)
 
-RESTAURANT_REASONS: tuple[str, ...] = ("product_unacceptable",)
+RESTAURANT_REASONS: tuple[str, ...] = ("product_unacceptable", "product_not_received")  # R40
 CLOSED = {"won", "lost", "warning_closed", "charge_refunded"}
 ALERT = "ChargebackOpened"
 
@@ -50,6 +52,12 @@ def outcome_of(status: str) -> str | None:
     if status in CLOSED:
         return "won"
     return None
+
+
+def hold_for(reason: str, share: int, amount: int, restaurant_reasons: tuple[str, ...] = RESTAURANT_REASONS) -> int:
+    """R40: what is held from the restaurant's next payout while a dispute is open: its share of the order (at
+    most the disputed amount) when it would bear the loss (food quality, not received); otherwise nothing."""
+    return max(0, min(share, amount)) if reason in restaurant_reasons else 0
 
 
 def split_loss(reason: str, amount: int, food: int, restaurant_reasons: tuple[str, ...] = RESTAURANT_REASONS
@@ -107,12 +115,14 @@ async def apply_dispute_event(db: AsyncSession, provider: str, event: dict) -> d
         amount = int(d.get("amount") or 0)
         share = max(0, _minor(order.restaurant_payout) - _minor(order.card_fee)) if order else 0
         city = order.market_city if order else None
+        reason = str(d.get("reason") or "general")[:40]
+        held = hold_for(reason, share, amount, await _restaurant_reasons(db, (city or "")[:2] or None))
         row = PaymentDispute(
             id=uuid.uuid4(), provider=provider, provider_dispute_id=d["id"], provider_payment_id=d.get("payment_intent"),
             order_id=order.id if order else None, restaurant_id=order.restaurant_id if order else None,
             country=(city or "")[:2] or None, market_city=city,
             currency=str(d.get("currency") or (order.currency if order else "USD")).upper(), amount=amount,
-            reason=str(d.get("reason") or "general")[:40], status=status, held=min(share, amount), evidence=[],
+            reason=reason, status=status, held=held, evidence=[],
             restaurant_loss=0, platform_loss=0,
             evidence_due_by=_when(d.get("due_by")), opened_at=_when(d.get("created")) or now)
         db.add(row)
@@ -123,8 +133,9 @@ async def apply_dispute_event(db: AsyncSession, provider: str, event: dict) -> d
         await raise_alert(
             db, fingerprint(row), ALERT,
             f"Chargeback opened: {money(amount)}{' in ' + city if city else ''} ({row.reason.replace('_', ' ')})",
-            f"Order {code}: the restaurant's share ({money(row.held)}) is held from its next payout. "
-            f"Add evidence in admin Finance > Disputes{due}.",
+            (f"Order {code}: the restaurant's share ({money(row.held)}) is held from its next payout. " if row.held
+             else "BhojanGo bears this one (nothing is held from the restaurant). ")
+            + f"Add evidence in admin Finance > Chargebacks{due}.",
             severity="warning", city=city, page=True, now=now)
         await outbox.add(db, "payment.dispute_opened", "order", row.order_id or row.id, {
             "dispute_id": str(row.id), "order_id": str(row.order_id) if row.order_id else None, "amount": amount,
@@ -132,8 +143,14 @@ async def apply_dispute_event(db: AsyncSession, provider: str, event: dict) -> d
         logger.warning("dispute_opened", dispute=d["id"], order_id=str(row.order_id), amount=amount, reason=row.reason)
     else:
         row.status = status
-        if d.get("reason"):
+        if d.get("reason") and str(d["reason"])[:40] != row.reason:
             row.reason = str(d["reason"])[:40]
+            if row.hold_statement_id is None and row.order_id is not None:  # R40: the hold follows the reason
+                from core_api.modules.orders.models.order import Order as _O
+
+                o = await db.get(_O, row.order_id)
+                share = max(0, _minor(o.restaurant_payout) - _minor(o.card_fee)) if o else 0
+                row.held = hold_for(row.reason, share, row.amount, await _restaurant_reasons(db, row.country))
         if d.get("amount"):
             row.amount = int(d["amount"])
         if d.get("due_by"):

@@ -34,6 +34,8 @@ export function disputeState(d: Dispute): string {
       ? `Lost: the restaurant bears ${m(d.restaurant_loss)} (food), BhojanGo ${m(d.platform_loss)}`
       : `Lost: BhojanGo bears ${m(d.platform_loss)}`;
   }
+  if (!d.held) return d.evidence_submitted_at ? "Evidence sent: waiting for the bank. BhojanGo bears it, nothing held"
+    : "Open: BhojanGo bears it (nothing held from the restaurant)";  // R40: fraud and other reasons
   if (d.evidence_submitted_at) return `Evidence sent: waiting for the bank. ${m(d.held)} held`;
   return d.hold_applied ? `Open: ${m(d.held)} held from the restaurant's payout` : `Open: ${m(d.held)} will be held from the next payout`;
 }
@@ -76,7 +78,7 @@ export function Disputes({ country }: { country: string }) {
     <section className="space-y-3 rounded-2xl bg-white p-6" aria-label="Chargebacks" data-testid="disputes">
       <div>
         <h2 className="m-0 text-h3">Chargebacks · {openCount} open</h2>
-        <p className="m-0 mt-1 text-small text-muted">A customer&apos;s bank disputed these payments. While one is open, the restaurant&apos;s share of the order is held from its next payout. Add evidence and send it before the due date. If the bank sides with the customer, the restaurant bears the food when the reason is the food&apos;s quality; BhojanGo bears the rest, and all of it for fraud.</p>
+        <p className="m-0 mt-1 text-small text-muted">A customer&apos;s bank disputed these payments. Add evidence and send it before the due date. When the reason is the food&apos;s quality or the order not arriving, the restaurant would bear the food if the bank sides with the customer, so its share is held from its next payout while the dispute is open; BhojanGo bears the rest. For fraud and every other reason BhojanGo bears it all and nothing is held.</p>
       </div>
       <div className="table-scroll"><table className="table-stack w-full text-left text-small tabular-nums [&_td]:pr-3 [&_th]:pr-3">
         <thead className="text-caption text-muted"><tr><th className="py-2">Order</th><th>Restaurant</th><th>Disputed</th><th>Reason</th><th>Where it stands</th><th>Evidence due</th><th><span className="sr-only">Open</span></th></tr></thead>

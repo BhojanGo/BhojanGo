@@ -84,7 +84,7 @@ async def run_week(client: AsyncClient, finance: dict) -> dict:
     return next(s for s in detail["statements"] if s["payee_type"] == "restaurant" and s["payee_name"] == "Spice Route Kitchen")
 
 
-async def test_open_dispute_holds_the_share_alerts_ops_and_a_win_releases_it(client: AsyncClient, monkeypatch) -> None:
+async def test_open_food_dispute_holds_the_share_alerts_ops_and_a_win_releases_it(client: AsyncClient, monkeypatch) -> None:
     from core_api.integration.mock_webhook import MockWebhook
     from shared.config import get_settings
 
@@ -95,9 +95,9 @@ async def test_open_dispute_holds_the_share_alerts_ops_and_a_win_releases_it(cli
     with MockWebhook() as hook:
         monkeypatch.setattr(get_settings(), "PAGING_WEBHOOK_URL", hook.url)
         dp = f"dp_test_{uuid.uuid4().hex[:12]}"
-        out = await dispute_event(client, "created", {"id": dp, "amount": amount, "currency": "inr", "reason": "fraudulent",
+        out = await dispute_event(client, "created", {"id": dp, "amount": amount, "currency": "inr", "reason": "product_unacceptable",
                                                       "status": "needs_response", "payment_intent": pi, "due_by": 1893456000})
-        again = await dispute_event(client, "created", {"id": dp, "amount": amount, "currency": "inr", "reason": "fraudulent",
+        again = await dispute_event(client, "created", {"id": dp, "amount": amount, "currency": "inr", "reason": "product_unacceptable",
                                                         "status": "needs_response", "payment_intent": pi})
         assert out["outcome"] is None and again["dispute"] == out["dispute"]  # one dispute, however often it is sent
         # ops are alerted: the Operations page and one page through the webhook
@@ -136,7 +136,8 @@ async def test_open_dispute_holds_the_share_alerts_ops_and_a_win_releases_it(cli
     assert (await client.get(f"/api/v1/finance/disputes/{d['id']}", headers=finance)).json()["next_payout"] == 0
 
 
-@pytest.mark.parametrize("reason,bearer", [("product_unacceptable", "restaurant"), ("fraudulent", "platform")])
+@pytest.mark.parametrize("reason,bearer", [("product_unacceptable", "restaurant"), ("product_not_received", "restaurant"),
+                                           ("fraudulent", "platform")])
 async def test_a_lost_dispute_is_borne_per_the_agreement(client: AsyncClient, reason: str, bearer: str) -> None:
     order, pi, amount = await paid_order(client)
     (food,), = await _sql("SELECT subtotal FROM orders WHERE id = CAST(:o AS uuid)", o=order["id"])
@@ -167,3 +168,23 @@ async def test_a_lost_dispute_is_borne_per_the_agreement(client: AsyncClient, re
         assert [(x["kind"], x["amount"]) for x in lines] == [("dispute_loss", -lost["restaurant_loss"])]
     else:
         assert lines == []
+
+
+@pytest.mark.parametrize("reason,holds", [("product_unacceptable", True), ("product_not_received", True), ("fraudulent", False),
+                                          ("duplicate", False), ("general", False)])
+async def test_r40_the_hold_follows_the_reason(client: AsyncClient, reason: str, holds: bool) -> None:
+    """R40: only a dispute the restaurant would bear (food quality, not received) holds its share from the next
+    payout; for fraud and every other reason BhojanGo bears it and the payout run holds nothing."""
+    order, pi, amount = await paid_order(client)
+    dp = f"dp_test_{uuid.uuid4().hex[:12]}"
+    await dispute_event(client, "created", {"id": dp, "amount": amount, "currency": "inr", "reason": reason,
+                                            "status": "needs_response", "payment_intent": pi})
+    finance = await login(client, "finance.in@example.com", ADMIN)
+    d = next(x for x in (await client.get("/api/v1/finance/disputes", headers=finance, params={"country": "IN"})).json()
+             if x["provider_dispute_id"] == dp)
+    assert (d["held"] > 0) is holds and d["next_payout"] == -d["held"], d
+    await deliver_last_week(order["id"])
+    stmt = await run_week(client, finance)
+    lines = stmt["summary"].get("dispute_lines", [])
+    assert lines == ([{"dispute_id": d["id"], "order_id": order["id"], "kind": "dispute_hold", "amount": -d["held"], "reason": reason}]
+                     if holds else []), lines

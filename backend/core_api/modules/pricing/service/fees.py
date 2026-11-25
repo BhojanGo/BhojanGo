@@ -75,8 +75,9 @@ def method_rate(params: dict, method: str | None) -> dict | None:
 
 
 def card_fee_cents(charge_cents: int, tip_cents: int, percent: Any, fixed_cents: int) -> int:
-    """The card fee estimate on what the customer is charged, less the tip (46.89 at 2.9% + 0.30 -> 1.66)."""
-    base = max(0, charge_cents - tip_cents)
+    """The card fee estimate on the whole charge, tip included (46.89 at 2.9% + 0.30 -> 1.66). R40: the restaurant
+    pays the processor's fee for everything it charges (finance model); ``tip_cents`` is kept for callers, unused."""
+    base = max(0, charge_cents)
     if base <= 0:
         return 0
     return percent_of(base, percent) + fixed_cents

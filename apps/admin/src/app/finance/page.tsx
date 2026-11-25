@@ -44,8 +44,10 @@ interface Collect { restaurant_id: string; kitchen: string; currency: string; am
 interface Recon {
   currency: string; orders: { total: number; delivered: number; cancelled: number; open: number };
   money: Record<string, number>; issues: { order_id: string; issue: string }[]; refunds_not_settled: number;
-  /** Orders whose payment fee is the expected rate, not what the provider reported (R15). */
-  payment_fees_estimated?: number;
+  /** R40: orders whose card fee is the estimate, not what the provider reported. */
+  card_fees_estimated?: number;
+  /** R40: the week's money its payout run doesn't pay (yet), and why (minor units). */
+  not_in_run?: { orders: number; restaurants: number; riders: number; reason: string | null; chargeback_holds: number } | null;
   /** R16: tax owed by type: what customers paid, GST on our commission, TDS on kitchen payouts. */
   tax_owed_by_type?: { customer: number; commission: number; tds: number };
 }
@@ -58,7 +60,7 @@ interface Contribution {
 
 const CONTRIBUTION_ROWS: [string, string, number][] = [
   ["commission", "Commission", 1], ["customer_fees", "Customer fees", 1], ["platform_promos", "Offers we fund", -1],
-  ["rider_pay", "Delivery partner pay (tips excluded)", -1], ["payment_fees", "Payment fees", -1], ["refunds", "Refunds we pay", -1],
+  ["rider_pay", "Delivery partner pay (tips excluded)", -1], ["refunds", "Refunds we pay", -1],
   ["min_pay_top_ups", "Minimum pay top-ups", -1],
 ];
 
@@ -289,19 +291,21 @@ function FinancePage() {
       {contribution.data ? (
         <section className="rounded-2xl bg-white p-6" aria-label="Contribution per order">
           <h2 className="m-0 mb-1 text-h3">Contribution per order · {weekLabel(start, end)}</h2>
-          <p className="mb-3 text-small text-muted">What the platform keeps of an average delivered order, after payment fees, delivery partner pay (tips are the delivery partner&apos;s), the offers we fund and the refunds we pay.
-            {contribution.data.fees_estimated ? ` Payment fees are estimated for ${contribution.data.fees_estimated} of these orders: the payment provider doesn't report its fee, so the expected rate in Business rules is used.` : ""}</p>
+          <p className="mb-3 text-small text-muted">What BhojanGo keeps of an average delivered order: its platform fee (and any commission), less the offers it funds and the refunds it pays. The delivery fee and tips are the delivery partner&apos;s; card fees are paid by restaurants, out of their food and packaging.</p>
           <div className="table-scroll"><table className="w-full text-left text-small tabular-nums">
             <thead className="text-caption text-muted"><tr><th className="py-2">Per order</th>
               {contribution.data.cities.map((c) => <th key={c.city} className="text-right">{c.city} · {count(c.orders, "order")}</th>)}</tr></thead>
             <tbody className="divide-y divide-line tabular-nums">
               {CONTRIBUTION_ROWS.map(([k, label, sign]) => (
-                <tr key={k}><td className="py-2">{label}{k === "payment_fees" && contribution.data!.fees_estimated ? <span data-testid="fees-estimated" className="ml-2 rounded-full bg-kesar-tint px-2 py-0.5 text-caption text-kesar-ink">estimated</span> : null}</td>{contribution.data!.cities.map((c) => {
+                <tr key={k}><td className="py-2">{label}</td>{contribution.data!.cities.map((c) => {
                   const v = Number(c.per_order[k] ?? 0);
                   return <td key={c.city} className="text-right">{v ? `${sign < 0 ? "−" : ""}${money(v, contribution.data!.currency, 2)}` : money(0, contribution.data!.currency, 2)}</td>;
                 })}</tr>
               ))}
-              <tr className="font-bold" data-testid="platform-keeps"><td className="py-2">Platform keeps</td>{contribution.data.cities.map((c) => <td key={c.city} className="text-right">{money(Number(c.per_order.keeps ?? 0), contribution.data!.currency, 2)}</td>)}</tr>
+              <tr className="font-bold" data-testid="platform-keeps"><td className="py-2">BhojanGo keeps</td>{contribution.data.cities.map((c) => <td key={c.city} className="text-right">{money(Number(c.per_order.keeps ?? 0), contribution.data!.currency, 2)}</td>)}</tr>
+              {/* R40: for information: the restaurant pays it, never BhojanGo */}
+              <tr className="text-muted" data-testid="card-fees-row"><td className="py-2">Card fees (paid by restaurants, not BhojanGo){contribution.data.fees_estimated ? <span data-testid="fees-estimated" className="ml-2 rounded-full bg-kesar-tint px-2 py-0.5 text-caption text-kesar-ink">estimated</span> : null}</td>
+                {contribution.data.cities.map((c) => <td key={c.city} className="text-right">{money(Number(c.per_order.card_fees ?? 0), contribution.data!.currency, 2)}</td>)}</tr>
             </tbody>
           </table></div>
           {contribution.data.cities.length === 0 ? <p className="text-small text-muted">No delivered orders in this week, so there is nothing to average.</p> : null}
@@ -312,12 +316,12 @@ function FinancePage() {
           <h2 className="m-0 mb-3 text-h3">Reconciliation · {weekLabel(start, end)}</h2>
           <div className="grid gap-3 sm:grid-cols-4">
             {([["Captured", "captured"], ["Refunded", "refunded"], ["Restaurants are owed", "restaurant_payable"], ["Delivery partners are owed", "rider_payable"], ["Minimum pay top-ups", "min_pay_top_ups"],
-              ["Tax owed", "tax_owed"], ["Platform revenue", "platform_revenue"], ["Payment fees", "payment_fees"],
-              ["Platform after payment fees", "platform_after_payment_fees"], ["Delivered GMV", "delivered_gmv"], ["Net collected", "net_collected"],
+              ["Card fees (paid by restaurants)", "card_fees"], ["Tax owed", "tax_owed"], ["BhojanGo keeps", "platform_revenue"],
+              ["Delivered GMV", "delivered_gmv"], ["Net collected", "net_collected"],
               // R23: kitchens paid = kitchens are owed + carried from last week - carried to next week
               ["Restaurants: carried from last week", "kitchen_carried_in"], ["Restaurants: carried to next week", "kitchen_carried_forward"],
               ["Restaurants are paid", "restaurant_to_pay"]] as const)
-              .map(([l0, k]) => [k === "payment_fees" && recon.data!.payment_fees_estimated ? `${l0} (estimated)` : l0, k] as const)
+              .map(([l0, k]) => [k === "card_fees" && recon.data!.card_fees_estimated ? `${l0}, estimated` : l0, k] as const)
               .map(([l, k]) => <div key={k} className="rounded-xl bg-porcelain p-3"><div className="text-small text-muted">{l}</div>
                 <div className="text-h3 tabular-nums">{money(Number(recon.data!.money[k] ?? 0) / 100, recon.data!.currency, 2)}</div>
                 {k === "tax_owed" && recon.data!.tax_owed_by_type ? (
@@ -329,6 +333,14 @@ function FinancePage() {
                   </div>
                 ) : null}</div>)}
           </div>
+          <p className="m-0 mt-3 text-small text-muted" data-testid="recon-identity">Captured = refunded + restaurants are owed + card fees + delivery partners are owed + tax + BhojanGo keeps.</p>
+          {recon.data.not_in_run ? (
+            // R40: why the payout run pays less than "owed" for the same week
+            <p className="mt-3 rounded-xl bg-kesar-tint p-3 text-small text-kesar-ink" data-testid="not-in-run">
+              {recon.data.not_in_run.orders ? <>Not in this payout yet: {money((recon.data.not_in_run.restaurants + recon.data.not_in_run.riders) / 100, recon.data.currency, 2)} ({count(recon.data.not_in_run.orders, "order")}: restaurants {money(recon.data.not_in_run.restaurants / 100, recon.data.currency, 2)}, delivery partners {money(recon.data.not_in_run.riders / 100, recon.data.currency, 2)}). {recon.data.not_in_run.reason}.</> : null}
+              {recon.data.not_in_run.chargeback_holds ? <> Held for open chargebacks: {money(recon.data.not_in_run.chargeback_holds / 100, recon.data.currency, 2)}.</> : null}
+            </p>
+          ) : null}
           <p className="mt-3 text-small text-muted">Restaurants are paid what they are owed this week, plus what earlier weeks left below zero (carried from last week), less what this week leaves below zero (carried to next week). Nothing below zero is written off or charged to a restaurant.</p>
           <p className="mt-3 text-small">{recon.data.orders.delivered} delivered · {recon.data.orders.cancelled} cancelled · {recon.data.orders.open} still open · {count(recon.data.refunds_not_settled, "refund")} not settled ·{" "}
             {recon.data.issues.length ? <b className="text-chili">{count(recon.data.issues.length, "issue")} to look at</b> : <span className="text-peacock">everything lines up</span>}</p>

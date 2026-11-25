@@ -45,7 +45,7 @@ const FIELDS: Record<string, { label: string; hint: string }> = {
   restaurant_commission_pct: { label: "Restaurant commission", hint: "% of food, taken from the restaurant's payout" },
   card_fee_estimate: {
     label: "Payment fee estimate",
-    hint: "per payment method, % + fixed of the charge less the tip, taken from the restaurant's payout; cash has none. Production uses the gateway's actual fee",
+    hint: "per payment method, % + fixed of the whole charge (tip included), taken from the restaurant's payout; cash has none. Production uses the gateway's actual fee",
   },
   delivery_fee: { label: "Delivery bands", hint: "the fee for each road-distance band from the restaurant to the customer; all of it goes to the delivery partner" },
   max_delivery_distance: { label: "Max delivery distance", hint: "beyond it the restaurant shows as too far to deliver" },

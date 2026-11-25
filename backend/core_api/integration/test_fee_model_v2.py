@@ -52,7 +52,7 @@ async def test_boise_order_fees_snapshot_admin_levels_and_a_later_change(client:
     assert "service_fee" not in {ln["code"] for ln in q["lines"]}
     order = await place(client, cust, rid, cart, q, "US")
     total, tip = Decimal(str(order["total"])), Decimal("2")
-    card = ((total - tip) * Decimal("0.029")).quantize(C, rounding=ROUND_HALF_UP) + Decimal("0.30")
+    card = (total * Decimal("0.029")).quantize(C, rounding=ROUND_HALF_UP) + Decimal("0.30")  # R40: the whole charge, tip included
     snap = (await client.get(f"/api/v1/pricing/orders/{order['id']}/snapshot", headers=ops)).json()
     split = snap["split"]
     assert Decimal(split["card_fee"]) == card

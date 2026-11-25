@@ -195,7 +195,7 @@ PAY_METHODS = ("card", "upi", "wallet", "net_banking")  # cash: never a fee
 
 class FeeCardEstimate(_P):
     """The payment processing fee estimate per payment method (R30), percent + fixed of what the customer
-    is charged less the tip, deducted from the restaurant's payout. A method left out uses the card rate;
+    is charged (the whole charge, tip included; R40), deducted from the restaurant's payout. A method left out uses the card rate;
     cash has no fee. In production the gateway's actual fee for the payment (webhook) replaces it; local
     and QA keep the estimate. The R29 shape ``{percent, fixed}`` still reads as the card rate."""
 

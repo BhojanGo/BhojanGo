@@ -93,12 +93,12 @@ async def test_contribution_adds_up(client: AsyncClient) -> None:
         "scope": "IN-TG-HYD", "start": str(today - timedelta(days=1)), "end": str(today + timedelta(days=2))})).json()
     city = next(c for c in rep["cities"] if c["city"] == "IN-TG-HYD")
     t = {k: Decimal(v) for k, v in city["totals"].items()}
-    assert city["orders"] >= 1 and t["payment_fees"] >= 0  # R29: card fees are the kitchens'; India has no tax service fee
-    assert t["keeps"] == t["platform"] - t["payment_fees"] - t["refunds"] - t["min_pay_top_ups"]  # R14: top-ups are ours
+    assert city["orders"] >= 1 and t["card_fees"] >= 0  # R29/R40: card fees are the restaurants', shown for information
+    assert t["keeps"] == t["platform"] - t["refunds"] - t["min_pay_top_ups"]  # R40: BhojanGo pays no payment fees
     # the platform line is the snapshot's: commission + customer fees - our offers - rider pay (tips excluded)
     assert t["platform"] == t["commission"] + t["customer_fees"] - t["platform_promos"] - t["rider_pay"]
     assert Decimal(city["per_order"]["keeps"]) == (t["keeps"] / city["orders"]).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    # the reconciliation shows payment fees too
+    # R40: the reconciliation shows card fees as the restaurants' (no "payment fees" taken from BhojanGo)
     rec = (await client.get("/api/v1/finance/reconciliation", headers=fin, params={
         "country": "IN", "start": str(today - timedelta(days=1)), "end": str(today + timedelta(days=2))})).json()
-    assert rec["money"]["payment_fees"] >= 0 and "platform_after_payment_fees" in rec["money"]
+    assert rec["money"]["card_fees"] >= 0 and "payment_fees" not in rec["money"] and "platform_after_payment_fees" not in rec["money"]

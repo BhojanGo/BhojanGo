@@ -6,7 +6,6 @@ For each delivered order, from its pricing snapshot:
   - offers the platform funded
   - rider pay (base + distance + waiting; tips are the rider's, not ours)
   = platform (the snapshot's split)
-  - payment fees (what Stripe / Razorpay keep: the ``payment_fees`` rule at order time)
   - refunds the platform pays (everything refunded on the order, less what the kitchen
     is charged for its own mistakes: the same rule as payout statements)
   - minimum pay top-ups (R14): what the week's payout run adds so a delivery partner's
@@ -14,10 +13,10 @@ For each delivered order, from its pricing snapshot:
     their orders that week (payouts.week_statements, the run's own numbers)
   = platform keeps
 
-Payment fees (R15): what the provider actually kept when it reports it (Stripe: the charge's
-fee, recorded when the payment succeeds); otherwise the expected rate, the country's
-``payment_fees`` rule (the order's own, or the rule in force now for orders priced before
-fees were recorded). Those orders are counted in ``fees_estimated``.
+R40 (the finance model): the restaurant pays the card/payment fee for the whole charge; BhojanGo pays
+no payment fees. ``card_fees`` is shown for information (paid by restaurants, never taken from what
+BhojanGo keeps): the order's card fee as its restaurant statement takes it (production: the provider's
+actual fee once reported; else the estimate, counted in ``fees_estimated``).
 """
 import uuid
 from collections import defaultdict
@@ -30,7 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core_api.modules.finance.service import statements as S
 
 FEE_CODES = ("delivery_fee", "platform_fee", "service_fee", "small_order_fee", "surge", "late_night_fee")
-FIELDS = ("gmv", "commission", "customer_fees", "platform_promos", "rider_pay", "platform", "payment_fees", "refunds",
+FIELDS = ("gmv", "commission", "customer_fees", "platform_promos", "rider_pay", "platform", "card_fees", "refunds",
           "min_pay_top_ups", "keeps")
 
 
@@ -44,9 +43,6 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
     from core_api.modules.orders.models.order import Order
     from core_api.modules.payments.models.payment import Refund
     from core_api.modules.pricing.models import OrderPricingSnapshot
-    from core_api.modules.pricing.service.engine import payment_fee
-    from core_api.modules.rules.service.resolver import Context
-    from core_api.modules.rules.service.rules import RuleService
 
     country = scope[:2]
     c = await _country(db, country)
@@ -76,7 +72,6 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
                 refund_lines[r.order_id] += [{**ln, "reason": r.reason, "fault": r.fault or "restaurant"}
                                              for ln in r.lines if ln.get("menu_item_id")]
     top_up_of = (await week_statements(db, country, start, end)).top_up_per_order()
-    rules_now: dict[str, dict | None] = {}
     # Item 2: a later drop-off of a batch pays no base but the batch bonus; the split was
     # priced before the batch, so the base comes from the order's own rider pay rule.
     from core_api.modules.rules.models import Rule
@@ -93,23 +88,10 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
         split, detail = snap.split, snap.split.get("detail", {})
         amt = lambda *codes: sum((S.D(ln["amount"]) for ln in snap.lines if ln["code"] in codes), Decimal(0))  # noqa: E731
         platform = S.D(split.get("platform"))
-        if o.id in actual_fee:
-            fees = actual_fee[o.id]
-        elif "payment_fees" in split:
-            fees = S.D(split["payment_fees"])
+        # R40: the card fee is the restaurant's (its statement takes it); BhojanGo pays none.
+        fees = S.D(o.card_fee if o.card_fee is not None else detail.get("card_fee"))
+        if o.id not in actual_fee:
             estimated += 1
-        else:  # priced before fees were recorded: the rule in force now, the order's method
-            city = o.market_city or ""
-            if city not in rules_now:
-                r = (await RuleService(db).resolve(Context(country=city[:2], region=city[:5], city=city))).get("business:payment_fees")
-                rules_now[city] = r.params if r else None
-            tax_calc = any((ln.get("detail") or {}).get("provider") for ln in snap.lines if ln["code"] == "tax")
-            fees, _ = payment_fee(S.D(snap.total), o.payment_method or "card", rules_now[city], tax_calc)
-            estimated += 1
-        if "card_fee" in detail:
-            # R29 fee model v2: the restaurant pays the card fee (estimate, or production's actual one);
-            # the platform pays only the rest (the tax service).
-            fees = max(Decimal(0), fees - S.D(o.card_fee if o.card_fee is not None else detail["card_fee"]))
         _, _, kitchen = S.restaurant_statement([S.OrderForPayout(
             order_id=str(o.id), delivered_at=o.actual_delivery_time, restaurant_id=str(o.restaurant_id), rider_id=None,
             lines=snap.lines, split=split, distance=Decimal(0), rider_rule=None, started_at=None,
@@ -130,11 +112,11 @@ async def contribution(db: AsyncSession, scope: str, start: date, end: date, ord
         else:
             b["rider_pay"] += S.D(detail.get("rider_base"))
         b["platform"] += platform
-        b["payment_fees"] += fees
+        b["card_fees"] += fees
         b["refunds"] += platform_refunds
         top_up = top_up_of.get(str(o.id), Decimal(0))
         b["min_pay_top_ups"] += top_up
-        b["keeps"] += platform - fees - platform_refunds - top_up
+        b["keeps"] += platform - platform_refunds - top_up
         counts[o.market_city or "?"] += 1
 
     def out(code: str, n: int, v: dict[str, Decimal]) -> dict:

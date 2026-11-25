@@ -41,7 +41,7 @@ export default function StatementPage({ params }: { params: Promise<{ id: string
       <div>
         <div className="text-small text-muted"><Link href="/finance" className="text-peacock">Finance</Link> ▸ Restaurant statement</div>
         <h1 className="m-0 mt-2 text-h1">{s?.payee_name ?? "Restaurant statement"}</h1>
-        <p className="mt-1 text-small text-muted">Each order: food subtotal − commission − card processing fee = what the restaurant is paid.</p>
+        <p className="mt-1 text-small text-muted">Each order: food subtotal − commission − card processing fee (on the whole charge, tip included) = what the restaurant is paid.</p>
       </div>
       {st.isError ? <p role="alert">{apiMessage(st.error)}</p> : null}
       {s ? (
