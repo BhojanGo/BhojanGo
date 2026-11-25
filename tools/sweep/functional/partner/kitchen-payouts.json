@@ -33,11 +33,11 @@
     "us",
     "in"
    ],
-   "action": "Set up payouts / Continue set-up",
-   "expected": "The payout provider's set-up opens",
-   "verify": "UI",
-   "run": "not automated yet (NOT RUN)",
-   "test": "none"
+   "action": "A restaurant without a payout account: Set up payouts",
+   "expected": "The payout provider's set-up page opens",
+   "verify": "UI; API: onboarding link",
+   "run": "maestro: apps/partner/.maestro/r43-payouts-setup-{user}.yaml",
+   "maestro": "r43-payouts-setup-{user}"
   },
   {
    "id": "api-down",

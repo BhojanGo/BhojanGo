@@ -1,0 +1,8 @@
+# R43: propagation (in). See r43/propagation.yaml.
+appId: com.bhojango.app
+env:
+  MARKET: "in"
+  PHONE: "9000000101"
+  COUNTRY: "IN"
+---
+- runFlow: r43/propagation.yaml

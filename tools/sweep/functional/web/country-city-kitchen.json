@@ -86,10 +86,49 @@
     "in"
    ],
    "action": "Open the page with core-api stopped",
-   "expected": "It still renders: its last good copy (the server's page cache) or a message that it couldn't load",
-   "verify": "UI: body text, no Next.js error page",
+   "expected": "It still renders: its last good copy (the server's page cache) or a message that it couldn't load; in under 4 s (R43)",
+   "verify": "UI: body text, no Next.js error page; the page's navigation timing (DOMContentLoaded < 4 s)",
    "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
    "test": "web/[country]/[city]/[kitchen]#api-down"
+  },
+  {
+   "id": "menu-change-reaches-page",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "The restaurant changes a dish's price (BhojanGo Kitchen's API call); the customer reloads the restaurant page",
+   "expected": "The new price shows within 60 s (measured); the menu API says the same price",
+   "verify": "UI: the dish's price on the page, reloaded every 2 s; API: GET /restaurants/{id}/menu; the time from the change",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]/[kitchen]#menu-change-reaches-page"
+  },
+  {
+   "id": "dish-search-new-renamed",
+   "kind": "filter",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Add a dish, search the restaurant's menu for it; rename it and search the new name; delete it and search again",
+   "expected": "Found by its name, then by its new name (not the old); not found once deleted",
+   "verify": "UI: the menu search results; API: GET /discover/search (dishes) for the city",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]/[kitchen]#dish-search-new-renamed"
+  },
+  {
+   "id": "dish-hours-and-spice",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A dish served only at another time of day, with spice 'Medium'; open the restaurant page",
+   "expected": "The dish shows 'Served <from> – <until>' in the restaurant's clock and 'Later' instead of Add; '🌶🌶 Medium'",
+   "verify": "UI: the dish row; API: the menu's schedule, available_now, spice_level; the quote refuses it",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]/[kitchen]#dish-hours-and-spice"
   },
   {
    "id": "na-permission",

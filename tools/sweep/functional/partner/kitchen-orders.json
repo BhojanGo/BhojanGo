@@ -57,11 +57,11 @@
     "us",
     "in"
    ],
-   "action": "No orders",
-   "expected": "An empty board",
-   "verify": "UI",
-   "run": "not automated yet (NOT RUN)",
-   "test": "none"
+   "action": "A restaurant with no orders today",
+   "expected": "Every column empty, counts 0",
+   "verify": "UI; API: today's orders = 0",
+   "run": "maestro: apps/partner/.maestro/r43-no-orders-{user}.yaml",
+   "maestro": "r43-no-orders-{user}"
   },
   {
    "id": "api-down",

@@ -23,10 +23,10 @@
     "in"
    ],
    "action": "A new customer",
-   "expected": "'No saved addresses' + Add",
-   "verify": "UI",
-   "run": "not automated yet (NOT RUN)",
-   "test": "none"
+   "expected": "'No saved addresses yet.' + Add",
+   "verify": "UI; API: GET /me/addresses is empty",
+   "run": "maestro: apps/customer/.maestro/r43-new-account-{user}.yaml",
+   "maestro": "r43-new-account-{user}"
   },
   {
    "id": "na-permission",

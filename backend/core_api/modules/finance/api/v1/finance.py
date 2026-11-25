@@ -272,7 +272,10 @@ async def get_statement(statement_id: uuid.UUID, user: User, db: DB) -> dict:
     mine = (s.payee_type, s.payee_id) in await _payee_ids(db, user)
     if not mine and not authz.can([authz.Assignment.parse(a) for a in user.admin], "finance.view", run.country):
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Statement not found")
-    return statement_out(s)
+    # R43: the payout time zone (the week's and each line's date and delivered time are shown in it) and the week
+    zone = await _zone(db, run.country, {})
+    return statement_out(s) | {"timezone": zone.key if zone else "UTC", "period_start": run.period_start.isoformat(),
+                               "period_end": run.period_end.isoformat()}
 
 
 async def _invoice_statement(db: AsyncSession, statement_id: uuid.UUID, user: CurrentUser | None):  # type: ignore[no-untyped-def]

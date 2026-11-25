@@ -12,12 +12,14 @@ import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleShe
 import { imageUri, useFormat, useKitchen, useLoad, type Offer } from "../../lib/data";
 import { DishPreview } from "../../lib/dish";
 import { useLayout } from "../../lib/layout";
+import { CategoriesEditor, DishEditor, HistorySheet, loadManage, type ManageItem } from "../../lib/menuEdit";
 import { Btn, color, Icon, radius, Segmented, t, tone } from "../../lib/ui";
 import { menuPhotoUrl, uploadFile } from "../../lib/upload";
 
 type MenuItem = { id: string; name: string; description?: string | null; price: number | string; is_veg?: boolean;
   is_available: boolean; sold_out_today?: boolean; image_url?: string | null; option_groups?: { name: string }[] };
-type Menu = { restaurant: { currency: string; avg_prep_minutes?: number }; categories: { name: string; items: MenuItem[] }[]; uncategorized_items: MenuItem[] };
+// R43: the menu as the restaurant edits it (GET /menu/manage): hidden categories, dishes off the menu, schedules
+type Row = ManageItem & { groupNames: string[] };
 type Hours = { weekly: { weekday: number; opens: string; closes: string }[]; overrides: { day: string; closed: boolean; opens: string | null; closes: string | null; note: string | null }[] };
 type Clock = (hhmm: string) => string;
 
@@ -45,14 +47,16 @@ export default function MenuScreen() {
   const stacked = width < 1000; // a phone (or a small tablet): the menu first, the store panels below
   const kitchen = useKitchen((s) => s.kitchen)!;
   const id = kitchen.id;
-  const menu = useLoad(async () => unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/menu", { params: { path: { restaurant_id: id } } })) as unknown as Menu, id);
+  const menu = useLoad(() => loadManage(id), id);
   const hours = useLoad(async () => unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/hours", { params: { path: { restaurant_id: id } } })) as unknown as Hours, id);
   const today = useLoad(async () => unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/today", { params: { path: { restaurant_id: id } } })), id);
   const offers = useLoad(async () => unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/offers", { params: { path: { restaurant_id: id } } })), id);
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [creating, setCreating] = useState(false);
-  const [editing, setEditing] = useState<MenuItem | null>(null);
+  const [editing, setEditing] = useState<MenuItem | null>(null); // the photo screen
+  const [dish, setDish] = useState<ManageItem | "new" | null>(null); // R43: the dish editor
+  const [sheet, setSheet] = useState<"categories" | { history: { id: string; name: string } | null } | null>(null);
   const cur = kitchen.currency;
   const hm: Clock = (hhmm) => clock(`2000-01-01T${hhmm.slice(0, 5)}:00`);
   const day = (d: number) => {
@@ -65,13 +69,17 @@ export default function MenuScreen() {
   const cats = useMemo(() => {
     const m = menu.data;
     if (!m) return [];
-    return [...m.categories, ...(m.uncategorized_items.length ? [{ name: more, items: m.uncategorized_items }] : [])];
+    const names = Object.fromEntries(m.option_groups.map((g) => [g.id, g.name]));
+    const rows = m.items.map((i): Row => ({ ...i, groupNames: i.option_group_ids.map((g) => names[g] ?? "").filter(Boolean) }));
+    const loose = rows.filter((i) => !i.category_id);
+    return [...m.categories.map((c) => ({ name: c.name, hidden: !c.is_active, items: rows.filter((i) => i.category_id === c.id) })),
+      ...(loose.length ? [{ name: more, hidden: false, items: loose }] : [])];
   }, [menu.data, more]);
   const current = cat ?? cats[0]?.name ?? null;
   const items = (q ? cats.flatMap((c) => c.items) : cats.find((c) => c.name === current)?.items ?? [])
     .filter((i) => !q || i.name.toLowerCase().includes(q.toLowerCase()));
 
-  async function toggle(i: MenuItem) {
+  async function toggle(i: Row) {
     const out = !(i.sold_out_today ?? false);
     try {
       unwrap(await api.core.PUT("/api/v1/restaurants/{restaurant_id}/menu-items/{item_id}/sold-out", {
@@ -98,13 +106,18 @@ export default function MenuScreen() {
   const prep = today.data ? today.data.prep_minutes - today.data.busy_extra_minutes : 20;
   const itemsPanel = (
     <View style={[s.panel, stacked ? { minHeight: 420 } : { flex: 1.6 }, narrow && s.panelNarrow]} accessibilityLabel={tr("partner.menu.items")}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingBottom: 12 }}>
+        <Btn testID="add-dish" title={tr("partner.edit.add_dish")} kind="primary" onPress={() => setDish("new")} disabled={!menu.data} />
+        <Btn testID="manage-categories" title={tr("partner.edit.categories")} onPress={() => setSheet("categories")} disabled={!menu.data} />
+        <Btn testID="menu-history" title={tr("partner.edit.history")} onPress={() => setSheet({ history: null })} disabled={!menu.data} />
+      </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 8, paddingBottom: 12 }}>
         {cats.map((c, ci) => {
           const on = !q && c.name === current;
           return (
             <Pressable key={c.name} testID={`category-${ci}`} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => { setQ(""); setCat(c.name); }}
               style={[s.chip, on && { backgroundColor: color.kohl, borderColor: color.kohl }]}>
-              <Text style={[type.label, { color: on ? color.white : color.kohl }]}>{c.name} · {c.items.length}</Text>
+              <Text style={[type.label, { color: on ? color.white : color.kohl }]}>{c.name} · {c.items.length}{c.hidden ? ` · ${tr("partner.edit.hidden")}` : ""}</Text>
             </Pressable>
           );
         })}
@@ -123,7 +136,10 @@ export default function MenuScreen() {
         {!menu.data && !menu.failure ? <ActivityIndicator accessibilityLabel={tr("common.loading")} color={color.peacock} style={{ paddingVertical: 16 }} /> : null}
         {items.map((i, n) => {
           const inStock = i.is_available && !i.sold_out_today;
-          const groups = (i.option_groups ?? []).map((g) => g.name.toLowerCase());
+          const groups = i.groupNames.map((g) => g.toLowerCase());
+          // R43: why customers don't see it, or when it's served
+          const tags = [!i.is_available ? tr("partner.edit.off_tag") : null,
+            i.available_from && i.available_until ? `${hm(i.available_from)} – ${hm(i.available_until)}` : null].filter(Boolean);
           const price = <Text style={[type.label, num, { width: narrow ? undefined : 96, paddingLeft: narrow ? 0 : 8 }]}>{cash(i.price, cur)}</Text>;
           const stock = (
             <Pressable accessibilityRole="switch" accessibilityState={{ checked: inStock }} accessibilityLabel={tr("partner.menu.in_stock_label", { name: i.name })}
@@ -137,12 +153,12 @@ export default function MenuScreen() {
           return (
             <View key={i.id} style={[s.tr, narrow && s.trNarrow]}>
               <Pressable testID={n === 0 ? "menu-item-0" : `menu-item-${i.id}`} accessibilityRole="button"
-                accessibilityLabel={tr("partner.photo.open", { name: i.name })} onPress={() => setEditing(i)}
+                accessibilityLabel={tr("partner.edit.open", { name: i.name })} onPress={() => setDish(i)}
                 style={({ pressed }) => [{ flex: narrow ? undefined : 1, flexDirection: "row", gap: 12, alignItems: "center", minHeight: narrow ? 52 : 64 },
                   pressed && { opacity: 0.7 }]}>
                 <View style={[s.veg, { borderColor: i.is_veg ? "#2E7D32" : "#8C1D18" }]}><View style={[s.vegDot, { backgroundColor: i.is_veg ? "#2E7D32" : "#8C1D18" }]} /></View>
                 <View style={{ flex: 1 }}>
-                  <Text style={type.label}>{i.name}</Text>
+                  <Text style={type.label}>{i.name}{tags.length ? <Text style={[type.caption, { color: tone.kesarInk }]}>{`  ${tags.join(" · ")}`}</Text> : null}</Text>
                   <Text style={t.muted} numberOfLines={1}>
                     {i.sold_out_today ? tr("partner.menu.back_tomorrow") : groups.length ? groups.join(", ") : i.description || (i.is_veg ? tr("common.veg") : "")}
                   </Text>
@@ -238,9 +254,21 @@ export default function MenuScreen() {
         offers.setData(unwrap(await api.core.POST("/api/v1/restaurants/{restaurant_id}/offers", { params: { path: { restaurant_id: id } }, body })));
         setCreating(false);
       }} />
+      {dish && menu.data ? (
+        <DishEditor key={dish === "new" ? "new" : dish.id} data={menu.data} dish={dish === "new" ? null : dish} onClose={() => setDish(null)}
+          onSaved={async () => { setDish(null); await menu.reload(); }}
+          onPhoto={(d) => setEditing({ ...d, price: d.price })}
+          onHistory={(d) => setSheet({ history: { id: d.id, name: d.name } })} />
+      ) : null}
+      {sheet === "categories" && menu.data ? (
+        <CategoriesEditor data={menu.data} onClose={() => setSheet(null)} onChanged={async () => { await menu.reload(); }} />
+      ) : null}
+      {sheet && sheet !== "categories" ? (
+        <HistorySheet rid={id} currency={cur} item={sheet.history} onClose={() => setSheet(null)} />
+      ) : null}
       {editing ? (
         <DishPhoto key={editing.id} item={editing} currency={cur} kitchenId={id} onClose={() => setEditing(null)}
-          onSaved={async () => { setEditing(null); await menu.reload(); }} />
+          onSaved={async () => { setEditing(null); setDish(null); await menu.reload(); }} />
       ) : null}
     </SafeAreaView>
   );

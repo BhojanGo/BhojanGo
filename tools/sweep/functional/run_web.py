@@ -28,6 +28,7 @@ from playwright.sync_api import sync_playwright  # noqa: E402
 import admin  # noqa: E402,F401  (registers the admin functions)
 import apps  # noqa: E402,F401  (the app screens: Maestro flows, and the API checks run here)
 import web  # noqa: E402,F401  (registers the website functions)
+import r43  # noqa: E402,F401  (R43: menu editing where customers and admins see it)
 
 OUT = os.environ.get("OUT", "/out")
 ONLY = re.compile(os.environ.get("ONLY", ".*"))

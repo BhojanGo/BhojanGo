@@ -113,10 +113,48 @@
     "in"
    ],
    "action": "Open the page with core-api stopped",
-   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
-   "verify": "UI: body text, no Next.js error page",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load; in under 4 s (R43)",
+   "verify": "UI: body text, no Next.js error page; the page's navigation timing (DOMContentLoaded < 4 s)",
    "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
    "test": "web/checkout#api-down"
+  },
+  {
+   "id": "held-price-at-pay",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "At checkout (price held), the restaurant raises the dish's price; then Pay",
+   "expected": "The order is charged the held (quoted) price, not the new one",
+   "verify": "UI: Pay amount; API: the quote the page received, GET /orders/{id}; DB: orders.total, the order's item price",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout#held-price-at-pay"
+  },
+  {
+   "id": "price-changed-after-hold",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "At checkout, the restaurant raises the price; the 10-minute hold runs out (browser clock moved on); Get a fresh price",
+   "expected": "The cart is re-priced and says 'Price changed: <dish> <old> → <new>' above Pay; Pay = the new quote's total",
+   "verify": "UI: the notice, the Pay amount; API: the old and new quotes the page received (items' unit_price)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/checkout#price-changed-after-hold"
+  },
+  {
+   "id": "stripe-full-path",
+   "kind": "number",
+   "users": [
+    "us"
+   ],
+   "action": "Menu → cart → checkout → Stripe Payment Element, card 4242 → tracking to delivered → receipt → refund one dish",
+   "expected": "Placed by Stripe's webhook; PaymentIntent and charge = the order's total, captured; every status in order; receipt = Stripe's amount; Stripe's Refund = the stored refund; payment row partially refunded",
+   "verify": "Stripe API (PaymentIntent, Charge, Refund) vs API (order, refunds) and DB (payment_intents)",
+   "run": "stripe test mode: tools/stripe_e2e/test_r43_full_path.py (Railway qa-runner)",
+   "maestro": "stripe-r43_full_us_path_on_stripe"
   }
  ]
 }

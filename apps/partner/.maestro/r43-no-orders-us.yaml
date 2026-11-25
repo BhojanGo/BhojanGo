@@ -1,0 +1,8 @@
+# R43: no-orders (us, Spud & Sage). See r43/no-orders.yaml.
+appId: com.bhojango.partner
+env:
+  MARKET: "us"
+  EMAIL: "partner.boi@example.com"
+  REST: "Spud & Sage"
+---
+- runFlow: r43/no-orders.yaml

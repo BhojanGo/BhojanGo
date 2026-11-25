@@ -386,11 +386,24 @@ class Sessions:
 sessions = Sessions()
 
 
+DOWN_LIMIT_MS = 4000
+
+
+def render_ms(p: Any) -> float:
+    """R43: how long the page took to show (navigation timing: the request to DOMContentLoaded); fails at 4 s or more."""
+    ms = p.evaluate("() => { const n = performance.getEntriesByType('navigation')[0]; return n ? n.domContentLoadedEventEnd : -1; }")
+    ok(0 <= ms < DOWN_LIMIT_MS, f"rendered in {ms / 1000:.1f} s with core-api down (limit {DOWN_LIMIT_MS / 1000:.0f} s)")
+    return ms
+
+
 def down_state(t: T, path: str, who: str | None = None, cached_ok: bool = False) -> str:
     """With core-api stopped: the page still renders (no crash, no blank) and says it couldn't load. A website page the
     server renders may instead show its last good copy (Next.js keeps serving it): cached_ok accepts that when the page
     has its heading and real content, not an empty shell."""
     p = t.open(path, who=who)
+    # R43: with core-api down a page renders fast (the website's server-side calls give up after 2.5 s): the page's
+    # own navigation timing, from the request to the page shown (DOMContentLoaded), under 4 s
+    ms = render_ms(p)
     p.wait_for_timeout(1500)  # a client page's first calls fail, then it says so
     body = p.locator("body").inner_text()
     ok(len(body.strip()) > 40, "a blank page")
@@ -400,10 +413,10 @@ def down_state(t: T, path: str, who: str | None = None, cached_ok: bool = False)
                      r"no connection|isn.t loading|didn.t load|reach", body, re.I)
     t.shot("api-down")
     if said:
-        return f"renders with: {said.group(0)!r}"
+        return f"renders in {ms / 1000:.1f} s with: {said.group(0)!r}"
     main = p.locator("main").first.inner_text() if p.locator("main").count() else body
     if cached_ok and p.get_by_role("heading", level=1).count() and len(main.strip()) > 300:
-        return f"renders its last good copy (Next.js cache): {p.get_by_role('heading', level=1).first.inner_text()[:60]!r}, {len(main)} characters"
+        return f"renders in {ms / 1000:.1f} s its last good copy (Next.js cache): {p.get_by_role('heading', level=1).first.inner_text()[:60]!r}, {len(main)} characters"
     raise Fail(f"no message that it couldn't load{' and no cached content' if cached_ok else ''}: {body[:160]!r}")
 
 

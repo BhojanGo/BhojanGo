@@ -1,0 +1,166 @@
+# R43 (brief item 1): menu editing on the tablet, US or India (MARKET). Add a dish typed field by field (the price
+# rules first: 0, then too many decimals / paise), check it in the API; change its price by more than 50% (the app
+# asks first); open its photo screen; read its history (old -> new, as the API's); delete it (gone for customers,
+# kept on past orders); a customer can't use the editing API. scripts/r43_menu.js checks each step.
+appId: com.bhojango.partner
+---
+- runFlow: open-menu.yaml
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: setup, MARKET: "${MARKET}" }
+- takeScreenshot: docs/screenshots/partner/r43-menu-${MARKET}-before
+- tapOn:
+    id: "add-dish"
+- extendedWaitUntil:
+    visible:
+      id: "dish-editor"
+    timeout: 15000
+- tapOn:
+    id: "dish-name"
+- inputText: ${output.name}
+- tapOn:
+    id: "dish-description"
+- inputText: "Made fresh for round 43"
+- hideKeyboard
+# the price rules, in the editor's words, before anything is saved
+- tapOn:
+    id: "dish-price"
+- inputText: "0"
+- hideKeyboard
+- tapOn:
+    id: "dish-save"
+- assertVisible: "Enter a price more than 0"
+- tapOn:
+    id: "dish-price"
+- eraseText: 10
+- inputText: ${output.bad}
+- hideKeyboard
+- tapOn:
+    id: "dish-save"
+- assertVisible: "${MARKET == 'us' ? '.*at most 2 decimals.*' : 'Prices in rupees are whole numbers.*'}"
+- takeScreenshot: docs/screenshots/partner/r43-menu-${MARKET}-price-rule
+- tapOn:
+    id: "dish-price"
+- eraseText: 10
+- inputText: ${output.base}
+- hideKeyboard
+- tapOn:
+    id: "dish-category-0"
+- runFlow:
+    when:
+      true: ${MARKET == 'in'}
+    commands:
+      - tapOn: "Veg or non-veg Veg"
+- tapOn: "Spice level Medium"
+- takeScreenshot: docs/screenshots/partner/r43-menu-${MARKET}-new-dish
+- scrollUntilVisible:
+    element:
+      id: "dish-save"
+    direction: DOWN
+- tapOn:
+    id: "dish-save"
+- extendedWaitUntil:
+    notVisible:
+      id: "dish-editor"
+    timeout: 20000
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: dish, MARKET: "${MARKET}", NAME: "${output.name}", PRICE: "${output.base}", SPICE: "2", DESC: "Made fresh for round 43", VEG: "true" }
+# find it, open it, change the price by more than 50%: the app asks first
+- tapOn:
+    id: "menu-search"
+- inputText: ${output.name}
+- hideKeyboard
+- takeScreenshot: docs/screenshots/partner/r43-menu-${MARKET}-added
+- tapOn: ${output.name}
+- extendedWaitUntil:
+    visible:
+      id: "dish-editor"
+    timeout: 15000
+- tapOn:
+    id: "dish-price"
+- eraseText: 10
+- inputText: ${output.big}
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "dish-save"
+    direction: DOWN
+- tapOn:
+    id: "dish-save"
+- extendedWaitUntil:
+    visible: 'Change the price by \d+%\?'
+    timeout: 15000
+- takeScreenshot: docs/screenshots/partner/r43-menu-${MARKET}-big-change
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: price, MARKET: "${MARKET}", NAME: "${output.name}", PRICE: "${output.base}" }
+- tapOn:
+    id: "android:id/button1"
+- extendedWaitUntil:
+    notVisible:
+      id: "dish-editor"
+    timeout: 20000
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: price, MARKET: "${MARKET}", NAME: "${output.name}", PRICE: "${output.big}" }
+# the photo screen from the editor (camera or gallery; nothing picked here: the r42 photo flow uploads)
+- tapOn: ${output.name}
+- extendedWaitUntil:
+    visible:
+      id: "edit-photo"
+    timeout: 15000
+- tapOn:
+    id: "edit-photo"
+- extendedWaitUntil:
+    visible:
+      id: "dish-photo"
+    timeout: 15000
+- assertVisible:
+    id: "photo-take"
+- assertVisible:
+    id: "photo-choose"
+- takeScreenshot: docs/screenshots/partner/r43-menu-${MARKET}-photo
+- tapOn:
+    id: "photo-cancel"
+# its history: added, then the price change, as the API's
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: history, MARKET: "${MARKET}", NAME: "${output.name}", OLD: "${output.base}", NEW: "${output.big}" }
+- scrollUntilVisible:
+    element:
+      id: "dish-history"
+    direction: DOWN
+- tapOn:
+    id: "dish-history"
+- extendedWaitUntil:
+    visible:
+      id: "history-0"
+    timeout: 15000
+- assertVisible: ${output.line}
+- takeScreenshot: docs/screenshots/partner/r43-menu-${MARKET}-history
+- tapOn:
+    id: "menu-history-close"
+# delete it
+- scrollUntilVisible:
+    element:
+      id: "dish-delete"
+    direction: DOWN
+- tapOn:
+    id: "dish-delete"
+- extendedWaitUntil:
+    visible: "Delete ${output.name}\?"
+    timeout: 10000
+- tapOn:
+    id: "android:id/button1"
+- extendedWaitUntil:
+    notVisible:
+      id: "dish-editor"
+    timeout: 20000
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: gone, MARKET: "${MARKET}", NAME: "${output.name}" }
+- takeScreenshot: docs/screenshots/partner/r43-menu-${MARKET}-deleted
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: wrongrole, MARKET: "${MARKET}" }

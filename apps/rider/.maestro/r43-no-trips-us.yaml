@@ -1,0 +1,8 @@
+appId: com.bhojango.rider
+env:
+  MARKET: "us"
+  PHONE: "2085550202"
+  COUNTRY: "US"
+  RIDER: "rider2.boi@example.com"
+---
+- runFlow: r43-no-trips.yaml

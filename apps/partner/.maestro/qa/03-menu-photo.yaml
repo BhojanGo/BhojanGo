@@ -13,6 +13,13 @@ appId: com.bhojango.partner
 - takeScreenshot: docs/screenshots/partner/qa/03-menu
 - tapOn:
     id: "menu-item-0"
+# R43: a dish opens its editor; its photo screen is the Photo button there (nothing is saved)
+- extendedWaitUntil:
+    visible:
+      id: "edit-photo"
+    timeout: 10000
+- tapOn:
+    id: "edit-photo"
 - extendedWaitUntil:
     visible:
       id: "dish-photo"
@@ -47,5 +54,7 @@ appId: com.bhojango.partner
     notVisible:
       id: "dish-photo"
     timeout: 10000
+- tapOn:
+    id: "dish-editor-close"  # R43: then the dish's editor, unchanged
 - assertVisible:
     id: "menu-screen"

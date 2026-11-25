@@ -1,0 +1,20 @@
+# R43 (r42 gap): a restaurant with no orders today (REST): every column of the board is empty, today's count and
+# sales 0 (scripts/r43_empty.js checks the API says the same).
+appId: com.bhojango.partner
+---
+- runFlow:
+    file: ../sign-in-email.yaml
+    env:
+      EMAIL: ${EMAIL}
+- extendedWaitUntil:
+    visible: 'Which restaurant is this tablet for\?'
+    timeout: 60000
+- tapOn: ${REST}
+- extendedWaitUntil:
+    visible: 'New orders ring here\.'
+    timeout: 30000
+- runScript:
+    file: ../scripts/r43_empty.js
+    env: { STEP: board, MARKET: "${MARKET}", REST: "${REST}" }
+- assertNotVisible: "Accept"
+- takeScreenshot: docs/screenshots/partner/r43-no-orders-${MARKET}

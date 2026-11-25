@@ -137,9 +137,13 @@ export default function RestaurantScreen() {
 function DishRow({ item, restaurant, currency, blocked, lines, otherCart }: {
   item: MenuItem; restaurant: { id: string; name: string }; currency: string; blocked: string | null; lines: BagLine[]; otherCart: boolean;
 }) {
-  const { t, money } = useI18n();
+  const { t, money, time } = useI18n();
   const bag = useBag();
-  const off = !item.is_available || !!item.sold_out_today;
+  // R43: outside its hours (breakfast 7-11): listed with its hours, not orderable
+  const later = item.available_now === false && !!item.schedule;
+  const wall = (hm: string) => time(`2000-01-01T${hm}:00Z`, { timeZone: "UTC" });
+  const hours = item.schedule ? t("kitchen.served_between", { from: wall(item.schedule.from ?? ""), until: wall(item.schedule.until ?? "") }) : null;
+  const off = !item.is_available || !!item.sold_out_today || later;
   const qty = lines.reduce((n, l) => n + l.quantity, 0);
   const choose = item.option_groups.some((g) => g.min_picks > 0); // a size or spice to pick first
   const open = () => router.push({ pathname: "/item", params: { restaurantId: restaurant.id, itemId: item.id } });
@@ -180,7 +184,7 @@ function DishRow({ item, restaurant, currency, blocked, lines, otherCart }: {
       testID={`dish-${item.id}`}
       accessibilityRole="button"
       accessibilityLabel={item.name}
-      accessibilityHint={off ? t("kitchen.sold_out_today") : blocked ?? t("kitchen.add_dish", { name: item.name })}
+      accessibilityHint={later ? hours! : off ? t("kitchen.sold_out_today") : blocked ?? t("kitchen.add_dish", { name: item.name })}
       accessibilityState={{ disabled: off }}
       disabled={off}
       onPress={open}
@@ -189,8 +193,10 @@ function DishRow({ item, restaurant, currency, blocked, lines, otherCart }: {
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={[type.label, { color: color.kohl }]}>{item.name}</Text>
         <Text style={[type.label, { color: color.kohl }]}>
-          {off ? t("kitchen.sold_out_today") : money(item.price, currency)}
+          {off && !later ? t("kitchen.sold_out_today") : money(item.price, currency)}
         </Text>
+        {item.spice_level ? <Text testID="dish-spice" style={[type.small, { color: color.chili }]}>{"🌶".repeat(item.spice_level)} {t(`kitchen.spice_${item.spice_level}`)}</Text> : null}
+        {hours ? <Text testID="dish-hours" style={[type.small, { color: later ? color.chili : color.muted }]}>{hours}</Text> : null}
         {item.description ? (
           <Text numberOfLines={2} style={[type.small, { color: color.muted }]}>{item.description}</Text>
         ) : null}

@@ -1,0 +1,8 @@
+# R43: payouts-setup (us, Spud & Sage). See r43/payouts-setup.yaml.
+appId: com.bhojango.partner
+env:
+  MARKET: "us"
+  EMAIL: "partner.boi@example.com"
+  REST: "Spud & Sage"
+---
+- runFlow: r43/payouts-setup.yaml

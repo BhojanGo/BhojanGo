@@ -33,14 +33,14 @@ export type { LoadFailure, LoadState } from "./load";
 export { REFRESH_TIMEOUT_MS, RefreshTimeoutError, singleFlight } from "./refresh";
 export { LoadError, loadErrorText, UnreachableScreen, useFirstLoad } from "./ui/load-error";
 export type { LoadErrorProps } from "./ui/load-error";
-export { cartItems, defaultPicks, useBag } from "./bag";
+export { cartItems, defaultPicks, priceChanges, useBag } from "./bag";
 // B2: quick messages between the customer and the rider during an order.
 export { QuickChat, useQuickMessages } from "./chat";
 // R19: Account -> Legal and Delete account in the Kitchen and Delivery apps.
 export { DeleteAccount, LegalLinks, legalUrl, SignInLegal } from "./account";
 export { deleteAccountProblem, legalPageUrl } from "./account-text";
 export type { AccountTone } from "./account";
-export type { BagLine, OptionGroup, Pick } from "./bag";
+export type { BagLine, OptionGroup, Pick, PriceChange } from "./bag";
 export { ACTIVE_STATUSES, ApiError, errorMessage, quoteRefusal, unwrap, type QuoteRefusal } from "@bhojango/api-client";
 export type { CoreSchemas, OrderStatus } from "@bhojango/api-client";
 

@@ -39,10 +39,10 @@ screen(C, "(tabs)/home", ("restaurants", "navigation", "Scroll the list, open a 
        (*DOWN, "r42-api-down"), nas=(("permission", "Home is the customer's own; every customer may open it"),))
 screen(C, "(tabs)/search", ("search", "filter", "Search 'curry'", "Restaurants and dishes matching", "UI vs /search", "r36-search-curry"),
        ("tabbar", "navigation", "Tab bar clears the content", "Nothing under the tab bar", "UI", "tabbar-clearance"),
-       ("nothing-found", "empty", "Search nonsense", "'Nothing found'", "UI", NOT_YET),
+       ("nothing-found", "empty", "Search nonsense", "'Nothing matches “…” nearby'", "UI", "r43-new-account-{user}"),
        (*DOWN, "r42-api-down"), nas=(("permission", "any signed-in customer"),))
 screen(C, "(tabs)/orders", ("list-and-receipt", "link", "Open a past order", "Its receipt", "UI", "orders-receipt"),
-       ("no-orders", "empty", "A new customer's Orders", "'No orders yet'", "UI", NOT_YET),
+       ("no-orders", "empty", "A new customer's Orders", "'No orders yet.'", "UI; API: GET /orders is empty", "r43-new-account-{user}"),
        (*DOWN, "r42-api-down"), nas=(("permission", "only the signed-in customer's own orders are fetched (API: GET /orders is per user; access sweep)"),))
 screen(C, "(tabs)/account", ("account", "navigation", "Open each account row", "Each page opens", "UI", "account"),
        ("pages", "link", "Addresses, payments, notifications, privacy", "Each opens with its data", "UI", "account-pages"),
@@ -51,7 +51,7 @@ screen(C, "account/address", ("form", "form", "Add an address, US and India form
                               "r41-sweep-us"), ("form-in", "form", "India address form", "PIN code, state", "UI", "r41-sweep-in", ("in",)),
        nas=(("permission", "the customer's own addresses"), ("empty", "a form"), ("error", "the form's own checks (r41-sweep); API down: the account tab's (r42-api-down)")))
 screen(C, "account/addresses", ("list", "button", "Make default, delete", "List follows", "UI", "account-pages"),
-       ("none", "empty", "A new customer", "'No saved addresses' + Add", "UI", NOT_YET),
+       ("none", "empty", "A new customer", "'No saved addresses yet.' + Add", "UI; API: GET /me/addresses is empty", "r43-new-account-{user}"),
        nas=(("permission", "own addresses"), ("error", "API down: r42-api-down (account tab)")))
 screen(C, "account/language", ("switch", "toggle", "Switch language and back", "The whole app in that language", "UI", "account-language"),
        nas=(("permission", "own setting"), ("empty", "a list of languages"), ("error", "works offline (a local setting)")))
@@ -74,12 +74,12 @@ screen(C, "bag", ("bill-equals-quote", "number", "Add the dish, open the cart", 
        ("pay", "form", "Pay and approve (test provider)", "Tracking opens", "UI", "order-and-track", ("in",)),
        ("languages", "toggle", "The cart in each language", "Fits, translated", "UI", "cart-languages"),
        ("declined", "error", "Decline the payment", "'Payment failed' and retry", "UI", "payment-failed"),
-       ("empty-cart", "empty", "Open the cart with nothing in it", "'Your cart is empty'", "UI", NOT_YET),
+       ("empty-cart", "empty", "Open the cart with nothing in it", "'Your cart is empty'", "UI", "r43-new-account-{user}"),
        nas=(("permission", "the customer's own cart on the device"),))
 screen(C, "code", ("otp", "form", "Enter the 6-digit code", "Signed in", "UI", "sign-in-email"),
-       ("wrong-code", "error", "A wrong code", "Refused", "UI", NOT_YET), nas=(PUBLIC, ("empty", "a form")))
+       ("wrong-code", "error", "A wrong code, then the right one", "Refused with a message; the right code signs in", "UI", "r43-wrong-code-{user}"), nas=(PUBLIC, ("empty", "a form")))
 screen(C, "favourites", ("list", "button", "Saved restaurants; unsave", "List follows the API", "UI", "r41-sweep-us"),
-       ("none", "empty", "A new customer", "'No favourites yet'", "UI", NOT_YET),
+       ("none", "empty", "A new customer", "'Nothing saved yet…'", "UI; API: favourites empty", "r43-new-account-{user}"),
        nas=(("permission", "own favourites"), ("error", "API down: r42-api-down")))
 screen(C, "gallery", ("components", "display", "Developer gallery", "Every component renders", "UI", "gallery", ("us",)),
        nas=(("permission", "a developer screen, not in the release build"), ("empty", "fixed"), ("error", "no data"),
@@ -100,6 +100,11 @@ screen(C, "report/[id]", ("report-refund", "form", "Report a missing item", "Ref
        nas=(("permission", "own orders only (API refuses others)"), ("empty", "about one order"), ("error", "Send disabled until chosen (report-problem)")))
 screen(C, "restaurant/[id]", ("menu", "button", "Add, customise", "In the cart", "UI", "order-and-track", ("in",)),
        ("closed", "display", "A closed restaurant", "Banner, no adds", "UI", "r36-pickup-closed", ("in",)),
+       # R43: a menu change reaching the app (measured), a dish outside its hours, spice
+       ("menu-change", "number", "The restaurant changes a dish's price; the customer opens the restaurant",
+        "The new price shows within 60 s (measured from the change)", "UI vs GET /restaurants/{id}/menu (scripts/r43_menu.js)", "r43-propagation-{user}"),
+       ("dish-hours", "display", "A dish served only at other hours, spice Medium", "'Served … – …', no Add; '🌶🌶 Medium'", "UI vs the menu API",
+        "r43-propagation-{user}"),
        nas=(PUBLIC, ("empty", "a menu always has dishes (a closed one: see closed)"), ("error", "API down: r42-api-down")))
 screen(C, "where", ("set-location", "form", "Choose a city and address", "Home for that place", "UI", "r41-sweep-us"),
        nas=(PUBLIC, ("empty", "a picker"), ("error", "API down: r42-api-down")))
@@ -122,17 +127,33 @@ screen(P, "(kitchen)/orders", ("accept-ready-busy-pause", "button", "Accept with
        ("reject", "button", "Reject an order", "Gone; the customer refunded in full", "UI; API: cancelled + refunded", "r42-reject-lock", ("in",)),
        ("pickup-code", "form", "Pickup code: wrong, then right", "Wrong refused; right hands over", "UI; API", "pickup", ("in",)),
        ("pickup-locked", "error", "Wrong pickup code 5 times", "Locked: 'Too many wrong codes'", "UI; API 423", "r42-reject-lock", ("in",)),
-       ("no-orders", "empty", "No orders", "An empty board", "UI", NOT_YET),
+       ("no-orders", "empty", "A restaurant with no orders today", "Every column empty, counts 0", "UI; API: today's orders = 0", "r43-no-orders-{user}"),
        (*DOWN, "r42-api-down"), nas=(("permission", "a restaurant sees only its own orders (API: access sweep)"),))
 screen(P, "(kitchen)/menu", ("stock-to-web", "toggle", "Mark a dish sold out, then back in stock",
                              "The website's menu shows 'Sold out' and clears it, each within 90 s (measured)", "UI; website page; API menu",
                              "r42-stock-web", ("in",)),
        ("offers-hours", "form", "Create and end an offer; search", "Offer live then ended", "UI", "menu", ("in",)),
-       (*DOWN, "r42-api-down"), nas=(("permission", "own menu"), ("empty", "a restaurant's menu has dishes")))
+       # R43: menu editing
+       ("add-edit-delete", "form", "Add a dish (name, description, price, category, veg/non-veg in India, spice); edit every field; delete it",
+        "Saved as typed (API equal field by field); deleted: off the menu, kept on past orders", "UI; API GET /menu/manage, /menu", "r43-menu-edit-{user}"),
+       ("price-rules", "error", "A price of 0, ₹120.50 (India) / $12.999 (US), then a change of more than 50%",
+        "Refused with the rule in words; the big change asks 'Change the price by N%?' and saves only on Change price", "UI; API price unchanged until confirmed",
+        "r43-menu-edit-{user}"),
+       ("photo", "button", "Open a dish's photo from the editor (camera or gallery)", "The photo screen with the preview", "UI", "r43-menu-edit-{user}"),
+       ("categories", "button", "Add a category, rename it, set its hours, hide it, drag it to the top", "Each saved; the order customers see follows",
+        "UI; API GET /menu/manage, /menu (order, names, hidden)", "r43-categories-{user}"),
+       ("options", "form", "A new option group (required, at least 1 / at most 1, priced options) on a dish", "Saved; the quote adds the option's price",
+        "UI; API POST /pricing/quote", "r43-options-{user}"),
+       ("schedule", "form", "Serve a dish only at set hours", "Saved; customers see its hours and can't order it outside them", "UI; API menu available_now",
+        "r43-options-{user}"),
+       ("history", "display", "Open History after the changes", "Each change: who, when, old → new; as the API's history", "UI vs GET /menu/history",
+        "r43-menu-edit-{user}"),
+       ("wrong-role", "permission", "A customer's token on the restaurant's menu editing API", "403", "API", "r43-menu-edit-{user}"),
+       (*DOWN, "r42-api-down"), nas=(("empty", "a restaurant's menu has dishes"),))
 screen(P, "(kitchen)/payouts", ("statements", "number", "Open Payouts", "Each weekly statement's amount = the restaurant's statement in the API",
                                 "UI vs GET /finance/statements/me (scripts/r42_partner.js)", "r42-payouts", ("in",)),
        ("none-yet", "empty", "Before the first payout", "'Your first statement shows here…'", "UI", "r42-payouts", ("in",)),
-       ("set-up", "button", "Set up payouts / Continue set-up", "The payout provider's set-up opens", "UI", NOT_YET),
+       ("set-up", "button", "A restaurant without a payout account: Set up payouts", "The payout provider's set-up page opens", "UI; API: onboarding link", "r43-payouts-setup-{user}"),
        (*DOWN, "r42-api-down"), nas=(("permission", "own statements only (API refuses others)"),))
 screen(P, "(kitchen)/help", ("help", "link", "Open help topics", "Articles", "UI", "help"),
        nas=(("permission", "any partner"), ("empty", "always topics"), ("error", "API down: r42-api-down")))
@@ -164,7 +185,7 @@ screen(R, "(tabs)/drive", ("online-offer-deliver", "button", "Go online, accept 
 screen(R, "(tabs)/earnings", ("week-total", "number", "Open Earnings after a delivery", "The week's total = the API's; each trip = delivery fee + tip",
                               "UI vs GET /finance/earnings/me (scripts/r42_earnings.js)", "r42-earnings", ("in",)),
        ("after-delivery", "display", "Earnings after the delivery", "The trip listed", "UI", "deliver", ("in",)),
-       ("nothing-yet", "empty", "A rider with no trips this week", "Zero, said plainly", "UI", NOT_YET),
+       ("nothing-yet", "empty", "A rider with no trips this week", "Zero, said plainly", "UI vs GET /finance/earnings/me (0)", "r43-no-trips-{user}"),
        ("open-payouts", "link", "Open past payouts from Earnings", "The payouts screen", "UI", "sos", ("in",)),
        (*DOWN, "r42-api-down"), nas=(("permission", "own earnings only (API: delivery partners only)"),))
 screen(R, "(tabs)/account", ("account-sos", "button", "Account; SOS", "SOS screen", "UI", "sos", ("in",)),

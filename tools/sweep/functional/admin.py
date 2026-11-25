@@ -9,7 +9,9 @@ import json
 import re
 import time
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from typing import Any
+from zoneinfo import ZoneInfo
 from decimal import Decimal
 
 from framework import (ADMIN, MARKET, Fail, T, amounts, amounts_backed, api, dates_backed, down_state, fn, money, na, ok, sql,
@@ -584,8 +586,29 @@ def _(t: T) -> str:
     ok(sid, "no restaurant statement (prepare-approve makes one)")
     p = t.open(f"/finance/statements/{sid}", who=fin)
     s = api("GET", f"/finance/statements/{sid}", token(fin))
-    tz = "America/Boise" if cc == "US" else "Asia/Kolkata"
-    return amounts_backed(t.text(), s, *t.seen()) + "; " + dates_backed(t.text(), tz, s, *t.seen())
+    want_tz = "America/Boise" if cc == "US" else "Asia/Kolkata"
+    ok(s.get("timezone") == want_tz, f"statement time zone {s.get('timezone')} != the payout zone {want_tz}")
+    p.locator('[data-testid="delivered-at"]').first.wait_for(timeout=15000)
+    return amounts_backed(t.text(), s, *t.seen()) + "; " + statement_dates(p, s)
+
+
+def statement_dates(p: Any, s: dict) -> str:
+    """R43: every line's date and delivered time, as shown, against the statement's delivered_at in the payout zone
+    (the r42 check found "0 dates": the page showed the viewer's own zone, in a format it didn't read)."""
+    zone = ZoneInfo(s["timezone"])
+    cells = [c.strip() for c in p.locator('[data-testid="delivered-at"]').all_inner_texts()]
+    ok(len(cells) == len(s["lines"]), f"{len(cells)} delivered times shown for {len(s['lines'])} lines")
+    bad = []
+    for cell, line in zip(cells, s["lines"]):
+        d = datetime.fromisoformat(line["delivered_at"].replace("Z", "+00:00")).astimezone(zone)
+        want = f"{d:%a} {d.day} {d:%b}, {d.hour % 12 or 12}:{d:%M} {'AM' if d.hour < 12 else 'PM'}"
+        if cell.replace("\u202f", " ") != want:
+            bad.append(f"{cell!r} != {want!r}")
+        start, end = s.get("period_start"), s.get("period_end")
+        if start and end and not (start <= d.date().isoformat() < end):
+            bad.append(f"{want} outside the week {start}–{end}")
+    ok(not bad, f"dates/times not the statement's: {bad[:4]}")
+    return f"{len(cells)} order dates and delivered times shown, each the line's delivered_at in {s['timezone']}"
 
 
 @fn(A, ST, "unknown", kind="empty", action="Open a statement that doesn't exist", expected="Not found", verify="UI", users=("us",))

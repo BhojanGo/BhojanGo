@@ -741,6 +741,30 @@ No migration.
   the city's default tip as the website does.
 - **QA (approved):** India's restaurant documents say "restaurant" (14 texts; qa-artifacts/r42/qa-documents-change.md).
 
+## Menu editing (round 43, 2026-11-25)
+
+Migration `0055_menu_editing` (adds columns and a table; changes no row).
+
+- **The restaurant edits its menu on the tablet** (BhojanGo Kitchen → Menu): add a dish; change its name, description,
+  price, photo, category, veg/non-veg (India), spice level, on the menu, sold out today and its hours; delete it (a soft
+  delete: past orders and statements keep its name and price). Categories: add, rename, hide, hours, drag to reorder.
+  Option groups with their own prices, required or optional, at least / at most.
+- **Price rules** (API and app): more than 0, cents at most (US), whole rupees (India); a change of more than 50% asks
+  first (409 `PRICE_CONFIRM` until confirmed).
+- **Hours:** a dish or category served only between two local times shows "Served 7:00 am – 11:00 am" and can't be
+  ordered outside them (the quote refuses it).
+- **History:** every change (who, when, old → new) in `menu_changes`; the tablet's History and admin Partners → the
+  restaurant → Menu history (`GET /restaurants/{id}/menu/history`).
+- **Propagation:** the website no longer caches a menu (core-api's own menu cache is versioned): a change shows on the
+  next page view (measured 0.8 s on the local stack); the app reloads the menu when the restaurant opens.
+- **Held price:** a quote holds its prices 10 minutes (the order is charged them even if the restaurant raises one);
+  after the hold the cart is priced again and says "Price changed: <dish> <old> → <new>" above Pay (website and app).
+- **r42 gaps closed:** Maestro flows for the empty states of a new customer, a wrong sign-in code, a restaurant with no
+  orders, payouts Set up, a rider with no trips; the statement check reads every line's date and delivered time in
+  the payout zone (the admin statement showed the viewer's zone); website server-side calls give up after 2.5 s
+  (`apps/web/src/lib/coreFetch.ts`); a full US path on real Stripe test mode (`tools/stripe_e2e/test_r43_full_path.py`).
+- Report: qa-artifacts/r43/functional/index.md. New strings in 8 languages (packages/i18n/REVIEW.md, round 43).
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

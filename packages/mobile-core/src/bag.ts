@@ -38,6 +38,21 @@ interface BagState {
   setQuantity: (key: string, quantity: number) => void;
   setTip: (tip: number) => void;
   clear: () => void;
+  /** R43: the quote's prices replace the ones the cart kept (a price the restaurant changed since) */
+  reprice: (prices: Record<string, number>) => void;
+}
+
+export type PriceChange = { key: string; name: string; was: number; now: number };
+
+/** R43: dishes the quote prices differently from the cart (the restaurant changed a price since it was added).
+ *  The quote lists the cart's dishes in the cart's order (the same request), with the dish + options price. */
+export function priceChanges(lines: BagLine[], items: { menu_item_id: string; unit_price: string | number }[] | undefined): PriceChange[] {
+  if (!items || items.length !== lines.length) return [];
+  return lines.flatMap((l, i) => {
+    const q = items[i]!;
+    const now = Number(q.unit_price);
+    return q.menu_item_id === l.menuItemId && Math.abs(now - l.unitPrice) > 0.004 ? [{ key: l.key, name: l.name, was: l.unitPrice, now }] : [];
+  });
 }
 
 const keyOf = (id: string, picks: Pick[]) => `${id}|${picks.map((p) => `${p.group}=${p.option}`).sort().join(",")}`;
@@ -70,6 +85,7 @@ export const useBag = create<BagState>()((set) => ({
     }),
   setTip: (tip) => set({ tip }),
   clear: () => set({ restaurantId: null, restaurantName: null, lines: [], tip: 0, fulfillment: "delivery" }),
+  reprice: (prices) => set((s) => ({ lines: s.lines.map((l) => (l.key in prices ? { ...l, unitPrice: prices[l.key]! } : l)) })),
 }));
 
 /** The cart lines for /pricing/quote and /orders. */

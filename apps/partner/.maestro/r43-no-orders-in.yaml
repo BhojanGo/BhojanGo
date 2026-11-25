@@ -1,0 +1,8 @@
+# R43: no-orders (in, Curry Leaf). See r43/no-orders.yaml.
+appId: com.bhojango.partner
+env:
+  MARKET: "in"
+  EMAIL: "partner.hyd@example.com"
+  REST: "Curry Leaf"
+---
+- runFlow: r43/no-orders.yaml

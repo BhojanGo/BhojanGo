@@ -1,0 +1,8 @@
+# R43: new-account (us). See r43/new-account.yaml.
+appId: com.bhojango.app
+env:
+  MARKET: "us"
+  PHONE: "2085550101"
+  COUNTRY: "US"
+---
+- runFlow: r43/new-account.yaml

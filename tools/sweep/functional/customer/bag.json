@@ -75,8 +75,8 @@
    "action": "Open the cart with nothing in it",
    "expected": "'Your cart is empty'",
    "verify": "UI",
-   "run": "not automated yet (NOT RUN)",
-   "test": "none"
+   "run": "maestro: apps/customer/.maestro/r43-new-account-{user}.yaml",
+   "maestro": "r43-new-account-{user}"
   },
   {
    "id": "na-permission",

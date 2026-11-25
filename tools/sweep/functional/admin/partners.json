@@ -63,6 +63,19 @@
    "verify": "UI: body text",
    "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
    "test": "admin/partners#api-down"
+  },
+  {
+   "id": "menu-history",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Partners → Restaurants → the market's restaurant: read Menu history after a dish's price change",
+   "expected": "The newest rows are the dish's change: who (the partner's email), when (date and time), Price old → new; as the API says",
+   "verify": "UI: the Menu history table; API: GET /restaurants/{id}/menu/history",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/partners#menu-history"
   }
  ]
 }

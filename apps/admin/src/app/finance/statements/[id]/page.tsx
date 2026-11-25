@@ -20,6 +20,15 @@ interface Line {
 interface Statement {
   id: string; payee_type: string; payee_name?: string; amount: number; currency: string; status: string;
   summary: Record<string, string | number | null>; lines: Line[];
+  /** R43: the payout time zone; dates and delivered times are shown in it (never the viewer's own) */
+  timezone?: string; period_start?: string; period_end?: string;
+}
+
+/** "Mon 16 Nov, 7:05 PM" in the payout time zone. */
+function deliveredAt(iso: string, timeZone?: string): string {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString("en-GB", { timeZone, weekday: "short", day: "numeric", month: "short" }).replace(",", "");
+  return `${day}, ${d.toLocaleTimeString("en-US", { timeZone, hour: "numeric", minute: "2-digit" })}`;
 }
 
 const code = (id: string) => `#${id.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
@@ -48,7 +57,7 @@ export default function StatementPage({ params }: { params: Promise<{ id: string
         <div className="table-scroll">{/* R41: scrolls inside its card on a phone, never the page */}<table className="w-full rounded-2xl bg-white text-left" data-testid="statement-lines">
           <thead>
             <tr className="text-small text-muted">
-              <th className="p-3">Order</th><th className="p-3">Delivered</th><th className="p-3 text-right">Food subtotal</th>
+              <th className="p-3">Order</th><th className="p-3">Delivered{s.timezone ? <span className="font-normal"> ({s.timezone})</span> : null}</th><th className="p-3 text-right">Food subtotal</th>
               <th className="p-3 text-right">Commission</th><th className="p-3 text-right">Card fee</th>
               {extra.map((k) => <th key={k} className="p-3 text-right">{label[k]}</th>)}
               <th className="p-3 text-right">Payout</th>
@@ -58,7 +67,7 @@ export default function StatementPage({ params }: { params: Promise<{ id: string
             {s.lines.map((l) => (
               <tr key={l.order_id} className="border-t border-line-soft tabular-nums" data-testid="statement-line">
                 <td className="p-3 font-semibold">{code(l.order_id)}</td>
-                <td className="p-3 text-small">{new Date(l.delivered_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</td>
+                <td className="p-3 text-small" data-testid="delivered-at">{deliveredAt(l.delivered_at, s.timezone)}</td>
                 <td className="p-3 text-right">{money(n(l.food) + n(l.packaging), cur, 2)}</td>
                 <td className="p-3 text-right">{money(n(l.commission), cur, 2)}</td>
                 <td className="p-3 text-right">{money(n(l.card_fee), cur, 2)}</td>
@@ -98,7 +107,7 @@ function PartnerStatement({ s }: { s: Statement }) {
       <div className="table-scroll">{/* R41: scrolls inside its card on a phone, never the page */}<table className="w-full rounded-2xl bg-white text-left" data-testid="statement-lines">
         <thead>
           <tr className="text-small text-muted">
-            <th className="p-3">Order</th><th className="p-3">Delivered</th><th className="p-3 text-right">Road distance</th>
+            <th className="p-3">Order</th><th className="p-3">Delivered{s.timezone ? <span className="font-normal"> ({s.timezone})</span> : null}</th><th className="p-3 text-right">Road distance</th>
             <th className="p-3 text-right">Delivery fee</th><th className="p-3 text-right">Tip</th><th className="p-3 text-right">Paid</th>
           </tr>
         </thead>
@@ -106,7 +115,7 @@ function PartnerStatement({ s }: { s: Statement }) {
           {s.lines.map((l) => (
             <tr key={l.order_id} className="border-t border-line-soft tabular-nums" data-testid="statement-line">
               <td className="p-3 font-semibold">{code(l.order_id)}</td>
-              <td className="p-3 text-small">{new Date(l.delivered_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</td>
+              <td className="p-3 text-small" data-testid="delivered-at">{deliveredAt(l.delivered_at, s.timezone)}</td>
               <td className="p-3 text-right" data-testid="distance">{n(l.distance_units).toFixed(2)} {unit}</td>
               <td className="p-3 text-right">{money(pay(l), cur, 2)}</td>
               <td className="p-3 text-right">{money(n(l.tip), cur, 2)}</td>

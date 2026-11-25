@@ -1,0 +1,8 @@
+# R43: menu editing on the tablet (in). See r43/menu-edit.yaml.
+appId: com.bhojango.partner
+env:
+  MARKET: "in"
+  EMAIL: "partner.hyd@example.com"
+  REST: "Spice Route Kitchen"
+---
+- runFlow: r43/menu-edit.yaml

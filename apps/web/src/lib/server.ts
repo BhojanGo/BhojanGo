@@ -4,6 +4,7 @@
 
 import type { CoreSchemas } from "@bhojango/api-client";
 import { unstable_noStore as noStore } from "next/cache";
+import { coreFetch } from "./coreFetch";
 
 export type Directory = CoreSchemas["Directory"];
 export type DirCountry = CoreSchemas["DirCountry"];
@@ -43,7 +44,7 @@ const CORE = process.env.CORE_API_INTERNAL_URL ?? process.env.NEXT_PUBLIC_CORE_U
 
 async function get<T>(path: string, revalidate = 60): Promise<T | null> {
   try {
-    const r = await fetch(`${CORE}/api/v1${path}`, { next: { revalidate } });
+    const r = await coreFetch(`${CORE}/api/v1${path}`, { next: { revalidate } });
     if (r.status === 404) return null;
     if (!r.ok) throw new Error(`${path}: ${r.status}`);
     return (await r.json()) as T;
@@ -63,7 +64,7 @@ async function get<T>(path: string, revalidate = 60): Promise<T | null> {
 async function getOr404<T>(path: string, revalidate = 60): Promise<T | null> {
   let r: Response;
   try {
-    r = await fetch(`${CORE}/api/v1${path}`, { next: { revalidate } });
+    r = await coreFetch(`${CORE}/api/v1${path}`, { next: { revalidate } });
   } catch (e) {
     noStore();
     throw new Error(`core_api unavailable: ${(e as Error).message}`);
@@ -111,7 +112,9 @@ export async function restaurant(slug: string): Promise<Restaurant | null> {
 }
 
 export async function menu(id: string): Promise<Menu | null> {
-  return get<Menu>(`/restaurants/${id}/menu`, 60);
+  // R43: never from the website's cache: a menu change (price, name, sold out, a dish added or hidden) shows on the
+  // next page view. core_api keeps the menu cached itself until the menu changes (versioned, shared/cache_versions.py).
+  return get<Menu>(`/restaurants/${id}/menu`, 0);
 }
 
 /** A real recent bill for the zone or city (or a typical cart priced by the engine). */
@@ -133,7 +136,7 @@ export type DeliveryTerms = CoreSchemas["DeliveryTerms"];
  */
 export async function deliveryTerms(city: string): Promise<DeliveryTerms | null | "error"> {
   try {
-    const r = await fetch(`${CORE}/api/v1/delivery/terms?city=${encodeURIComponent(city)}`, { next: { revalidate: 300 } });
+    const r = await coreFetch(`${CORE}/api/v1/delivery/terms?city=${encodeURIComponent(city)}`, { next: { revalidate: 300 } });
     if (r.status === 404 || r.status === 422) return null;
     if (!r.ok) throw new Error(`terms: ${r.status}`);
     return (await r.json()) as DeliveryTerms;

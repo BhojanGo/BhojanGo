@@ -333,7 +333,7 @@ class QuoteService:
             total=result.total, tax_pending=result.tax_pending, zone=where.zone_name or "", city=city.name,
             distance=distance, distance_unit=country.distance_unit, tip_presets=presets,
             fulfillment=req.fulfillment, pickup_address=pickup_address,
-            restaurant_minimum=minimum if minimum > 0 else None, short_by=short_by,
+            restaurant_minimum=minimum if minimum > 0 else None, short_by=short_by, items=stored["items"],
         )
 
     async def get(self, user_id: uuid.UUID, quote_id: uuid.UUID) -> dict:
@@ -435,7 +435,7 @@ class QuoteService:
                 raise QuoteError("Pick a restaurant to price menu items")
             try:
                 _, priced = await price_cart(self.db, req.restaurant_id, [i.model_dump(mode="json") for i in req.cart.items],
-                                             check_open=False)
+                                             check_open=False, check_schedule=False)
             except CartError as e:
                 raise QuoteError(str(e))
             lines = [CartLine(_label(ln), ln.quantity, ln.unit_price) for ln in priced]

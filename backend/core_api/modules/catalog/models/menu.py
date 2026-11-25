@@ -1,9 +1,9 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, time
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, func
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, Numeric, SmallInteger, String, Text, Time, func
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from shared.db import Base
@@ -20,6 +20,9 @@ class MenuCategory(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # R43: served only between these local times (both set; until <= from runs past midnight), e.g. breakfast 07:00-11:00
+    available_from: Mapped[time | None] = mapped_column(Time, nullable=True)
+    available_until: Mapped[time | None] = mapped_column(Time, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -57,6 +60,10 @@ class MenuItem(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     prep_time_minutes: Mapped[int] = mapped_column(Integer, default=15, nullable=False)
     calories: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # R43: 0 none, 1 mild, 2 medium, 3 hot (None: not said); a schedule like the category's
+    spice_level: Mapped[int | None] = mapped_column(SmallInteger, CheckConstraint("spice_level BETWEEN 0 AND 3", name="ck_menu_items_spice_level"), nullable=True)
+    available_from: Mapped[time | None] = mapped_column(Time, nullable=True)
+    available_until: Mapped[time | None] = mapped_column(Time, nullable=True)
 
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -69,3 +76,25 @@ class MenuItem(Base):
 
     restaurant: Mapped["Restaurant"] = relationship("Restaurant", back_populates="menu_items")  # type: ignore[name-defined]  # noqa: F821
     category_obj: Mapped["MenuCategory"] = relationship("MenuCategory", back_populates="items")
+
+
+class MenuChange(Base):
+    """R43: the menu's history. One row per change a restaurant or an admin made: who, when, and each
+    field's old and new value ({"field", "old", "new"}). Never updated or deleted by the app."""
+
+    __tablename__ = "menu_changes"
+    __table_args__ = (Index("ix_menu_changes_restaurant_at", "restaurant_id", "at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    restaurant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("restaurants.id", ondelete="CASCADE"), nullable=False
+    )
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    actor_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    actor_kind: Mapped[str] = mapped_column(String(20), nullable=False)  # restaurant | admin
+    entity: Mapped[str] = mapped_column(String(20), nullable=False)  # dish | category | options | menu
+    entity_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    entity_name: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    action: Mapped[str] = mapped_column(String(20), nullable=False)  # added | changed | deleted | reordered
+    changes: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)

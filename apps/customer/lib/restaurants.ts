@@ -64,9 +64,10 @@ export function useKitchenCard(id: string | undefined): KitchenCard | null {
   return useDiscoverStore((s) => s.data?.restaurants?.find((k) => k.id === id) ?? null);
 }
 
+/** The restaurant's menu from core-api. R43: always asked again (a price or dish the restaurant changed shows the next
+ *  time the restaurant opens; it was kept for as long as the app ran); `menus` only lets the screen show the last copy
+ *  at once while the current one loads. */
 export async function loadMenu(id: string): Promise<Menu> {
-  const cached = menus.get(id);
-  if (cached) return cached;
   const m = unwrap(await api.core.GET("/api/v1/restaurants/{restaurant_id}/menu", { params: { path: { restaurant_id: id } } })) as unknown as {
     restaurant: Restaurant;
     categories: { name: string; items: MenuItem[] }[];

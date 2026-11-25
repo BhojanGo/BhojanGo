@@ -4,6 +4,7 @@
 // the articles for every country). Nothing here is typed into a page.
 
 import type { CoreSchemas } from "@bhojango/api-client";
+import { coreFetch } from "./coreFetch";
 
 export type HelpHome = CoreSchemas["HelpHome"];
 export type HelpTopicPage = CoreSchemas["TopicPage"];
@@ -27,7 +28,7 @@ async function load<T>(path: string, where: { country?: string | null; language:
   if (where.country) qs.set("country", where.country);
   try {
     // A minute's cache: an article published in the console shows within a minute.
-    const r = await fetch(`${CORE}/api/v1/help${path}?${qs}`, { next: { revalidate: 60 } });
+    const r = await coreFetch(`${CORE}/api/v1/help${path}?${qs}`, { next: { revalidate: 60 } });
     if (r.status === 404) return { ok: false, missing: true };
     if (!r.ok) return { ok: false, missing: false };
     return { ok: true, data: (await r.json()) as T };

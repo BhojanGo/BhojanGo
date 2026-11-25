@@ -45,10 +45,16 @@ def main() -> int:
             m = re.match(r"^(PASS|FAIL) (\w+)/([\w./-]+?) #\d+(?::\s*(.*))?$", line.strip())
             if m:
                 flow[f"{m.group(2)}/{m.group(3)}"] = m.group(1) + (f": {m.group(4)[:140]}" if m.group(4) else "")
+            # R43: the Stripe test-mode run's cases (tools/stripe_e2e: "PASS case_<name> (95s)"), as web/stripe-<name>
+            m = re.match(r"^(?:.*\| )?(PASS|FAIL) case_(\w+)(?: \((\d+)s\))?(?::\s*(.*))?$", line.strip())
+            if m:
+                flow[f"web/stripe-{m.group(2)}"] = m.group(1) + (f": {m.group(4)[:140]}" if m.group(4) else f" ({m.group(3)} s, Stripe test mode)")
+            m = re.match(r"^(?:.*\| )?R43 full path: (.*)$", line.strip())
+            if m and flow.get("web/stripe-r43_full_us_path_on_stripe", "").startswith("PASS"):
+                flow["web/stripe-r43_full_us_path_on_stripe"] = "PASS: " + m.group(1)[:200]
     for f in fw.REGISTRY:
         if f.run is not None:
             continue
-        res = flow.get(f"{f.app}/{f.maestro}", "NOT RUN") if f.maestro else "NOT RUN: no flow yet"
         shots_dir = os.path.join(out, "apps", f.app)
         have = sorted(os.listdir(shots_dir)) if os.path.isdir(shots_dir) else []
         # the r42 flows' own screenshots (r42-bill-us...), else the screen's from the round 41 map (tools/sweep/apps.json)
@@ -58,14 +64,19 @@ def main() -> int:
         shots = [x for x in have if stem and x.startswith(stem) and (not market or f"-{market}" in x)] or [
             f"{n.split('/')[-1]}.png" for n in SCREEN_SHOTS.get((f.app, f.route), []) if f"{n.split('/')[-1]}.png" in have]
         for user in f.users:
+            # R43: a flow per market ("r43-menu-edit-{user}": r43-menu-edit-us and r43-menu-edit-in), its own screenshots
+            name = f.maestro.replace("{user}", user)
+            res = flow.get(f"{f.app}/{name}", "NOT RUN") if f.maestro else "NOT RUN: no flow yet"
+            if "{user}" in f.maestro:
+                shots = [x for x in have if x.startswith(name.rsplit("-", 1)[0]) and f"-{user}" in x] or shots
             rows.append({"app": f.app, "page": f.route, "function": f.id, "kind": f.kind, "user": user, "expected": f.expected,
-                         "actual": f"Maestro {f.maestro}.yaml: {res}" if f.maestro else "not automated yet",
+                         "actual": f"Maestro {name}.yaml: {res}" if f.maestro else "not automated yet",
                          "result": "PASS" if res.startswith("PASS") else ("FAIL" if res.startswith("FAIL") else "NOT RUN"),
                          "screenshots": [f"apps/{f.app}/{s}" for s in shots[:2]]})
     total = Counter(r["result"] for r in rows)
     pages = {(r["app"], r["page"]) for r in rows}
     numbers = sum(1 for r in rows if r["kind"] in MONEY_KINDS)
-    lines = ["# Functional validation (round 42)", "",
+    lines = [f"# Functional validation (round {os.environ.get('ROUND', '43')})", "",
              f"{len(pages)} pages and screens · {len({(r['app'], r['page'], r['function']) for r in rows})} functions · "
              f"{len(rows)} rows (function × user) · {numbers} number checks", "",
              f"**{total.get('PASS', 0)} PASS** · **{total.get('FAIL', 0)} FAIL** · {total.get('NOT RUN', 0)} NOT RUN", "",

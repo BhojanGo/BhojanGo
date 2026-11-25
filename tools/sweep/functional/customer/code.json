@@ -22,11 +22,11 @@
     "us",
     "in"
    ],
-   "action": "A wrong code",
-   "expected": "Refused",
+   "action": "A wrong code, then the right one",
+   "expected": "Refused with a message; the right code signs in",
    "verify": "UI",
-   "run": "not automated yet (NOT RUN)",
-   "test": "none"
+   "run": "maestro: apps/customer/.maestro/r43-wrong-code-{user}.yaml",
+   "maestro": "r43-wrong-code-{user}"
   },
   {
    "id": "na-permission",

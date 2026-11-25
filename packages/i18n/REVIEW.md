@@ -622,3 +622,23 @@ Machine-translated on 2026-11-24 into all seven languages; **needs native review
   `permit_approved` ({date}), `permit_rejected` ({note}). 
 - The worker's reminder 30 days before a permit expires: `permit_expiring` in `backend/worker/app/services/messages.py`
   ({restaurant}, {date}).
+
+## Menu editing, dish hours, price changed (round 43)
+
+Machine-translated 2026-11-25, **needs native review** in every language. 111 keys:
+
+- Website and customer app: `kitchen.spice_1`–`spice_3` (spice marks on a dish), `kitchen.later` (the button on a dish
+  outside its hours), `kitchen.served_between` ("Served {from} – {until}"), `checkout.price_changed`
+  ("Price changed: {name} {was} → {now}", above Pay when the restaurant changed a price since the dish went in the cart).
+- BhojanGo Kitchen (restaurant tablet), `partner.edit.*`: the dish editor (name, description, price, photo, category,
+  veg or non-veg, spice level, on the menu, sold out today, when it's served, options), option groups (required or
+  optional, at least / at most, extra price), categories (add, rename, hide, drag to reorder), the menu's history
+  (`who_*`, `action_*`, `field_*`) and the price rules.
+
+Look at these first:
+- `partner.edit.price_whole`, `partner.edit.price_cents`, `partner.edit.big_title`, `partner.edit.big_body`: the price
+  rules and the confirmation for a change of more than 50% (the amounts are filled in; check the sentence around them).
+- `partner.edit.delete_body`: deleting a dish keeps it on past orders ("its name and price").
+- `partner.edit.spice_*` and `kitchen.spice_*`: Indian languages use the everyday word for "spicy" (तीखा, కారం, காரம்,
+  ಖಾರ, तिखट, ঝাল); "Hot" must not read as temperature.
+- `checkout.price_changed`: word order around `{name} {was} → {now}`.

@@ -1,0 +1,8 @@
+# R43: options on the tablet (in). See r43/options.yaml.
+appId: com.bhojango.partner
+env:
+  MARKET: "in"
+  EMAIL: "partner.hyd@example.com"
+  REST: "Spice Route Kitchen"
+---
+- runFlow: r43/options.yaml

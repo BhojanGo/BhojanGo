@@ -22,6 +22,7 @@ import framework as fw  # noqa: E402
 import admin  # noqa: E402,F401
 import apps  # noqa: E402,F401
 import web  # noqa: E402,F401
+import r43  # noqa: E402,F401  (R43: menu editing where customers and admins see it)
 
 FLOWS = {"customer": "apps/customer/.maestro", "partner": "apps/partner/.maestro", "rider": "apps/rider/.maestro"}
 
@@ -34,7 +35,8 @@ def build() -> dict[str, dict]:
     out: dict[str, dict] = {}
     for f in fw.REGISTRY:
         spec = out.setdefault(f"{f.app}/{slug(f.route)}.json", {"app": f.app, "route": f.route, "functions": []})
-        run = (f"maestro: {FLOWS[f.app]}/{f.maestro}.yaml" if f.maestro else "not automated yet (NOT RUN)") if f.run is None else \
+        run = ("stripe test mode: tools/stripe_e2e/test_r43_full_path.py (Railway qa-runner)" if f.maestro.startswith("stripe-")
+               else f"maestro: {FLOWS[f.app]}/{f.maestro}.yaml" if f.maestro else "not automated yet (NOT RUN)") if f.run is None else \
             ("playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)" if f.down else
              "playwright + API: tools/sweep/functional/run_web.py")
         entry = {"id": f.id, "kind": f.kind, "users": list(f.users), "action": f.action, "expected": f.expected, "verify": f.verify, "run": run}

@@ -27,6 +27,10 @@ export type Item = {
   image_url?: string | null;
   option_groups?: Group[];
   tags?: string[];
+  /** R43: 0 none .. 3 hot; when it's served ({from, until}, local "HH:MM") and whether that's now */
+  spice_level?: number | null;
+  schedule?: { from: string; until: string } | null;
+  available_now?: boolean;
 };
 export type Category = { key: string; name: string; description: string | null; items: Item[] };
 type Kitchen = { id: string; name: string; slug: string; city: string; currency: string };
@@ -53,6 +57,11 @@ function Marks({ item, t }: { item: Item; t: T }) {
   return (
     <span className="flex items-center gap-2">
       <VegMark veg={item.is_veg} t={t} />
+      {item.spice_level ? (
+        <span data-testid="dish-spice" className="rounded-md bg-[#F9E3DC] px-2 py-[3px] text-caption text-[#8C1D18]">
+          {"🌶".repeat(item.spice_level)} {t(`kitchen.spice_${item.spice_level}`)}
+        </span>
+      ) : null}
       {badges.map((b) => (
         <span key={b} className="rounded-md bg-[#F6E7CC] px-2 py-[3px] text-caption text-[#7A4F0E]">{t(b)}</span>
       ))}
@@ -126,6 +135,8 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedL
   const [open, setOpen] = useState<Item | null>(null);
   const [pending, setPending] = useState<{ line: NewLine } | null>(null);
   const fmt = (n: number | string) => f.money(n, restaurant.currency);
+  // R43: a schedule's local "07:00" in the country's clock ("7:00 am"), whatever the visitor's own time zone
+  const wall = (hm: string) => f.zone("UTC").time(`2000-01-01T${hm}:00Z`);
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -225,12 +236,14 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedL
               {c.description && <div className="text-small text-muted">{c.description}</div>}
             </div>
             {c.items.map((i) => {
-              const off = !i.is_available || !!i.sold_out_today;
+              // R43: outside its schedule (breakfast 7-11): listed with its hours, not orderable
+              const later = i.available_now === false && !!i.schedule;
+              const off = !i.is_available || !!i.sold_out_today || later;
               const n = qtyOf(i.id);
               // A dish photo only when the kitchen has one; otherwise a clean text row.
               const pic = photo(i.image_url, 400);
               const control = off ? (
-                  <span className="flex h-10 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-muted">{t("kitchen.sold_out")}</span>
+                  <span className="flex h-10 items-center whitespace-nowrap rounded-full border-[1.5px] border-[#C9D3D4] bg-white px-4 text-label text-muted">{later ? t("kitchen.later") : t("kitchen.sold_out")}</span>
                 ) : n > 0 ? (
                   <span data-testid="dish-stepper" className="flex h-10 items-center gap-1 rounded-full bg-[#0B5D66] px-1 font-bold text-white shadow-[0_6px_16px_rgba(11,93,102,0.3)]">
                     <button type="button" aria-label={t("kitchen.one_less", { name: i.name })} onClick={() => minus(i)} className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-[#083F46]"><Minus color="#FFFFFF" /></button>
@@ -258,7 +271,8 @@ export function KitchenMenu({ restaurant, categories, deliverTo, closed, closedL
                     <b className="mt-2 block text-h3">{i.name}</b>
                     <b className="mt-1 block text-label tabular-nums">{fmt(i.price)}</b>
                     {i.description && <span className="mt-2 block text-small leading-[1.5] text-muted">{i.description}</span>}
-                    {off && <span className="mt-2 block text-label text-[#8C1D18]">{t("kitchen.sold_out_today")}</span>}
+                    {i.schedule && <span data-testid="dish-hours" className={`mt-2 block text-label ${later ? "text-[#8C1D18]" : "text-muted"}`}>{t("kitchen.served_between", { from: wall(i.schedule.from), until: wall(i.schedule.until) })}</span>}
+                    {off && !later && <span className="mt-2 block text-label text-[#8C1D18]">{t("kitchen.sold_out_today")}</span>}
                   </span>
                   {pic ? (
                     <span className="relative h-[104px] w-[112px] shrink-0 rounded-2xl md:h-[140px] md:w-[156px] md:rounded-[18px]">
