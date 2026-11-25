@@ -436,6 +436,7 @@ def forward(port: int, target: tuple[str, int]) -> None:
             c, _ = srv.accept()
             try:
                 u = socket.create_connection(target, timeout=5)
+                u.settimeout(None)  # the 5 s is for connecting only: a slow page (the API down) may take longer to answer
             except OSError:
                 c.close()
                 continue
