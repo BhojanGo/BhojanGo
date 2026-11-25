@@ -38,6 +38,15 @@ def fee_level(level: str, scope: str, who: str) -> dict:
     return api("GET", f"/rules/fees?level={level}&scope_id={scope}", token(who))
 
 
+def leave_as_found(city: str, field: str, maker: str, checker: str) -> None:
+    """Put a fee field back to inherited if a test left a value of its own (a run cut short mustn't skew the next)."""
+    lvl = api("GET", f"/rules/fees?level=city&scope_id={city}", token(maker))
+    row = next((f for f in lvl["fields"] if f["field"] == field), {})
+    if row.get("own") or row.get("pending"):
+        api("DELETE", f"/rules/fees?level=city&scope_id={city}&field={field}", token(maker), raw=True)
+        approve_pending(city, "fee", checker)
+
+
 def approve_pending(scope: str, family_like: str, checker: str) -> int:
     n = 0
     for r in api("GET", "/rules?status=pending_approval", token(checker)):
@@ -83,6 +92,13 @@ def _(t: T) -> str:
     row.get_by_role("button", name=re.compile("^(Change|Set here)$")).click()
     row.get_by_label(re.compile(r"value$")).fill("15")
     row.get_by_role("button", name=re.compile("Send for approval|Save")).click()
+    try:
+        return _platform_fee_rest(t, p, row, city, fin, old_order, old_snap, food, fee0, eff0)
+    finally:
+        leave_as_found(city, "platform_fee_pct", cm, fin)
+
+
+def _platform_fee_rest(t: T, p, row, city: str, fin: str, old_order: str, old_snap: dict, food: Decimal, fee0: Decimal, eff0: str) -> str:  # type: ignore[no-untyped-def]
     row.get_by_text(re.compile("Waiting for approval")).wait_for(timeout=15000)
     ok(line(quote(t.user), "platform_fee") == fee0, "the fee changed before the second admin approved")
     n = approve_pending(city, "fee", fin)
@@ -118,16 +134,19 @@ def _(t: T) -> str:
     bands = "50:7.25" if t.user == "us" else "50:77"
     row.get_by_label("Delivery bands").fill(bands)
     row.get_by_role("button", name=re.compile("Send for approval|Save")).click()
-    row.get_by_text(re.compile("Waiting for approval")).wait_for(timeout=15000)
-    approve_pending(city, "fee", fin)
-    time.sleep(1)
-    fee = line(quote(t.user), "delivery_fee")
-    p.reload(wait_until="networkidle")
-    t.shot("after")
-    want = Decimal(bands.split(":")[1])
-    row.get_by_role("button", name="Clear (inherit)").click()
-    p.wait_for_timeout(1200)
-    approve_pending(city, "fee", fin)
+    try:
+        row.get_by_text(re.compile("Waiting for approval")).wait_for(timeout=15000)
+        approve_pending(city, "fee", fin)
+        time.sleep(1)
+        fee = line(quote(t.user), "delivery_fee")
+        p.reload(wait_until="networkidle")
+        t.shot("after")
+        want = Decimal(bands.split(":")[1])
+        row.get_by_role("button", name="Clear (inherit)").click()
+        p.wait_for_timeout(1200)
+        approve_pending(city, "fee", fin)
+    finally:
+        leave_as_found(city, "delivery_fee", cm, fin)
     ok(fee == want, f"quote delivery fee {fee}, the band says {want}")
     return f"'abc' refused; band {bands} → quote delivery fee {fee}; cleared"
 

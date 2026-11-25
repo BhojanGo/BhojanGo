@@ -195,6 +195,11 @@ def _(t: T) -> str:
     city = api("GET", f"/markets/cities/{cc}/{slug}")
     frm = Decimal(str((city.get("pricing") or {}).get("delivery_from")))
     no_addr = p.get_by_test_id("how-delivery").inner_text()
+    started = time.time()
+    while money(no_addr) != frm and time.time() - started < 75:  # the website caches the city's pricing for 60 s
+        p.wait_for_timeout(5000)
+        p.reload(wait_until="networkidle")
+        no_addr = p.get_by_test_id("how-delivery").inner_text()
     ok("from" in no_addr and money(no_addr) == frm, f"no address: {no_addr!r}, the city's lowest band is {frm}")
     place = {"lat": t.m["to"]["lat"], "lng": t.m["to"]["lng"], "label": t.m["addr"]["street"], "country": t.m["cc"]}
     t._ctx.add_cookies([{"name": "bg_addr", "value": urllib.parse.quote(json.dumps(place)), "url": "http://localhost:3000"}])
@@ -202,6 +207,10 @@ def _(t: T) -> str:
     deliv, pick = p.get_by_test_id("how-delivery"), p.get_by_test_id("how-pickup")
     d = api("GET", f"/discover?lat={t.m['to']['lat']}&lng={t.m['to']['lng']}")
     r = next(x for x in d["restaurants"] if x["slug"] == t.m["rest"])
+    started = time.time()
+    while money(deliv.inner_text()) != Decimal(str(r["delivery_fee"])) and time.time() - started < 75:  # cached 30-60 s
+        p.wait_for_timeout(5000)
+        p.reload(wait_until="networkidle")
     ok(money(deliv.inner_text()) == Decimal(str(r["delivery_fee"])), f"with the address: {deliv.inner_text()!r} vs discover {r['delivery_fee']}")
     pct = re.search(r"(\d+)% fee", pick.inner_text())
     ok(pct and Decimal(pct.group(1)) == Decimal(str(r.get("pickup_fee_percent") or pct.group(1))), f"pickup: {pick.inner_text()!r}")
