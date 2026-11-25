@@ -9,7 +9,9 @@ from zoneinfo import ZoneInfo
 import pytest
 from httpx import AsyncClient
 
+from core_api.integration.test_fee_model_v2 import boise_quote
 from core_api.integration.test_orders_flow import client, login, new_order, pay  # noqa: F401
+from core_api.integration.test_tax import place
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("RUN_MIGRATED_DB_TESTS") != "1",
@@ -44,9 +46,15 @@ async def week_ids(country: str, start: date) -> set[str]:
     return {o.order_id for o in week.orders}
 
 
-async def paid_order(client: AsyncClient) -> str:
-    cust = await login(client, "customer1.hyd@example.com")
-    order = await new_order(client, cust)
+async def paid_order(client: AsyncClient, country: str = "IN") -> str:
+    """A real paid order in that country (Hyderabad or Boise): its city, currency and money are that country's."""
+    if country == "IN":
+        cust = await login(client, "customer1.hyd@example.com")
+        order = await new_order(client, cust)
+    else:
+        cust = await login(client, "customer1.boi@example.com")
+        rid, cart, q = await boise_quote(client, cust)
+        order = await place(client, cust, rid, cart, q, "US")
     await pay(client, cust, order)
     return order["id"]
 
@@ -55,10 +63,7 @@ async def paid_order(client: AsyncClient) -> str:
 async def test_sunday_2359_and_monday_0000_go_to_their_own_weeks(client: AsyncClient, country: str, zone: str) -> None:  # noqa: F811
     tz = ZoneInfo(zone)
     monday = date(2004, 1, 5) + timedelta(weeks=random.randint(0, 500))  # an old week no other test uses
-    sunday_late, monday_early = await paid_order(client), await paid_order(client)
-    # the order's city decides its country; put both in this country's seeded city
-    city = "IN-TG-HYD" if country == "IN" else "US-ID-BOI"
-    await rows("UPDATE orders SET market_city = :c WHERE id = ANY(CAST(:ids AS uuid[]))", c=city, ids=[sunday_late, monday_early])
+    sunday_late, monday_early = await paid_order(client, country), await paid_order(client, country)
     await delivered_at(sunday_late, datetime.combine(monday + timedelta(days=6), time(23, 59, 59), tzinfo=tz))
     await delivered_at(monday_early, datetime.combine(monday + timedelta(days=7), time(0, 0), tzinfo=tz))
     this, nxt = await week_ids(country, monday), await week_ids(country, monday + timedelta(days=7))
@@ -69,8 +74,7 @@ async def test_sunday_2359_and_monday_0000_go_to_their_own_weeks(client: AsyncCl
 async def test_the_us_clock_change_week(client: AsyncClient) -> None:  # noqa: F811
     """26 Oct to 2 Nov 2026 (clocks go back on Sunday 1 Nov): Sunday 23:59 is that week, Monday 00:00 the next."""
     tz = ZoneInfo("America/Boise")
-    a, b, c = await paid_order(client), await paid_order(client), await paid_order(client)
-    await rows("UPDATE orders SET market_city = 'US-ID-BOI' WHERE id = ANY(CAST(:ids AS uuid[]))", ids=[a, b, c])
+    a, b, c = await paid_order(client, "US"), await paid_order(client, "US"), await paid_order(client, "US")
     await delivered_at(a, datetime(2026, 11, 1, 1, 30, tzinfo=tz, fold=1))  # the second 01:30, after the change
     await delivered_at(b, datetime(2026, 11, 1, 23, 59, 59, tzinfo=tz))
     await delivered_at(c, datetime(2026, 11, 2, 0, 0, tzinfo=tz))
