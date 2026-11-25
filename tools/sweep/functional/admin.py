@@ -1064,4 +1064,13 @@ for route, path in ADOWN.items():
         expected="It renders (no crash, no blank) and says it couldn't load", verify="UI: body text")
     def _(t: T, route: str = route, path: str = path) -> str:
         url = path.format(cc=CC[t.user], city=CITY[t.user]) + ("" if "?" in path or route in ("/login", "/") else f"?scope={CC[t.user]}")
+        if route == "/login":  # the form needs nothing to show; signing in says the server can't be reached
+            p = t.open(url, who="anon")
+            p.locator("input[type=email]").fill("cm.us@example.com")
+            p.locator("input[type=password]").fill("BhojanGoAdmin1")
+            p.get_by_role("button", name=re.compile("sign in", re.I)).click()
+            alert = p.get_by_role("alert").filter(has_text=re.compile(r"try again|can.t reach", re.I))
+            alert.first.wait_for(timeout=20000)
+            t.shot("api-down")
+            return f"signing in says: {alert.first.inner_text()!r}"
         return down_state(t, url, "anon" if route == "/login" else None)

@@ -16,9 +16,11 @@ appId: com.bhojango.partner
     timeout: 30000
 - takeScreenshot: docs/screenshots/partner/r42-reject-before
 - tapOn: "Reject"
+- extendedWaitUntil:
+    visible: "Reject this order\\?"
+    timeout: 10000
 - tapOn:
-    text: "(?i)reject"
-    index: 1
+    id: "android:id/button1"   # the confirm's "Reject" (Android puts the destructive choice on the positive button)
 - extendedWaitUntil:
     notVisible: "(?i)to accept"
     timeout: 20000

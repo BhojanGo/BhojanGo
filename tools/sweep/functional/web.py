@@ -1117,8 +1117,7 @@ for doc in ("terms", "privacy"):
         n = rows.count()
         ok(n >= 1, "no versions")
         rows.first.click()
-        p.wait_for_load_state("networkidle")
-        ok(p.get_by_test_id("legal-document").count(), "the version doesn't open")
+        p.get_by_test_id("legal-document").first.wait_for(timeout=15000)  # a client-side navigation: wait for it
         return f"{n} version links; the first opens"
 
     @fn(W, f"/{doc}/history/[version]", "old-version", kind="navigation", action="Open version 1 and an unknown version",
@@ -1374,8 +1373,9 @@ SIGNED = {PR, RC, FV, O, TR, RP, AR, C, CR}
 for route, path in DOWN.items():
     @fn(W, route, "api-down", kind="error", down=True, users=("us",) if route in STATIC else ("us", "in"),
         action="Open the page with core-api stopped",
-        expected="It still renders (no crash page, no blank) and says it couldn't load" if route not in STATIC else
-        "It renders in full (it needs nothing from core-api)",
+        expected=("It renders in full (it needs nothing from core-api)" if route in STATIC else
+                  "It still renders (no crash page, no blank) and says it couldn't load" if route in SIGNED else
+                  "It still renders: its last good copy (the server's page cache) or a message that it couldn't load"),
         verify="UI: body text, no Next.js error page")
     def _(t: T, route: str = route, path: str = path) -> str:
         o = orders(t)
@@ -1387,4 +1387,4 @@ for route, path in DOWN.items():
             ok(len(body.strip()) > 40 and not re.search(r"Application error|Internal Server Error", body), body[:160])
             t.shot("api-down")
             return "renders in full"
-        return down_state(t, url, who)
+        return down_state(t, url, who, cached_ok=route not in SIGNED)

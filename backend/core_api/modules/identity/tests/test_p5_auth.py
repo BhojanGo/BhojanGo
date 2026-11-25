@@ -319,6 +319,8 @@ async def test_customers_are_not_admins(client: AsyncClient, admins) -> None:
     ("viewer_us", "viewer", "US", 403),
     ("super", "super_admin", "IN", 422),
     ("super", "city_ops", "hyderabad", 422),
+    ("super", "viewer", "XX-NOPE", 422),  # R42: well formed, but no such place in Markets
+    ("cm_in", "viewer", "IN-ZZ", 422),
 ])
 async def test_grant_rules(client: AsyncClient, admins, granter, role, scope, status) -> None:
     h = await as_(client, admins[granter])

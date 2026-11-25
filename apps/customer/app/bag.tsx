@@ -156,6 +156,14 @@ export default function Bag() {
     return () => clearInterval(t);
   }, []);
 
+  // R42: the city's suggested tip (the rule's default_index) until the customer picks one, as the website does
+  const setTip = bag.setTip;
+  useEffect(() => {
+    if (tipTouched || !presets || bag.tip !== 0 || presets.default_index == null) return;
+    const n = Number(presets.amounts[presets.default_index]);
+    if (Number.isFinite(n) && n > 0) setTip(n);
+  }, [presets, tipTouched, bag.tip, setTip]);
+
   if (lines.length === 0) {
     // Centred: the reason (or "empty"), the pause's note, then home.
     return (
@@ -170,13 +178,6 @@ export default function Bag() {
 
   // Tip choices are the city's (its tip_presets rule), as on the website.
   const tips = [0, ...new Set((presets?.amounts ?? []).map(Number).filter((n) => Number.isFinite(n) && n > 0))];
-  // R42: the city's suggested tip (the rule's default_index) until the customer picks one, as the website does
-  const setTip = bag.setTip;
-  useEffect(() => {
-    if (tipTouched || !presets || bag.tip !== 0 || presets.default_index == null) return;
-    const n = Number(presets.amounts[presets.default_index]);
-    if (Number.isFinite(n) && n > 0) setTip(n);
-  }, [presets, tipTouched, bag.tip, setTip]);
   // Under the minimum: worded in the app's language, the amount in the country's format (no ".00").
   const shownError =
     refusal?.code === "MIN_ORDER" && refusal.zone && refusal.amount

@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 import { CityPicker } from "@/components/console/CityPicker";
 import { Logo } from "@bhojango/ui";
 import { noAccessText, pickableCountries, roleScopes, SECTION_GROUPS, SECTIONS, sectionAccess } from "@/lib/access";
+import { useApiDown } from "@/lib/connection";
 import { ROLE_LABELS, useAdminMe, useMarkets } from "@/lib/markets";
 import { useAdminAuth, useAuthHydrated } from "@/store/auth";
 
@@ -74,6 +75,7 @@ export function ConsoleShell({
 }) {
   const { isAuthenticated, user, logout } = useAdminAuth();
   const router = useRouter();
+  const apiDown = useApiDown(); // R42: before any early return (hooks keep their order)
   const { data: me, isLoading: meLoading } = useAdminMe();
   const { data: markets } = useMarkets();
 
@@ -206,12 +208,21 @@ export function ConsoleShell({
           </div>
         )}
         <main className="box-border min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8 lg:px-12">
-          <div className="flex max-w-[1200px] flex-col gap-6">{blocked ? (
+          <div className="flex max-w-[1200px] flex-col gap-6">
+            {apiDown ? (
+              // R42: the server isn't answering: say so above whatever the page managed to show
+              <div role="alert" data-testid="api-down" className="flex flex-wrap items-center gap-3 rounded-2xl border-2 border-chili bg-danger-tint px-4 py-3 text-label">
+                <span className="flex-1">Can&apos;t reach BhojanGo right now, so this page may be empty or out of date.</span>
+                <button type="button" onClick={() => window.location.reload()} className="h-9 rounded-full bg-chili px-4 font-bold text-white">Try again</button>
+              </div>
+            ) : null}
+            {blocked ? (
             <section role="alert" data-testid="no-access" className="space-y-2 rounded-2xl bg-white p-6">
               <h1 className="m-0 text-h2">{blocked.title}</h1>
               <p className="m-0 text-small text-muted">{blocked.body}</p>
             </section>
-          ) : meLoading ? null : children}</div>
+          ) : meLoading ? null : children}
+          </div>
         </main>
       </div>
     </div>

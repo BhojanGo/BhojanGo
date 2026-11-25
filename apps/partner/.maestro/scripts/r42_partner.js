@@ -34,18 +34,22 @@ if (STEP === "rejected") {
   var list = call("GET", API + "/orders/restaurant/" + rest.id + "?limit=5", partner).body;
   var o = (list.items || list)[0];
   if (o.status !== "cancelled") throw new Error("the rejected order is " + o.status);
-  if (["refunded", "refund_pending", "partially_refunded"].indexOf(o.payment_status) < 0 && o.payment_status !== "voided")
-    throw new Error("the rejected order's payment is " + o.payment_status + ", not refunded");
+  // the customer's side (scripts/customer.js orders as customer2.hyd): their payment comes back in full
+  var cust = login("customer2.hyd@example.com").access_token;
+  var pay = call("GET", API + "/payments/orders/" + o.id + "/status", cust).body || {};
+  if (["refunded", "refund_pending", "voided", "canceled", "cancelled"].indexOf(pay.payment_status) < 0)
+    throw new Error("the rejected order's payment is " + pay.payment_status + ", not refunded");
+  output.refund = pay.payment_status;
   output.rejected = o.id.slice(0, 8);
 }
 
 if (STEP === "web") {
   var start = Date.now(), want = SOLD === "1", limit = Number(LIMIT || 90) * 1000, seen = null;
   while (Date.now() - start < limit) {
-    var page = http.get(WEB + "/in/hyderabad/spice-route-kitchen-madhapur", { headers: { "Cache-Control": "no-cache" } }).body || "";
-    var i = page.indexOf(DISH);
-    var near = i >= 0 ? page.slice(i, i + 1500) : "";
-    seen = near.indexOf("Sold out") >= 0;
+    var page = (http.get(WEB + "/in/hyderabad/spice-route-kitchen-madhapur", { headers: { "Cache-Control": "no-cache" } }).body || "")
+      .replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+    // the menu row: the dish, its price, its description, then "Sold out today" when it is (not its first mention)
+    seen = new RegExp(DISH + " ₹[0-9,.]+ [^₹]{0,240}?Sold out today").test(page);
     if (seen === want) break;
     var t = Date.now(); while (Date.now() - t < 3000) { /* wait 3 s */ }
   }
@@ -58,7 +62,7 @@ if (STEP === "payouts") {
   var items = (mine.items || mine).filter(function (s) { return s.payee_type === "restaurant"; });
   for (var k = 1; k <= 3; k++) output["s" + k] = "";
   for (var j = 0; j < items.length && j < 3; j++) {
-    output["s" + (j + 1)] = fmt(items[j].amount, "₹");
+    output["s" + (j + 1)] = fmt(items[j].amount / 100, "₹");  // statements are in minor units (paise)
   }
   output.count = String(items.length);
 }

@@ -82,15 +82,15 @@ async def grant_role(
         authz.validate_assignment(data.role, data.scope)
     except authz.ScopeError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "INVALID_ROLE", "message": str(e)})
-    if data.scope != authz.GLOBAL and not await _scope_exists(db, data.scope):
-        # R42: a well-formed code that isn't a place in Markets (XX-NOPE) was stored and gave nothing; refuse it
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail={
-            "code": "UNKNOWN_SCOPE", "message": f"{data.scope} isn't a country, state or city in Markets"})
     if not authz.can_grant(admin.assignments, data.role, data.scope):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail={"code": "FORBIDDEN_SCOPE", "message": f"You can't grant {data.role} at {data.scope}"},
         )
+    if data.scope != authz.GLOBAL and not await _scope_exists(db, data.scope):
+        # R42: a well-formed code that isn't a place in Markets (XX-NOPE) was stored and gave nothing; refuse it
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail={
+            "code": "UNKNOWN_SCOPE", "message": f"{data.scope} isn't a country, state or city in Markets"})
 
     users = UserRepository(db)
     if data.user_id:

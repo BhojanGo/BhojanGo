@@ -386,9 +386,12 @@ class Sessions:
 sessions = Sessions()
 
 
-def down_state(t: T, path: str, who: str | None = None) -> str:
-    """With core-api stopped: the page still renders (no crash, no blank), with a message saying it couldn't load."""
+def down_state(t: T, path: str, who: str | None = None, cached_ok: bool = False) -> str:
+    """With core-api stopped: the page still renders (no crash, no blank) and says it couldn't load. A website page the
+    server renders may instead show its last good copy (Next.js keeps serving it): cached_ok accepts that when the page
+    has its heading and real content, not an empty shell."""
     p = t.open(path, who=who)
+    p.wait_for_timeout(1500)  # a client page's first calls fail, then it says so
     body = p.locator("body").inner_text()
     ok(len(body.strip()) > 40, "a blank page")
     ok(not re.search(r"Application error|Unhandled Runtime Error|Internal Server Error|This page could not be found", body),
@@ -396,8 +399,12 @@ def down_state(t: T, path: str, who: str | None = None) -> str:
     said = re.search(r"couldn.t|could not|try again|unavailable|can.t (load|reach)|something went wrong|not available|offline|"
                      r"no connection|isn.t loading|didn.t load|reach", body, re.I)
     t.shot("api-down")
-    ok(said, f"no message that it couldn't load: {body[:160]!r}")
-    return f"renders with: {said.group(0)!r}"
+    if said:
+        return f"renders with: {said.group(0)!r}"
+    main = p.locator("main").first.inner_text() if p.locator("main").count() else body
+    if cached_ok and p.get_by_role("heading", level=1).count() and len(main.strip()) > 300:
+        return f"renders its last good copy (Next.js cache): {p.get_by_role('heading', level=1).first.inner_text()[:60]!r}, {len(main)} characters"
+    raise Fail(f"no message that it couldn't load{' and no cached content' if cached_ok else ''}: {body[:160]!r}")
 
 
 def forward(port: int, target: tuple[str, int]) -> None:

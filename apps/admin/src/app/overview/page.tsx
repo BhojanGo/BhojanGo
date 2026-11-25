@@ -231,7 +231,9 @@ function OverviewPage() {
   return (
     <ConsoleShell section="Overview" country={country} region={region} city={city} scopeHref={(s) => `/overview?scope=${s}`}>
       {isLoading ? <p className="text-muted">Loading…</p> : null}
-      {error ? <p className="text-chili">You can&apos;t see this part of BhojanGo.</p> : null}
+      {error ? <p className="text-chili">{(error as { response?: { status?: number } }).response?.status === 403
+        ? <>You can&apos;t see this part of BhojanGo.</>
+        : <>The overview didn&apos;t load. Try again in a moment.</>}</p> : null}
       {data && country === "ALL" ? (data.countries.length === 1 ? <Market country={data.countries[0]!} scope={data.countries[0]!.code} /> : <AllCountries countries={data.countries} />) : null}
       {data && chosen ? <Market country={chosen} scope={scope} /> : null}
       {data ? <RoutingTile /> : null}
