@@ -44,6 +44,11 @@ appId: com.bhojango.partner
     visible: "Ready for pickup"
     timeout: 30000
 - tapOn: "Help"
+- scrollUntilVisible:
+    element:
+      id: "open-account"
+    direction: DOWN
+    timeout: 20000
 - tapOn:
     id: "open-account"
 - extendedWaitUntil:

@@ -57,7 +57,7 @@ async def test_runs_and_reconciliation_agree_every_week() -> None:
                 today = datetime.now(UTC).astimezone(ZoneInfo(c.timezone)).date()
                 for start, end in payouts.ended_weeks(today, WEEKS):
                     async with db.begin_nested() as tx:  # the run is thrown away
-                        # R23: a kitchen left -123.45 below zero by an earlier run (a day's run ending at
+                        # R23: a kitchen left -123.45 below zero by an earlier run (last week's run, ending at
                         # this week's start), so every week checked carries a balance explicitly.
                         kitchen = (await db.execute(select(Restaurant.id).where(Restaurant.country == c.code)
                                                     .order_by(Restaurant.name).limit(1))).scalar()
@@ -65,7 +65,7 @@ async def test_runs_and_reconciliation_agree_every_week() -> None:
                         if kitchen is not None:
                             already = (await payouts.open_carries(db, c.code, start)).get(str(kitchen))
                             carried_before = (already.amount if already else 0) - 12345
-                            earlier = PayoutRun(country=c.code, currency=c.currency, period_start=start - timedelta(days=1),
+                            earlier = PayoutRun(country=c.code, currency=c.currency, period_start=start - timedelta(days=7),
                                                 period_end=start, status="paid", created_by=uuid.UUID(int=0), totals={})
                             db.add(earlier)
                             await db.flush()
