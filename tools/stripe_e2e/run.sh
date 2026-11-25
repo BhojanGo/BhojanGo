@@ -42,7 +42,7 @@ esac
 
 WORK="$(mktemp -d)"
 pg_url() { echo "$1" | sed 's/+asyncpg//'; }
-DB="bhojango_stripe_e2e_$(date +%s)"
+DB="bhojango_stripe_e2e_test_$(date +%s)"  # R42: a test database by name (tools/target_guard.py)
 BASE_PG="$(pg_url "${DATABASE_URL:?DATABASE_URL (the QA Postgres server) is needed to create a throwaway database}")"
 # CREATE/DROP DATABASE run on the server's maintenance database by a role with CREATEDB;
 # STRIPE_E2E_ADMIN_DATABASE_URL overrides it (e.g. the postgres superuser's URL).

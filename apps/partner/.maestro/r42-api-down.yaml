@@ -1,0 +1,35 @@
+# R42 (error state): run with core-api stopped (tools/sweep/functional/apps.sh), signed in by an earlier flow.
+# Each main screen still renders and says it can't reach BhojanGo (or shows what it had, marked offline);
+# nothing crashes or goes blank.
+appId: com.bhojango.partner
+tags:
+  - r42-down
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Orders"
+    commands:
+      - tapOn: "Orders"
+- extendedWaitUntil:
+    visible: "(?i).*(can.t reach|couldn.t|could not|try again|offline|no connection|not loading|didn.t load|reconnect).*"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/partner/r42-api-down-orders
+- runFlow:
+    when:
+      visible: "Menu"
+    commands:
+      - tapOn: "Menu"
+- extendedWaitUntil:
+    visible: "(?i).*(can.t reach|couldn.t|could not|try again|offline|no connection|not loading|didn.t load|reconnect).*"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/partner/r42-api-down-menu
+- runFlow:
+    when:
+      visible: "Payouts"
+    commands:
+      - tapOn: "Payouts"
+- extendedWaitUntil:
+    visible: "(?i).*(can.t reach|couldn.t|could not|try again|offline|no connection|not loading|didn.t load|reconnect).*"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/partner/r42-api-down-payouts

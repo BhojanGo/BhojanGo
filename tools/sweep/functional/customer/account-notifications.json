@@ -1,0 +1,34 @@
+{
+ "app": "customer",
+ "route": "account/notifications",
+ "functions": [
+  {
+   "id": "switches",
+   "kind": "toggle",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Turn a channel off and on",
+   "expected": "Saved",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/account-pages.yaml",
+   "maestro": "account-pages"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own setting"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "always the channels"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

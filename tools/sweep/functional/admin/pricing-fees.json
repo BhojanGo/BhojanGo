@@ -1,0 +1,102 @@
+{
+ "app": "admin",
+ "route": "/pricing/fees",
+ "functions": [
+  {
+   "id": "scope-country",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open Fees from the console with the country picked (scope=US / scope=IN)",
+   "expected": "The fees of the picked country (its currency, its cities), not the first country in the list",
+   "verify": "UI: heading 'Fees · <country>' and the currency; API: GET /rules/fees?level=country&scope_id=<cc>",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing/fees#scope-country"
+  },
+  {
+   "id": "platform-fee-boise",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "City level: change the city's platform fee % (Change → value → Send for approval); the finance admin approves; then Clear (inherit)",
+   "expected": "Waits for a second admin; once approved a new quote's platform fee uses it and an older order's snapshot keeps the old fee; Clear brings back the inherited value",
+   "verify": "UI: effective / source / pending; API: GET /rules/fees, POST /pricing/quote, GET /pricing/orders/{id}/snapshot",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing/fees#platform-fee-boise"
+  },
+  {
+   "id": "delivery-bands",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "City level: write bands wrongly ('abc'), then valid bands; approve; then clear",
+   "expected": "Wrong bands are refused with how to write them; valid bands, once approved, set the quote's delivery fee for the distance",
+   "verify": "UI: the band message, effective; API: quote delivery_fee for the seeded address",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing/fees#delivery-bands"
+  },
+  {
+   "id": "levels",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Walk Country → State → City → Restaurant",
+   "expected": "Each level's chain and values; an inherited value names where it comes from",
+   "verify": "UI: fee-chain, source; API: /rules/fees per level",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing/fees#levels"
+  },
+  {
+   "id": "fee-numbers",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read every effective value on the city level",
+   "expected": "Each is the fees API's",
+   "verify": "UI: fee-table amounts; API: GET /rules/fees?level=city",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing/fees#fee-numbers"
+  },
+  {
+   "id": "viewer-cannot-change",
+   "kind": "permission",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open Fees as the read-only viewer",
+   "expected": "No Change / Clear buttons; the API refuses a change",
+   "verify": "UI: no Change; API: POST /rules/fees as viewer -> 403",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/pricing/fees#viewer-cannot-change"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/pricing/fees#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "every level always has values (inherited from the country at least)"
+  }
+ ]
+}

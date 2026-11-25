@@ -1,0 +1,34 @@
+{
+ "app": "partner",
+ "route": "kitchens",
+ "functions": [
+  {
+   "id": "pick",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Pick the tablet's restaurant",
+   "expected": "Its orders",
+   "verify": "UI",
+   "run": "maestro: apps/partner/.maestro/orders.yaml",
+   "maestro": "orders"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "only the owner's restaurants are listed (API /restaurants/mine)"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "an owner has at least one restaurant"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

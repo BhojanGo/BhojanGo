@@ -1,0 +1,69 @@
+{
+ "app": "admin",
+ "route": "/incidents",
+ "functions": [
+  {
+   "id": "pause-and-resume",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Pause ordering in the city with a note: Pause ordering…, try Yes with no reason, give a reason, Yes; then Resume ordering with a reason",
+   "expected": "No reason: Yes stays disabled; paused: listed with the note and the website's city page shows it; resumed: 'Ordering is open'",
+   "verify": "UI: confirm box, pause-row, no-pauses; website: the city page; API: the pause and its end",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/incidents#pause-and-resume"
+  },
+  {
+   "id": "message-preview",
+   "kind": "form",
+   "users": [
+    "in"
+   ],
+   "action": "Pick a message and audience; Preview",
+   "expected": "The text customers will get, with how many",
+   "verify": "UI: preview",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/incidents#message-preview"
+  },
+  {
+   "id": "no-pauses",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open with no pause on",
+   "expected": "'No pauses'",
+   "verify": "UI: no-pauses",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/incidents#no-pauses"
+  },
+  {
+   "id": "viewer-refused",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open as viewer",
+   "expected": "No Pause button",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/incidents#viewer-refused"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/incidents#api-down"
+  }
+ ]
+}

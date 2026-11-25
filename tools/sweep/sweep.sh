@@ -13,7 +13,7 @@ $COMPOSE exec -T redis sh -c "redis-cli -n 0 --scan --pattern 'otp_attempts:*' |
 docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" \
   -v "$ROOT/tools/sweep:/t:ro" -v "$ROOT/tools/target_guard.py:/guard/target_guard.py:ro" -v "$ROOT/tools/totp_signin.py:/guard/totp_signin.py:ro" \
   -v "$OUT:/out" mcr.microsoft.com/playwright/python:v1.49.0-jammy \
-  sh -c "pip -q install playwright==1.49.0 >/dev/null 2>&1; python /t/sweep_web.py"
+  sh -c "pip -q install playwright==1.49.0 >/dev/null 2>&1; python /t/${SCRIPT:-sweep_web.py}"  # R42: SCRIPT=functional/run_web.py
 status=$?
 python "$ROOT/tools/mobile/hours.py" close >/dev/null
 exit $status

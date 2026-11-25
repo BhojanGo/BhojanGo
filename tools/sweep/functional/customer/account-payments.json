@@ -1,0 +1,34 @@
+{
+ "app": "customer",
+ "route": "account/payments",
+ "functions": [
+  {
+   "id": "methods",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open saved methods",
+   "expected": "Listed",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/account-pages.yaml",
+   "maestro": "account-pages"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own methods"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "shows Add when none"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

@@ -1,0 +1,74 @@
+{
+ "app": "partner",
+ "route": "(kitchen)/payouts",
+ "functions": [
+  {
+   "id": "statements",
+   "kind": "number",
+   "users": [
+    "in"
+   ],
+   "action": "Open Payouts",
+   "expected": "Each weekly statement's amount = the restaurant's statement in the API",
+   "verify": "UI vs GET /finance/statements/me (scripts/r42_partner.js)",
+   "run": "maestro: apps/partner/.maestro/r42-payouts.yaml",
+   "maestro": "r42-payouts"
+  },
+  {
+   "id": "none-yet",
+   "kind": "empty",
+   "users": [
+    "in"
+   ],
+   "action": "Before the first payout",
+   "expected": "'Your first statement shows here…'",
+   "verify": "UI",
+   "run": "maestro: apps/partner/.maestro/r42-payouts.yaml",
+   "maestro": "r42-payouts"
+  },
+  {
+   "id": "set-up",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Set up payouts / Continue set-up",
+   "expected": "The payout provider's set-up opens",
+   "verify": "UI",
+   "run": "not automated yet (NOT RUN)",
+   "test": "none"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/partner/.maestro/r42-api-down.yaml",
+   "maestro": "r42-api-down"
+  },
+  {
+   "id": "statements-equal-admin",
+   "kind": "number",
+   "users": [
+    "in",
+    "us"
+   ],
+   "action": "Read the restaurant's statements (as the app does) and admin Finance's for the same ids",
+   "expected": "Each amount, its week and its orders are the same in both",
+   "verify": "API: GET /finance/statements/me (owner) vs GET /finance/statements/{id} (finance admin)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "partner(kitchen)/payouts#statements-equal-admin"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own statements only (API refuses others)"
+  }
+ ]
+}

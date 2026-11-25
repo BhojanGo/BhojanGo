@@ -27,9 +27,9 @@ echo "== seed twice (must be idempotent)"
 uv run --frozen python ../tools/seed/seed.py >/dev/null
 uv run --frozen python ../tools/seed/seed.py
 echo "== API on the migrated database"
-RUN_MIGRATED_DB_TESTS=1 uv run --frozen pytest core_api/integration -q --tb=short
+RUN_MIGRATED_DB_TESTS=1 uv run --frozen python ../tools/test_db.py --prove-untouched -- python -m pytest core_api/integration -q --tb=short --ignore=core_api/integration/test_markets_only_seed.py
 echo "== worker messages on the migrated database"
-RUN_MIGRATED_DB_TESTS=1 uv run --frozen pytest worker/tests/integration -q --tb=short
+RUN_MIGRATED_DB_TESTS=1 uv run --frozen python ../tools/test_db.py --prove-untouched -- python -m pytest worker/tests/integration -q --tb=short
 echo "== API contract: the generated client matches the OpenAPI documents"
 uv run --frozen python tools/dump_openapi.py --check
 echo "== migrations OK"

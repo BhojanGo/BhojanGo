@@ -1,0 +1,49 @@
+{
+ "app": "admin",
+ "route": "/",
+ "functions": [
+  {
+   "id": "home",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the console's root",
+   "expected": "Goes to the overview of the admin's own scope",
+   "verify": "UI: URL /overview",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/#home"
+  },
+  {
+   "id": "signed-out",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open it signed out",
+   "expected": "The login page",
+   "verify": "UI: /login",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/#signed-out"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a redirect"
+  }
+ ]
+}

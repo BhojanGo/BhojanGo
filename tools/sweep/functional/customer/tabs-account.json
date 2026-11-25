@@ -1,0 +1,55 @@
+{
+ "app": "customer",
+ "route": "(tabs)/account",
+ "functions": [
+  {
+   "id": "account",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open each account row",
+   "expected": "Each page opens",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/account.yaml",
+   "maestro": "account"
+  },
+  {
+   "id": "pages",
+   "kind": "link",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Addresses, payments, notifications, privacy",
+   "expected": "Each opens with its data",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/account-pages.yaml",
+   "maestro": "account-pages"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/customer/.maestro/r42-api-down.yaml",
+   "maestro": "r42-api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the customer's own account"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "always shows the account"
+  }
+ ]
+}

@@ -1,0 +1,34 @@
+{
+ "app": "partner",
+ "route": "(kitchen)/help",
+ "functions": [
+  {
+   "id": "help",
+   "kind": "link",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open help topics",
+   "expected": "Articles",
+   "verify": "UI",
+   "run": "maestro: apps/partner/.maestro/help.yaml",
+   "maestro": "help"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "any partner"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "always topics"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

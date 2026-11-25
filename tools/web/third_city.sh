@@ -30,6 +30,7 @@ EOF
 OVR="$TMP/no-ports.yaml"
 command -v cygpath >/dev/null 2>&1 && OVR="$(cygpath -w "$OVR")"
 
+export POSTGRES_DB="${POSTGRES_DB:-bhojango_third_city_test}"  # R42: a test database (tools/target_guard.py)
 C="docker compose -p $P -f $ROOT/infra/docker/compose.yaml -f $ROOT/infra/docker/e2e.compose.yaml -f $OVR --profile all"
 
 cleanup() {

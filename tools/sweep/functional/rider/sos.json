@@ -1,0 +1,33 @@
+{
+ "app": "rider",
+ "route": "sos",
+ "functions": [
+  {
+   "id": "sos",
+   "kind": "button",
+   "users": [
+    "in"
+   ],
+   "action": "SOS: call, share location, cancel",
+   "expected": "Each action",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/sos.yaml",
+   "maestro": "sos"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "a signed-in rider"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "fixed actions"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "works offline (calls)"
+  }
+ ]
+}

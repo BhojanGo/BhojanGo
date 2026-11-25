@@ -1,0 +1,41 @@
+{
+ "app": "rider",
+ "route": "(tabs)/account",
+ "functions": [
+  {
+   "id": "account-sos",
+   "kind": "button",
+   "users": [
+    "in"
+   ],
+   "action": "Account; SOS",
+   "expected": "SOS screen",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/sos.yaml",
+   "maestro": "sos"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/rider/.maestro/r42-api-down.yaml",
+   "maestro": "r42-api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own account"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "always the account"
+  }
+ ]
+}

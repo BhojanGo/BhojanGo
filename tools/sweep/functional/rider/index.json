@@ -1,0 +1,42 @@
+{
+ "app": "rider",
+ "route": "index",
+ "functions": [
+  {
+   "id": "opens",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Launch",
+   "expected": "Sign-in or Drive",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/sign-in-email.yaml",
+   "maestro": "sign-in-email"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/rider/.maestro/offline-sign-in.yaml",
+   "maestro": "offline-sign-in"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the way in: anyone may open it"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a launcher"
+  }
+ ]
+}

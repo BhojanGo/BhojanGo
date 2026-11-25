@@ -1,0 +1,42 @@
+{
+ "app": "web",
+ "route": "/terms/history/[version]",
+ "functions": [
+  {
+   "id": "old-version",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open version 1 and an unknown version",
+   "expected": "Version 1's text; an unknown version says it doesn't exist",
+   "verify": "UI: legal-document / not-found",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/terms/history/[version]#old-version"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders: its last good copy (the server's page cache) or a message that it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/terms/history/[version]#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public page"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "one version; an unknown one is the not-found state (checked)"
+  }
+ ]
+}

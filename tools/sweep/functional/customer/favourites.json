@@ -1,0 +1,42 @@
+{
+ "app": "customer",
+ "route": "favourites",
+ "functions": [
+  {
+   "id": "list",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Saved restaurants; unsave",
+   "expected": "List follows the API",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/r41-sweep-us.yaml",
+   "maestro": "r41-sweep-us"
+  },
+  {
+   "id": "none",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A new customer",
+   "expected": "'No favourites yet'",
+   "verify": "UI",
+   "run": "not automated yet (NOT RUN)",
+   "test": "none"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own favourites"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

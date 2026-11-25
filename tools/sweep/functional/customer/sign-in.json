@@ -1,0 +1,55 @@
+{
+ "app": "customer",
+ "route": "sign-in",
+ "functions": [
+  {
+   "id": "phone-and-email",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Phone + code; email + wrong then right password",
+   "expected": "Wrong password refused; right one signs in",
+   "verify": "UI messages; API session",
+   "run": "maestro: apps/customer/.maestro/sign-in-email.yaml",
+   "maestro": "sign-in-email"
+  },
+  {
+   "id": "phone-us-in",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Sign in with a US and an India number",
+   "expected": "Each country's number format, code, signed in",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/r39-phone.yaml",
+   "maestro": "r39-phone"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/customer/.maestro/offline-sign-in.yaml",
+   "maestro": "offline-sign-in"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the way in: anyone may open it"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form"
+  }
+ ]
+}

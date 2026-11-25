@@ -1,0 +1,54 @@
+{
+ "app": "web",
+ "route": "/signin/reset",
+ "functions": [
+  {
+   "id": "expired-link",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open a reset link that's expired",
+   "expected": "Says so and offers a new link",
+   "verify": "UI: alert and Ask for a new link",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/signin/reset#expired-link"
+  },
+  {
+   "id": "new-link",
+   "kind": "link",
+   "users": [
+    "us"
+   ],
+   "action": "Ask for a new link from an expired one",
+   "expected": "The forgot-password page",
+   "verify": "UI URL",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/signin/reset#new-link"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders: its last good copy (the server's page cache) or a message that it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/signin/reset#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the way in: open to everyone"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form; nothing to list"
+  }
+ ]
+}

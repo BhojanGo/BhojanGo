@@ -1,0 +1,56 @@
+{
+ "app": "web",
+ "route": "/account/favourites",
+ "functions": [
+  {
+   "id": "saved-list",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Save a restaurant, open favourites, remove it",
+   "expected": "It's listed, then gone; the list is the favourites API's",
+   "verify": "UI: list; API: GET /me/favourites",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/favourites#saved-list"
+  },
+  {
+   "id": "none-yet",
+   "kind": "empty",
+   "users": [
+    "us"
+   ],
+   "action": "Open favourites as a new customer",
+   "expected": "No saved restaurants yet; Find something to eat",
+   "verify": "UI: empty state",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/favourites#none-yet"
+  },
+  {
+   "id": "signed-out",
+   "kind": "permission",
+   "users": [
+    "in"
+   ],
+   "action": "Open favourites signed out",
+   "expected": "Sign in first",
+   "verify": "UI: /signin",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/favourites#signed-out"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/account/favourites#api-down"
+  }
+ ]
+}

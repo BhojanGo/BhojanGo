@@ -49,6 +49,7 @@ async def health_check() -> dict:
         "status": overall,
         "service": settings.SERVICE_NAME,
         "environment": settings.environment_name,  # tools/target_guard.py
+        "test_database": settings.test_database,  # tools/target_guard.py: test runs write only to a test database
         "version": settings.VERSION,
         "uptime_seconds": round(time.time() - _start_time, 1),
         "checks": checks,

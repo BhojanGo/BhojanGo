@@ -1,0 +1,56 @@
+{
+ "app": "admin",
+ "route": "/content/help/[id]",
+ "functions": [
+  {
+   "id": "edit-history",
+   "kind": "toggle",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open an article; History tab; back to Edit",
+   "expected": "Its versions; the editor",
+   "verify": "UI tabs",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/help/[id]#edit-history"
+  },
+  {
+   "id": "unknown",
+   "kind": "empty",
+   "users": [
+    "us"
+   ],
+   "action": "Open an id that doesn't exist",
+   "expected": "Not found",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/help/[id]#unknown"
+  },
+  {
+   "id": "viewer",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open as viewer",
+   "expected": "No Publish / Unpublish",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/help/[id]#viewer"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/content/help/[id]#api-down"
+  }
+ ]
+}

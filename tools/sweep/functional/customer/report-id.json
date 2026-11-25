@@ -1,0 +1,33 @@
+{
+ "app": "customer",
+ "route": "report/[id]",
+ "functions": [
+  {
+   "id": "report-refund",
+   "kind": "form",
+   "users": [
+    "in"
+   ],
+   "action": "Report a missing item",
+   "expected": "Refunded, amount shown",
+   "verify": "UI vs refunds",
+   "run": "maestro: apps/customer/.maestro/report-problem.yaml",
+   "maestro": "report-problem"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own orders only (API refuses others)"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "about one order"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "Send disabled until chosen (report-problem)"
+  }
+ ]
+}

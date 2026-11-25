@@ -1,0 +1,83 @@
+{
+ "app": "admin",
+ "route": "/finance",
+ "functions": [
+  {
+   "id": "prepare-approve",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Finance admin prepares payouts for an ended week with delivered orders; the same admin can't approve; a second admin approves",
+   "expected": "A draft run with a statement per payee; no Approve for its maker; the second admin's Approve pays it; the totals equal the statements",
+   "verify": "UI: run row, Approve button, status; API: GET /finance/payout-runs/{id} (statements sum = totals)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/finance#prepare-approve"
+  },
+  {
+   "id": "finance-numbers",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read the payout runs, contribution and reconciliation for the newest prepared week",
+   "expected": "Every amount and date shown is the finance API's; Captured = refunded + restaurants + card fees + partners + tax + BhojanGo",
+   "verify": "UI: the page's amounts and dates; API: /finance/payout-runs, /finance/reconciliation, /finance/contribution",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/finance#finance-numbers"
+  },
+  {
+   "id": "empty-week",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Finance for a city with no delivered orders (a coming-soon city)",
+   "expected": "The contribution says 'No delivered orders in this week'",
+   "verify": "UI: contribution text; API: contribution has 0 orders",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/finance#empty-week"
+  },
+  {
+   "id": "support-refused",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open Finance as a support agent and as city ops",
+   "expected": "Not allowed; the finance API refuses",
+   "verify": "UI: refused; API: GET /finance/payout-runs -> 403",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/finance#support-refused"
+  },
+  {
+   "id": "chargeback-evidence-won-lost",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A chargeback arrives (food quality); add a note and a file as evidence; the bank rules: one won, one lost",
+   "expected": "Listed with the restaurant's share held; evidence saved; won: the hold is released; lost: the loss is split as the reason says",
+   "verify": "UI: dispute-row state, evidence list; API: GET /finance/disputes (status, outcome, held)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/finance#chargeback-evidence-won-lost"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/finance#api-down"
+  }
+ ]
+}

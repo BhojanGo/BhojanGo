@@ -1,0 +1,72 @@
+{
+ "app": "rider",
+ "route": "(tabs)/drive",
+ "functions": [
+  {
+   "id": "online-offer-deliver",
+   "kind": "button",
+   "users": [
+    "in"
+   ],
+   "action": "Go online, accept the offer, pick up, deliver with the PIN, go offline",
+   "expected": "Each step; the order delivered in the API",
+   "verify": "UI; API",
+   "run": "maestro: apps/rider/.maestro/deliver.yaml",
+   "maestro": "deliver"
+  },
+  {
+   "id": "batch",
+   "kind": "button",
+   "users": [
+    "in"
+   ],
+   "action": "A batch offer",
+   "expected": "Two drops",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/batch.yaml",
+   "maestro": "batch"
+  },
+  {
+   "id": "reoffer",
+   "kind": "button",
+   "users": [
+    "in"
+   ],
+   "action": "Let an offer expire",
+   "expected": "Offered to the next",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/reoffer.yaml",
+   "maestro": "reoffer"
+  },
+  {
+   "id": "offline",
+   "kind": "empty",
+   "users": [
+    "in"
+   ],
+   "action": "Offline: no offers",
+   "expected": "'You're offline'",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/deliver.yaml",
+   "maestro": "deliver"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/rider/.maestro/r42-api-down.yaml",
+   "maestro": "r42-api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "a rider sees only offers made to them (API: access sweep)"
+  }
+ ]
+}

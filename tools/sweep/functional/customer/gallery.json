@@ -1,0 +1,38 @@
+{
+ "app": "customer",
+ "route": "gallery",
+ "functions": [
+  {
+   "id": "components",
+   "kind": "display",
+   "users": [
+    "us"
+   ],
+   "action": "Developer gallery",
+   "expected": "Every component renders",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/gallery.yaml",
+   "maestro": "gallery"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "a developer screen, not in the release build"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "fixed"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "no data"
+  },
+  {
+   "id": "na-action",
+   "kind": "action",
+   "na": "a developer screen: it only shows components"
+  }
+ ]
+}

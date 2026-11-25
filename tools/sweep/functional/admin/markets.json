@@ -1,0 +1,61 @@
+{
+ "app": "admin",
+ "route": "/markets",
+ "functions": [
+  {
+   "id": "countries",
+   "kind": "link",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open each country and state",
+   "expected": "Each country's page",
+   "verify": "UI URL; API GET /markets",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/markets#countries"
+  },
+  {
+   "id": "new-country",
+   "kind": "form",
+   "users": [
+    "us"
+   ],
+   "action": "New country with a missing name",
+   "expected": "Refused",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/markets#new-country"
+  },
+  {
+   "id": "cm-sees-own",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "The US country manager opens Markets",
+   "expected": "Only the US to edit",
+   "verify": "UI; API PATCH /markets/countries/IN as cm.us -> 403",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/markets#cm-sees-own"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/markets#api-down"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "at least one country always exists"
+  }
+ ]
+}

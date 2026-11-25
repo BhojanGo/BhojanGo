@@ -1,0 +1,58 @@
+{
+ "app": "web",
+ "route": "/orders/[id]",
+ "functions": [
+  {
+   "id": "opens-tracking",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open /orders/{id}",
+   "expected": "Goes to its tracking page",
+   "verify": "UI: the URL ends /track; API: the order exists for this customer",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/orders/[id]#opens-tracking"
+  },
+  {
+   "id": "signed-out",
+   "kind": "permission",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open an order signed out",
+   "expected": "Sign in first (the order isn't shown)",
+   "verify": "UI: /signin?next=…",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/orders/[id]#signed-out"
+  },
+  {
+   "id": "unknown-order",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open an order id that doesn't exist",
+   "expected": "'We couldn't find this order' and a way back",
+   "verify": "UI: the not-found state",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/orders/[id]#unknown-order"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/orders/[id]#api-down"
+  }
+ ]
+}

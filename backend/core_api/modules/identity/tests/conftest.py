@@ -35,6 +35,20 @@ TestSessionLocal = async_sessionmaker(
 
 # Base.metadata is shared by every core_api module (some use Postgres-only
 # types), so only create identity's tables in SQLite.
+# R42: granting a role checks the place exists in Markets; these unit tests have no Markets tables (Postgres
+# arrays), so the places they use stand in for them (the real lookup: core_api/integration/test_r42_grant_scope.py)
+PLACES = {"US", "IN", "US-ID", "US-ID-BOI", "IN-TG", "IN-TG-HYD", "IN-KA", "IN-KA-BLR"}
+
+
+@pytest.fixture(autouse=True)
+def _markets_places():  # type: ignore[no-untyped-def]
+    async def exists(db, scope: str) -> bool:  # type: ignore[no-untyped-def]
+        return scope in PLACES
+
+    with patch("core_api.modules.identity.api.v1.admin._scope_exists", exists):
+        yield
+
+
 IDENTITY_TABLES = [User.__table__, Address.__table__, AdminRoleAssignment.__table__, PaymentMethod.__table__,
                    Favourite.__table__, NotificationPreference.__table__, RecoveryCode.__table__,
                    LegalDocument.__table__, LegalAcceptance.__table__, RiderProfile.__table__, RiderDocument.__table__]

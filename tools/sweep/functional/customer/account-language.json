@@ -1,0 +1,34 @@
+{
+ "app": "customer",
+ "route": "account/language",
+ "functions": [
+  {
+   "id": "switch",
+   "kind": "toggle",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Switch language and back",
+   "expected": "The whole app in that language",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/account-language.yaml",
+   "maestro": "account-language"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own setting"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a list of languages"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "works offline (a local setting)"
+  }
+ ]
+}

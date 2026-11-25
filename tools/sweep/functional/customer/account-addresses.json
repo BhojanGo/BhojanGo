@@ -1,0 +1,42 @@
+{
+ "app": "customer",
+ "route": "account/addresses",
+ "functions": [
+  {
+   "id": "list",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Make default, delete",
+   "expected": "List follows",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/account-pages.yaml",
+   "maestro": "account-pages"
+  },
+  {
+   "id": "none",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "A new customer",
+   "expected": "'No saved addresses' + Add",
+   "verify": "UI",
+   "run": "not automated yet (NOT RUN)",
+   "test": "none"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own addresses"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down (account tab)"
+  }
+ ]
+}

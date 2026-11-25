@@ -1,0 +1,67 @@
+# R42 (brief item b): Reject an order (the customer is refunded in full, checked on the API), then a pickup order
+# whose code is entered wrongly 5 times: the order locks ("Too many wrong codes").
+appId: com.bhojango.partner
+---
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "Which restaurant is this tablet for?"
+    timeout: 30000
+- tapOn: "Spice Route Kitchen"
+- extendedWaitUntil:
+    visible: "Ready for pickup"
+    timeout: 30000
+- runScript: scripts/customer.js
+- extendedWaitUntil:
+    visible: "(?i)to accept"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/partner/r42-reject-before
+- tapOn: "Reject"
+- extendedWaitUntil:
+    visible: "Reject this order\\?"
+    timeout: 10000
+- tapOn:
+    id: "android:id/button1"   # the confirm's "Reject" (Android puts the destructive choice on the positive button)
+- extendedWaitUntil:
+    notVisible: "(?i)to accept"
+    timeout: 20000
+- runScript:
+    file: scripts/r42_partner.js
+    env:
+      STEP: rejected
+- takeScreenshot: docs/screenshots/partner/r42-reject-after
+- runScript:
+    file: scripts/pickup_order.js
+    env:
+      STEP: order
+- extendedWaitUntil:
+    visible: "(?i)to accept"
+    timeout: 30000
+- tapOn:
+    id: "accept"
+- extendedWaitUntil:
+    visible: "Mark ready"
+    timeout: 20000
+- tapOn: "Mark ready"
+- extendedWaitUntil:
+    visible:
+      id: "pickup-code-input"
+    timeout: 20000
+- runScript:
+    file: scripts/pickup_order.js
+    env:
+      STEP: code
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: "pickup-code-input"
+      - eraseText: 6
+      - inputText: ${output.wrongCode}
+      - hideKeyboard
+      - tapOn:
+          id: "pickup-hand-over"
+      - waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Too many wrong codes.*"
+    timeout: 15000
+- takeScreenshot: docs/screenshots/partner/r42-pickup-locked

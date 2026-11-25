@@ -1,0 +1,34 @@
+{
+ "app": "customer",
+ "route": "account/privacy",
+ "functions": [
+  {
+   "id": "export-delete",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Download my data; Delete account (cancel)",
+   "expected": "Confirm dialog",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/account-pages.yaml",
+   "maestro": "account-pages"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own account"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "fixed actions"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

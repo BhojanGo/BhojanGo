@@ -1,0 +1,34 @@
+{
+ "app": "customer",
+ "route": "where",
+ "functions": [
+  {
+   "id": "set-location",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Choose a city and address",
+   "expected": "Home for that place",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/r41-sweep-us.yaml",
+   "maestro": "r41-sweep-us"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the way in: anyone may open it"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a picker"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

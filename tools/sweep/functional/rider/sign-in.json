@@ -1,0 +1,62 @@
+{
+ "app": "rider",
+ "route": "sign-in",
+ "functions": [
+  {
+   "id": "email",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Email sign-in",
+   "expected": "Signed in",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/sign-in-email.yaml",
+   "maestro": "sign-in-email"
+  },
+  {
+   "id": "wrong-role",
+   "kind": "permission",
+   "users": [
+    "in"
+   ],
+   "action": "Sign in with a restaurant's account",
+   "expected": "Refused: 'This number is a restaurant or admin account'",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/r42-wrong-role.yaml",
+   "maestro": "r42-wrong-role"
+  },
+  {
+   "id": "phone",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Phone sign-in",
+   "expected": "Signed in",
+   "verify": "UI",
+   "run": "maestro: apps/rider/.maestro/r39-phone.yaml",
+   "maestro": "r39-phone"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/rider/.maestro/offline-sign-in.yaml",
+   "maestro": "offline-sign-in"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form"
+  }
+ ]
+}

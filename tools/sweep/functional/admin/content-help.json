@@ -1,0 +1,56 @@
+{
+ "app": "admin",
+ "route": "/content/help",
+ "functions": [
+  {
+   "id": "filters",
+   "kind": "filter",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Filter by country, language, topic, status; search",
+   "expected": "Rows match the filters",
+   "verify": "UI rows; API GET /help/admin/articles",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/help#filters"
+  },
+  {
+   "id": "no-match",
+   "kind": "empty",
+   "users": [
+    "us"
+   ],
+   "action": "Search for nonsense",
+   "expected": "No rows",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/help#no-match"
+  },
+  {
+   "id": "ops-refused",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open as city ops",
+   "expected": "Read-only / refused",
+   "verify": "UI",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/content/help#ops-refused"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/content/help#api-down"
+  }
+ ]
+}

@@ -1,0 +1,107 @@
+# R42 (brief item a, the app): the cart's fair bill equals the pricing API's quote line by line, Pay shows its
+# total, paying opens tracking, and a past order's receipt shows what the order API says was paid.
+# Env: MARKET (us|in), PHONE, COUNTRY, REST (restaurant slug), DISH (a dish with no choices), NAME (restaurant name).
+appId: com.bhojango.app
+---
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: ${PHONE}
+      COUNTRY: ${COUNTRY}
+- scrollUntilVisible:
+    element:
+      id: "kitchen-card-${REST}"
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "kitchen-card-${REST}"
+- scrollUntilVisible:
+    element:
+      text: ${DISH}
+    direction: DOWN
+    timeout: 30000
+- tapOn: ${DISH}
+- runFlow:
+    when:
+      visible:
+        id: "add-to-bag"
+    commands:
+      - tapOn:
+          id: "add-to-bag"
+- tapOn:
+    text: "View cart.*"
+- extendedWaitUntil:
+    visible: "The fair bill"
+    timeout: 20000
+- runScript:
+    file: ../scripts/r42_numbers.js
+    env:
+      STEP: bill
+      MARKET: ${MARKET}
+      REST: ${REST}
+      DISH: ${DISH}
+- takeScreenshot: docs/screenshots/customer/r42-bill-${MARKET}-before
+- runFlow:
+    file: line.yaml
+    env: { AMOUNT: "${output.l1}" }
+- runFlow:
+    file: line.yaml
+    env: { AMOUNT: "${output.l2}" }
+- runFlow:
+    file: line.yaml
+    env: { AMOUNT: "${output.l3}" }
+- runFlow:
+    file: line.yaml
+    env: { AMOUNT: "${output.l4}" }
+- runFlow:
+    file: line.yaml
+    env: { AMOUNT: "${output.l5}" }
+- runFlow:
+    file: line.yaml
+    env: { AMOUNT: "${output.l6}" }
+- runFlow:
+    file: line.yaml
+    env: { AMOUNT: "${output.l7}" }
+- runFlow:
+    file: line.yaml
+    env: { AMOUNT: "${output.l8}" }
+- scrollUntilVisible:
+    element:
+      text: "Pay .*${output.total_re}.*"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: docs/screenshots/customer/r42-bill-${MARKET}
+- tapOn:
+    text: "Pay .*"
+- tapOn:
+    text: "Approve.*"
+- extendedWaitUntil:
+    visible: "${NAME} has your order"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/customer/r42-bill-${MARKET}-after-paid
+# A past order's receipt: what was paid, as the order API has it
+- runScript:
+    file: ../scripts/r42_numbers.js
+    env:
+      STEP: receipt
+      MARKET: ${MARKET}
+- launchApp
+- tapOn: "Orders"
+- scrollUntilVisible:
+    element:
+      id: "past-order-0"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "past-order-0"
+- extendedWaitUntil:
+    visible:
+      id: "receipt-status"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: ".*${output.paid_re}.*"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: docs/screenshots/customer/r42-receipt-${MARKET}

@@ -111,12 +111,16 @@ function Fees() {
   const { data: markets } = useMarkets();
   const me = useAdminMe();
   const level = (params.get("level") as Level) || "country";
-  const country = params.get("country") || markets?.[0]?.code || "";
+  // R42: opened from the console with a place picked (?scope=US, US-ID or US-ID-BOI): that country, state and city,
+  // not the first country in the list
+  const picked = (params.get("scope") ?? "").split("-").filter(Boolean);
+  const fromScope = (n: number) => (picked.length >= n && picked[0] !== "*" ? picked.slice(0, n).join("-") : "");
+  const country = params.get("country") || fromScope(1) || markets?.[0]?.code || "";
   const countryInfo = markets?.find((c) => c.code === country);
   const regions = countryInfo?.regions ?? [];
-  const region = params.get("region") || regions[0]?.code || "";
+  const region = params.get("region") || fromScope(2) || regions[0]?.code || "";
   const cities = regions.find((r) => r.code === region)?.cities ?? [];
-  const city = params.get("city") || cities[0]?.code || "";
+  const city = params.get("city") || fromScope(3) || cities[0]?.code || "";
   const cityName = cities.find((c) => c.code === city)?.name ?? "";
   const restaurants = useQuery({
     queryKey: ["fees", "kitchens", cityName],

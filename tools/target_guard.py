@@ -1,4 +1,4 @@
-"""Tests never write to QA or production.
+"""Tests never write to QA or production, nor to the dev/demo database (R42).
 
 Everything that creates data through the APIs or the database (the backend
 integration and G1 suites, the Playwright and Maestro runs, k6, the soak, the
@@ -13,6 +13,10 @@ How the target is known:
 - this process (a conftest that opens the database): APP_ENV and
   RAILWAY_ENVIRONMENT_NAME, and DATABASE_URL's host must be local (loopback or
   a compose service name; any dotted host such as *.railway.internal is remote).
+- R42: the database itself must be a throwaway test one, its name containing
+  "test" (tools/test_db.py makes bhojango_test_<id> per run and drops it; CI's
+  stacks use bhojango_test, bhojango_e2e_test, ...). The dev/demo database
+  (bhojango) is refused. An API says so in /health: `test_database: true`.
 
 Standard library only: the Playwright image runs it with a bare Python.
 
@@ -62,6 +66,19 @@ def local_host(host: str | None) -> bool:
         return "." not in host
 
 
+def database_name(url: str) -> str:
+    return urllib.parse.urlsplit(url.replace("+asyncpg", "")).path.lstrip("/").lower()
+
+
+def test_database(name: str) -> bool:
+    """A throwaway test database: its name has "test" in it (the same rule as Settings.test_database)."""
+    return "test" in name.lower()
+
+
+NOT_A_TEST_DB = ("tests only write to a throwaway test database (a name with 'test' in it; "
+                 "run them through tools/test_db.py), never the dev/demo database")
+
+
 def process_problem(env: Mapping[str, str] | None = None) -> str | None:
     """Why this process must not write test data, or None."""
     env = os.environ if env is None else env
@@ -74,6 +91,9 @@ def process_problem(env: Mapping[str, str] | None = None) -> str | None:
         if not local_host(host):
             return (f"DATABASE_URL points at {host!r}, not a local or compose database: "
                     "tests never write to a hosted database")
+        name = database_name(url)
+        if not test_database(name):
+            return f"DATABASE_URL's database is {name!r}: {NOT_A_TEST_DB}"
     return None
 
 
@@ -102,6 +122,8 @@ def api_problem(base_url: str, fetch: Fetch = _fetch_health) -> str | None:
         return f"{base} is the {env!r} environment: tests never write to QA or production"
     if not env and not local_host(parts.hostname):
         return f"{base}/health doesn't report its environment; refusing a hosted target"
+    if health.get("test_database") is not True:
+        return f"{base} doesn't run on a test database (/health test_database is not true): {NOT_A_TEST_DB}"
     return None
 
 
@@ -129,7 +151,7 @@ def main(argv: list[str]) -> int:
     else:
         print(__doc__, file=sys.stderr)
         return 2
-    print("target_guard: ok (not QA or production)")
+    print("target_guard: ok (a local test database; not QA, production or the dev/demo database)")
     return 0
 
 

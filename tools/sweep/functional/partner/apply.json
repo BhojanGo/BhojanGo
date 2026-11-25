@@ -1,0 +1,58 @@
+{
+ "app": "partner",
+ "route": "apply",
+ "functions": [
+  {
+   "id": "documents",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Apply: documents, FSSAI / food permit",
+   "expected": "Sent for review",
+   "verify": "UI; API",
+   "run": "maestro: apps/partner/.maestro/apply.yaml",
+   "maestro": "apply"
+  },
+  {
+   "id": "permit-us",
+   "kind": "form",
+   "users": [
+    "us"
+   ],
+   "action": "A US food permit",
+   "expected": "Waiting for review",
+   "verify": "UI",
+   "run": "maestro: apps/partner/.maestro/r39-permit-us.yaml",
+   "maestro": "r39-permit-us"
+  },
+  {
+   "id": "permit-in",
+   "kind": "form",
+   "users": [
+    "in"
+   ],
+   "action": "India FSSAI",
+   "expected": "Waiting for review",
+   "verify": "UI",
+   "run": "maestro: apps/partner/.maestro/r39-permit-in.yaml",
+   "maestro": "r39-permit-in"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "a signed-up owner's own application"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "the form's checks"
+  }
+ ]
+}

@@ -1,0 +1,67 @@
+{
+ "app": "web",
+ "route": "/deliver",
+ "functions": [
+  {
+   "id": "sign-up-form",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Fill name, date of birth, vehicle, mobile and city; Send code; enter the code",
+   "expected": "An under-18 date is refused; a valid form sends a code and starts the application",
+   "verify": "UI: the age message, the code step; API: the new rider's checklist (GET /riders/me/documents)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/deliver#sign-up-form"
+  },
+  {
+   "id": "pay-numbers",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read the pay table",
+   "expected": "Trip pay by distance is the city's rider pay rule",
+   "verify": "UI: pay-cards amounts; API: GET /deliver/terms?city= (rider pay)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/deliver#pay-numbers"
+  },
+  {
+   "id": "bad-phone",
+   "kind": "error",
+   "users": [
+    "us"
+   ],
+   "action": "Type a phone number that's too short",
+   "expected": "Send code stays disabled",
+   "verify": "UI: the button",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/deliver#bad-phone"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders: its last good copy (the server's page cache) or a message that it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/deliver#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public page; anyone may apply"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form; nothing to list"
+  }
+ ]
+}

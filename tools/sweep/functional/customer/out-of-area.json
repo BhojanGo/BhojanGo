@@ -1,0 +1,34 @@
+{
+ "app": "customer",
+ "route": "out-of-area",
+ "functions": [
+  {
+   "id": "notify",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Outside every zone: Notify me",
+   "expected": "Saved",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/out-of-area.yaml",
+   "maestro": "out-of-area"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the way in: anyone may open it"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "the screen is itself the 'nowhere to deliver' state"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "the form's message"
+  }
+ ]
+}

@@ -1,0 +1,30 @@
+# R42 (permission): another kind of account can't use this app. Signing in with partner.hyd@example.com (the wrong role) is
+# refused with the app's own message and stays on sign-in (the account is signed out again).
+appId: com.bhojango.rider
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible:
+      id: "way-email"
+    timeout: 120000
+- tapOn:
+    id: "way-email"
+- tapOn:
+    id: "email"
+- inputText: "partner.hyd@example.com"
+- hideKeyboard
+- tapOn:
+    id: "password"
+- inputText: "BhojanGo123"
+- hideKeyboard
+- tapOn:
+    id: "email-sign-in"
+- extendedWaitUntil:
+    visible: "This number is a restaurant or admin account.*"
+    timeout: 20000
+- assertVisible:
+    id: "email-sign-in"
+- takeScreenshot: docs/screenshots/rider/r42-wrong-role

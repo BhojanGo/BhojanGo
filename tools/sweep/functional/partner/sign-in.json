@@ -1,0 +1,62 @@
+{
+ "app": "partner",
+ "route": "sign-in",
+ "functions": [
+  {
+   "id": "email",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Email + wrong then right password",
+   "expected": "Signed in",
+   "verify": "UI",
+   "run": "maestro: apps/partner/.maestro/sign-in-email.yaml",
+   "maestro": "sign-in-email"
+  },
+  {
+   "id": "wrong-role",
+   "kind": "permission",
+   "users": [
+    "in"
+   ],
+   "action": "Sign in with a delivery partner's account",
+   "expected": "Refused: 'This number is a delivery partner or admin account'",
+   "verify": "UI",
+   "run": "maestro: apps/partner/.maestro/r42-wrong-role.yaml",
+   "maestro": "r42-wrong-role"
+  },
+  {
+   "id": "phone",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Phone sign-in US / India",
+   "expected": "Code, signed in",
+   "verify": "UI",
+   "run": "maestro: apps/partner/.maestro/r39-phone.yaml",
+   "maestro": "r39-phone"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/partner/.maestro/offline-sign-in.yaml",
+   "maestro": "offline-sign-in"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form"
+  }
+ ]
+}

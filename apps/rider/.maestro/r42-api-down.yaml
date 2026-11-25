@@ -1,0 +1,35 @@
+# R42 (error state): run with core-api stopped (tools/sweep/functional/apps.sh), signed in by an earlier flow.
+# Each main screen still renders and says it can't reach BhojanGo (or shows what it had, marked offline);
+# nothing crashes or goes blank.
+appId: com.bhojango.rider
+tags:
+  - r42-down
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Drive"
+    commands:
+      - tapOn: "Drive"
+- extendedWaitUntil:
+    visible: "(?i).*(can.t reach|couldn.t|could not|try again|offline|no connection|not loading|didn.t load|reconnect).*"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/rider/r42-api-down-drive
+- runFlow:
+    when:
+      visible: "Earnings"
+    commands:
+      - tapOn: "Earnings"
+- extendedWaitUntil:
+    visible: "(?i).*(can.t reach|couldn.t|could not|try again|offline|no connection|not loading|didn.t load|reconnect).*"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/rider/r42-api-down-earnings
+- runFlow:
+    when:
+      visible: "Account"
+    commands:
+      - tapOn: "Account"
+- extendedWaitUntil:
+    visible: "(?i).*(can.t reach|couldn.t|could not|try again|offline|no connection|not loading|didn.t load|reconnect).*"
+    timeout: 30000
+- takeScreenshot: docs/screenshots/rider/r42-api-down-account

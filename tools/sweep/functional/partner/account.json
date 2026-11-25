@@ -1,0 +1,34 @@
+{
+ "app": "partner",
+ "route": "account",
+ "functions": [
+  {
+   "id": "account",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Account and sign out",
+   "expected": "Signed out",
+   "verify": "UI",
+   "run": "maestro: apps/partner/.maestro/r41-sweep.yaml",
+   "maestro": "r41-sweep"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "own account"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "always the account"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

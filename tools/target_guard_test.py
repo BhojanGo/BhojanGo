@@ -14,7 +14,7 @@ import target_guard as g  # noqa: E402
 def health(env: str | None):  # type: ignore[no-untyped-def]
     def fetch(url: str) -> dict:
         assert url.endswith("/health"), url
-        return {"status": "healthy"} | ({"environment": env} if env is not None else {})
+        return {"status": "healthy", "test_database": True} | ({"environment": env} if env is not None else {})
     return fetch
 
 
@@ -24,9 +24,9 @@ def unreachable(url: str) -> dict:
 
 class ProcessTests(unittest.TestCase):
     def test_local_development_is_allowed(self) -> None:
-        for url in ("postgresql+asyncpg://bhojango:x@postgres:5432/bhojango",
-                    "postgresql+asyncpg://bhojango:x@localhost:5432/bhojango",
-                    "postgresql://u:p@127.0.0.1/db", "postgresql://u:p@[::1]:5432/db", ""):
+        for url in ("postgresql+asyncpg://bhojango:x@postgres:5432/bhojango_test",
+                    "postgresql+asyncpg://bhojango:x@localhost:5432/bhojango_test_1a2b3c",
+                    "postgresql://u:p@127.0.0.1/db_test", "postgresql://u:p@[::1]:5432/bhojango_e2e_test", ""):
             self.assertIsNone(g.process_problem({"APP_ENV": "development", "DATABASE_URL": url}), url)
         self.assertIsNone(g.process_problem({}))
 
@@ -50,6 +50,16 @@ class ProcessTests(unittest.TestCase):
         self.assertEqual(e.exception.code, g.REFUSED_EXIT)
         g.ensure_local_process({"APP_ENV": "test"})  # no exception
 
+    def test_the_dev_database_is_refused(self) -> None:
+        """R42: integration and e2e tests never write to the dev/demo database, only a throwaway test one."""
+        for url in ("postgresql+asyncpg://bhojango:x@postgres:5432/bhojango",
+                    "postgresql+asyncpg://bhojango:x@localhost:15432/bhojango",
+                    "postgresql://u:p@localhost/bhojango?sslmode=disable", "postgresql://u:p@localhost/"):
+            p = g.process_problem({"APP_ENV": "development", "DATABASE_URL": url})
+            self.assertIsNotNone(p, url)
+            self.assertIn("test database", p or "")
+        self.assertEqual(g.database_name("postgresql+asyncpg://u:p@h:1/bhojango_test_9f?ssl=x"), "bhojango_test_9f")
+
 
 class ApiTests(unittest.TestCase):
     def test_reported_environment_decides(self) -> None:
@@ -71,15 +81,24 @@ class ApiTests(unittest.TestCase):
         self.assertIsNotNone(g.api_problem("ftp://core-api", health("development")))
         self.assertIsNotNone(g.api_problem("", health("development")))
 
+    def test_an_api_on_the_dev_database_is_refused(self) -> None:
+        """R42: /health says whether the API runs on a test database; anything else is refused, even locally."""
+        for h in ({"environment": "development", "test_database": False}, {"environment": "development"},
+                  {"environment": "development", "test_database": "true"}):
+            p = g.api_problem("http://localhost:8001", lambda u, h=h: h)
+            self.assertIsNotNone(p, h)
+            self.assertIn("test database", p or "")
+        self.assertIsNone(g.api_problem("http://core-api:8001", lambda u: {"environment": "development", "test_database": True}))
+
     def test_health_url_strips_the_api_prefix(self) -> None:
         seen: list[str] = []
-        g.api_problem("http://core-api:8001/api/v1/", lambda u: seen.append(u) or {"environment": "development"})
+        g.api_problem("http://core-api:8001/api/v1/", lambda u: seen.append(u) or {"environment": "development", "test_database": True})
         self.assertEqual(seen, ["http://core-api:8001/health"])
 
     def test_ensure_safe_api_and_cli(self) -> None:
         with self.assertRaises(SystemExit) as e:
             g.ensure_safe_api("http://core-api:8001", "https://qa.example.app", fetch=lambda u: (
-                {"environment": "qa"} if "qa." in u else {"environment": "development"}))
+                {"environment": "qa"} if "qa." in u else {"environment": "development", "test_database": True}))
         self.assertEqual(e.exception.code, g.REFUSED_EXIT)
         self.assertEqual(g.main(["nonsense"]), 2)
 

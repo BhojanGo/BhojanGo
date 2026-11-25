@@ -27,6 +27,7 @@ jobs:
       COMPOSE_PROJECT_NAME: bhojango-e2e
       COMPOSE: docker compose -f infra/docker/compose.yaml
       DEMO_RIDER_SIM: "0"  # the demo rider simulator stays off while tests run
+      POSTGRES_DB: bhojango_e2e_test  # R42: tests write only to a test database (tools/target_guard.py)
     steps:
       - uses: actions/checkout@v4
 
@@ -125,3 +126,62 @@ jobs:
           name: third-city-screenshots
           path: docs/screenshots/web-v2/third-city
           retention-days: 7
+
+  # R42: every function of every website and admin page (tools/sweep/functional: the money path, fees by level,
+  # finance with a second admin, chargebacks, permits, ...), as a US and an India user, numbers compared to the API and
+  # the database; then every page again with core-api stopped. On its own stack and test database.
+  functional:
+    name: Functional pages (R42)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      COMPOSE_PROJECT_NAME: bhojango-fn
+      COMPOSE: docker compose -f infra/docker/compose.yaml
+      DEMO_RIDER_SIM: "0"
+      POSTGRES_DB: bhojango_functional_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Free disk space (the runner's unused SDKs; the stack's images need ~20 GB)
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          docker system prune -af >/dev/null
+          df -h / | tail -1
+
+      - name: Host tools for the runs (opening hours helper)
+        run: pip install httpx==0.28.1
+
+      - name: Start the stack (make dev)
+        run: $COMPOSE --profile all up -d --build --wait --wait-timeout 600
+
+      - name: Seed and demo data (promo codes, order history for Finance)
+        run: |
+          $COMPOSE exec -T core-api python /srv/tools/seed/seed.py >/dev/null
+          $COMPOSE exec -T core-api python /srv/tools/seed/demo.py >/dev/null
+
+      - name: Every page's functions, then every page with core-api stopped
+        run: OUT="$PWD/qa-artifacts/r42/functional" sh tools/sweep/functional/run.sh
+
+      - name: Report (index.md)
+        if: always()
+        run: python tools/sweep/functional/index.py qa-artifacts/r42/functional
+
+      - name: Results and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: functional-pages
+          path: qa-artifacts/r42/functional
+          retention-days: 7
+
+      - name: Service logs
+        if: failure()
+        run: $COMPOSE logs --no-color --tail 200 core-api web admin
+
+      - name: Stop
+        if: always()
+        run: $COMPOSE down -v

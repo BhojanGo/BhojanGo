@@ -1,0 +1,100 @@
+{
+ "app": "web",
+ "route": "/[country]/[city]/[kitchen]",
+ "functions": [
+  {
+   "id": "add-stepper-remove",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Add the dish (+), One more (+) twice, One less (−) once; add a second dish and take it back out (− to 0)",
+   "expected": "The stepper reads 1, 2, 3, 2; the cart lists exactly the dish ×2 and the second dish is gone; the cart's food equals the menu price × 2",
+   "verify": "UI: dish stepper and cart lines; API: menu price (GET /restaurants/{id}/menu)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]/[kitchen]#add-stepper-remove"
+  },
+  {
+   "id": "delivery-pickup-switch",
+   "kind": "toggle",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read the Delivery / Pickup switch with no address, then with the customer's address; choose Pickup, then Delivery",
+   "expected": "No address: 'from <the city's lowest band> delivery'; with the address: the engine's fee to it; Pickup shows its fee %; the choice sticks",
+   "verify": "UI: how-delivery / how-pickup; API: GET /markets/cities/{cc}/{city} (delivery_from), GET /discover?lat&lng (delivery_fee)",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]/[kitchen]#delivery-pickup-switch"
+  },
+  {
+   "id": "menu-prices",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Read every price on the menu",
+   "expected": "Each dish's price is the menu API's",
+   "verify": "UI: every amount on the page; API: GET /restaurants/{id}/menu and /discover",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]/[kitchen]#menu-prices"
+  },
+  {
+   "id": "menu-search-empty",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Search the menu for a dish it doesn't have",
+   "expected": "No dishes listed and a 'nothing matches' line",
+   "verify": "UI: dish rows and the empty line",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]/[kitchen]#menu-search-empty"
+  },
+  {
+   "id": "save-share",
+   "kind": "button",
+   "users": [
+    "us"
+   ],
+   "action": "Save the restaurant (heart), then unsave; open Share",
+   "expected": "Saved shows on the account (favourites API) and goes again; Share offers the link",
+   "verify": "UI: aria-pressed; API: GET /me/favourites",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]/[kitchen]#save-share"
+  },
+  {
+   "id": "unknown-restaurant",
+   "kind": "error",
+   "users": [
+    "in"
+   ],
+   "action": "Open a restaurant that doesn't exist",
+   "expected": "Not found",
+   "verify": "UI: 404 page",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]/[kitchen]#unknown-restaurant"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders: its last good copy (the server's page cache) or a message that it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/[country]/[city]/[kitchen]#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public page (paying needs sign-in: see /checkout signed-out)"
+  }
+ ]
+}

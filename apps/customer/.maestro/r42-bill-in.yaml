@@ -1,0 +1,12 @@
+# R42: Hyderabad's fair bill in the app = the pricing API's quote; receipt = the order (scripts/r42_numbers.js).
+appId: com.bhojango.app
+---
+- runFlow:
+    file: r42/bill.yaml
+    env:
+      MARKET: "in"
+      PHONE: "9000000101"
+      COUNTRY: "IN"
+      REST: "spice-route-kitchen-madhapur"
+      DISH: "Veg Dum Biryani"
+      NAME: "Spice Route Kitchen"

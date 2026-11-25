@@ -1,0 +1,33 @@
+{
+ "app": "customer",
+ "route": "item",
+ "functions": [
+  {
+   "id": "customise",
+   "kind": "form",
+   "users": [
+    "in"
+   ],
+   "action": "Choose options and quantity",
+   "expected": "Price on the button follows",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/order-and-track.yaml",
+   "maestro": "order-and-track"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public menu"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "an item always has its details"
+  },
+  {
+   "id": "na-error",
+   "kind": "error",
+   "na": "API down: r42-api-down"
+  }
+ ]
+}

@@ -1,0 +1,42 @@
+{
+ "app": "admin",
+ "route": "/login",
+ "functions": [
+  {
+   "id": "sign-in",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Wrong password, then right password and a wrong code, then the right code",
+   "expected": "Each wrong step refused with one message; the right ones sign in",
+   "verify": "UI: alerts, URL",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/login#sign-in"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/login#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "the way in"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "a form"
+  }
+ ]
+}

@@ -1,0 +1,68 @@
+{
+ "app": "admin",
+ "route": "/partners",
+ "functions": [
+  {
+   "id": "food-permit",
+   "kind": "form",
+   "users": [
+    "us"
+   ],
+   "action": "A Boise restaurant sends a renewed food permit; city ops approve it",
+   "expected": "It waits with its number, expiry and file; approved, it's gone from the list and the restaurant sees it approved",
+   "verify": "UI: Food permits to review; API: GET /restaurants/{id}/food-permit",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/partners#food-permit"
+  },
+  {
+   "id": "tabs-search",
+   "kind": "filter",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Restaurants / Applications / Delivery partner documents; search a restaurant",
+   "expected": "Each tab lists what the API has in scope; the search finds by name",
+   "verify": "UI: rows; API: GET /restaurants?city=",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/partners#tabs-search"
+  },
+  {
+   "id": "no-match",
+   "kind": "empty",
+   "users": [
+    "in"
+   ],
+   "action": "Search for a restaurant that doesn't exist",
+   "expected": "No rows; says none match",
+   "verify": "UI: rows",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/partners#no-match"
+  },
+  {
+   "id": "other-city-refused",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Boise city ops open Hyderabad's partners",
+   "expected": "Not allowed; the API refuses Hyderabad's applications",
+   "verify": "UI: refused; API -> 403",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "admin/partners#other-city-refused"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It renders (no crash, no blank) and says it couldn't load",
+   "verify": "UI: body text",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "admin/partners#api-down"
+  }
+ ]
+}

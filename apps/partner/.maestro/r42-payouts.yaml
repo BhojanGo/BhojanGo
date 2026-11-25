@@ -1,0 +1,33 @@
+# R42 (brief item b): the Payouts screen's weekly statements equal the restaurant's statements in the API (the same
+# ones admin Finance shows): each amount (scripts/r42_partner.js) is on screen.
+appId: com.bhojango.partner
+---
+- runFlow: sign-in.yaml
+- extendedWaitUntil:
+    visible: "Which restaurant is this tablet for?"
+    timeout: 30000
+- tapOn: "Spice Route Kitchen"
+- tapOn: "Payouts"
+- extendedWaitUntil:
+    visible:
+      id: "payouts-screen"
+    timeout: 20000
+- runScript:
+    file: scripts/r42_partner.js
+    env:
+      STEP: payouts
+- runFlow:
+    when:
+      true: ${output.s1 != ""}
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: ".*${output.s1}.*"
+          direction: DOWN
+          timeout: 15000
+- runFlow:
+    when:
+      true: ${output.s1 == ""}
+    commands:
+      - assertVisible: "Your first statement shows here.*"
+- takeScreenshot: docs/screenshots/partner/r42-payouts

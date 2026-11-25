@@ -1,5 +1,7 @@
 import axios, { AxiosRequestConfig } from "axios";
 
+import { setApiReachable, unreachable } from "@/lib/connection";
+
 // R22 security review (S8): the console's session is in httpOnly cookies (bg_admin_at,
 // bg_admin_rt) that core_api sets through the console's own /api rewrites, so they belong to
 // the console's host and no script on the page can read them. Every call says it's the
@@ -46,8 +48,12 @@ export async function endSession(): Promise<void> {
 }
 
 adminApi.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    setApiReachable(true);
+    return response;
+  },
   async (error) => {
+    setApiReachable(!unreachable(error)); // R42: the console's "can't reach BhojanGo" banner
     const original = error.config as (AxiosRequestConfig & { _retry?: boolean }) | undefined;
     const signingIn = (original?.url ?? "").startsWith("/user/auth/");
 

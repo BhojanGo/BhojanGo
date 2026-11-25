@@ -1,0 +1,54 @@
+{
+ "app": "web",
+ "route": "/help/a/[slug]",
+ "functions": [
+  {
+   "id": "short-link",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open /help/a/how-refunds-work and its links",
+   "expected": "The topic's / article's text from the help API; related links open",
+   "verify": "UI: heading, links answer; API: GET /help",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/help/a/[slug]#short-link"
+  },
+  {
+   "id": "unknown",
+   "kind": "error",
+   "users": [
+    "us"
+   ],
+   "action": "Open one that doesn't exist",
+   "expected": "Not found with a way back to help",
+   "verify": "UI: 404",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/help/a/[slug]#unknown"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders: its last good copy (the server's page cache) or a message that it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/help/a/[slug]#api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "public page"
+  },
+  {
+   "id": "na-empty",
+   "kind": "empty",
+   "na": "an article or topic always has text; an unknown one is the not-found state (see the error check)"
+  }
+ ]
+}

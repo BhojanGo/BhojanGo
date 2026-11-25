@@ -1,0 +1,63 @@
+{
+ "app": "customer",
+ "route": "(tabs)/home",
+ "functions": [
+  {
+   "id": "restaurants",
+   "kind": "navigation",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Scroll the list, open a restaurant",
+   "expected": "The city's restaurants; opens the menu",
+   "verify": "UI vs /discover",
+   "run": "maestro: apps/customer/.maestro/qa-browse.yaml",
+   "maestro": "qa-browse"
+  },
+  {
+   "id": "list-menu",
+   "kind": "link",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Restaurant cards and dish list",
+   "expected": "Cards with fee/time; menu opens",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/r36-list-menu.yaml",
+   "maestro": "r36-list-menu"
+  },
+  {
+   "id": "out-of-area",
+   "kind": "empty",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "An address outside every zone",
+   "expected": "'We're not there yet' and Notify me",
+   "verify": "UI",
+   "run": "maestro: apps/customer/.maestro/out-of-area.yaml",
+   "maestro": "out-of-area"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open it with core-api stopped",
+   "expected": "Still renders and says it can't reach BhojanGo; no crash",
+   "verify": "UI text",
+   "run": "maestro: apps/customer/.maestro/r42-api-down.yaml",
+   "maestro": "r42-api-down"
+  },
+  {
+   "id": "na-permission",
+   "kind": "permission",
+   "na": "Home is the customer's own; every customer may open it"
+  }
+ ]
+}

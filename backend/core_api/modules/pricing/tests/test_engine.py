@@ -360,3 +360,15 @@ def test_r20_a_review_order_shows_every_line_and_costs_nothing() -> None:
 
 def test_r20_only_the_review_flag_makes_an_order_free() -> None:
     assert quote().total == Decimal("638.22") and quote(review=False).total == Decimal("638.22")
+
+
+def test_r42_a_promotion_line_names_the_code_it_took() -> None:
+    """R42: the website says a promo code is applied only when the quote has a discount with that code."""
+    flat = rule("promotion", "flat_off", {"amount": 75, "funded_by": "restaurant", "min_subtotal": 500, "code": "FEAST75"}, key="feast")
+    rules = hyderabad_rules(**{flat.slot: flat})
+    coded = [ln for ln in quote(rules=rules, promo_code="feast75").lines if ln.code == "promotion"]
+    assert len(coded) == 1 and (coded[0].detail or {}).get("promo_code") == "FEAST75"
+    auto = [ln for ln in quote(rules=rules).lines if ln.code == "promotion"]  # no code: the city's automatic offer
+    assert auto and not (auto[0].detail or {}).get("promo_code")
+    wrong = [ln for ln in quote(rules=rules, promo_code="NOPE999").lines if (ln.detail or {}).get("promo_code")]
+    assert wrong == []

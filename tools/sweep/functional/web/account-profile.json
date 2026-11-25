@@ -1,0 +1,69 @@
+{
+ "app": "web",
+ "route": "/account/profile",
+ "functions": [
+  {
+   "id": "notification-switches",
+   "kind": "toggle",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Turn Offers by Email on and off",
+   "expected": "Each switch is saved on the account",
+   "verify": "UI: aria-checked; API: GET /me/notification-preferences",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/profile#notification-switches"
+  },
+  {
+   "id": "addresses",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "+ Add address with an empty street, then a full one; Delete it",
+   "expected": "The empty one is refused; the full one is listed and saved; Delete removes it",
+   "verify": "UI: address list; API: GET /me/addresses",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/profile#addresses"
+  },
+  {
+   "id": "signed-out",
+   "kind": "permission",
+   "users": [
+    "us"
+   ],
+   "action": "Open your account signed out",
+   "expected": "Sign in first",
+   "verify": "UI: /signin",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/profile#signed-out"
+  },
+  {
+   "id": "new-account",
+   "kind": "empty",
+   "users": [
+    "us"
+   ],
+   "action": "Open your account as a new customer",
+   "expected": "No addresses or cards yet, each with its + Add",
+   "verify": "UI: empty sections; API: /me/addresses is empty",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/account/profile#new-account"
+  },
+  {
+   "id": "api-down",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Open the page with core-api stopped",
+   "expected": "It still renders (no crash page, no blank) and says it couldn't load",
+   "verify": "UI: body text, no Next.js error page",
+   "run": "playwright: tools/sweep/functional/run_web.py, phase down (core-api stopped)",
+   "test": "web/account/profile#api-down"
+  }
+ ]
+}
