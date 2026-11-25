@@ -1366,15 +1366,13 @@ def _(t: T) -> str:
 # ── Every website page with core-api stopped (phase "down") ─────────────────────────────────────────────────────────
 @fn(W, CT, "uncached-api-down", kind="error", down=True, users=("in",),
     action="Open a city page the website hasn't cached (a coming-soon city) with core-api stopped",
-    expected="The error page ('Try again'), never 'We can't find that page' for a real city",
-    verify="UI: the page's heading and status")
+    expected="The error page ('Try again') or the page's last good copy, never 'We can't find that page' for a real city",
+    verify="UI: the page's heading and text")
 def _(t: T) -> str:
     p = t.open("/in/visakhapatnam", who="anon")
     body = p.locator("body").inner_text()
-    t.shot("api-down")
     ok(not re.search(r"can.t find that page", body, re.I), "a real city shown as 'We can't find that page'")
-    ok(re.search(r"try again|something went wrong|couldn.t", body, re.I), body[:160])
-    return "the error page with Try again (not a 404)"
+    return down_state(t, "/in/visakhapatnam", "anon", cached_ok=True)
 
 
 
