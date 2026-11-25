@@ -677,6 +677,9 @@ columns; no data written).
 - **Monitoring ready:** only the Sentry DSNs and `PAGING_WEBHOOK_URL` are left to paste
   ([launch/monitoring.md](launch/monitoring.md)). Critical Alertmanager alerts, chargebacks and a used-up offer budget
   page through the webhook; admin Settings > Monitoring > "Send test alert" says which channels took it.
+- **Fixed on the way:** no file could be uploaded from the Restaurant app (Expo's `fetch` refuses React Native's
+  file parts: "Unsupported FormDataPart implementation"); uploads now go through XMLHttpRequest (licence, permit,
+  dish photos). Found by the new permit flow on the tablet.
 
 ## What's left before the pilot
 
