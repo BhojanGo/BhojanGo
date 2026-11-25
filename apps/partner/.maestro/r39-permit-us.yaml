@@ -53,16 +53,18 @@ appId: com.bhojango.partner
 - hideKeyboard
 - tapOn:
     id: "permit-upload"
+# Android's file picker: the pushed file isn't in Recent (Android 14 doesn't index it), so browse the device's
+# storage: Show roots > the device > Download
 - runFlow:
     when:
       notVisible: "permit.png"
     commands:
-      - tapOn:
-          id: ".*roots.*|.*menu.*"
-          optional: true
-      - tapOn:
-          text: "Downloads"
-          optional: true
+      - tapOn: "Show roots"
+      - tapOn: "sdk_gphone.*|Android SDK.*|Internal storage"
+      - tapOn: "Download"
+- extendedWaitUntil:
+    visible: "permit.png"
+    timeout: 15000
 - tapOn: "permit.png"
 - extendedWaitUntil:
     visible: ".*uploaded just now.*"
