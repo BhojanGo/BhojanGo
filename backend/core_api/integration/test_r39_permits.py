@@ -105,7 +105,7 @@ async def test_reminder_30_days_before_and_pause_after_expiry(client: AsyncClien
                        "AND envelope->'payload'->>'restaurant_id' = :r", r=boise)
     assert n >= 1
     # A day after it expires: the hourly check pauses it; customers can't order
-    await _sql("UPDATE restaurants SET food_permit_expires_on = :d WHERE id = CAST(:r AS uuid)", d=today - timedelta(days=1), r=boise)
+    await _sql("UPDATE restaurants SET food_permit_expires_on = :d WHERE id = CAST(:r AS uuid)", d=today - timedelta(days=2), r=boise)  # two days: expired in Boise whatever the UTC hour
     async with AsyncSessionLocal() as db:
         av = await availability(db, __import__("uuid").UUID(boise))
         assert not av.listed and av.paused_reason == permits.EXPIRED

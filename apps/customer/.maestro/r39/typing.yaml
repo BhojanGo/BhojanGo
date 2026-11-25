@@ -22,46 +22,73 @@ appId: com.bhojango.app
 - tapOn:
     id: "phone"
 - inputText: "${D1}"
+- hideKeyboard
 - assertVisible:
     id: "phone"
     text: '${S1}'
+- tapOn:
+    id: "phone"
 - inputText: "${D2}"
+- hideKeyboard
 - assertVisible:
     id: "phone"
     text: '${S2}'
+- tapOn:
+    id: "phone"
 - inputText: "${D3}"
+- hideKeyboard
 - assertVisible:
     id: "phone"
     text: '${S3}'
+- tapOn:
+    id: "phone"
 - inputText: "${D4}"
+- hideKeyboard
 - assertVisible:
     id: "phone"
     text: '${S4}'
+- tapOn:
+    id: "phone"
 - inputText: "${D5}"
+- hideKeyboard
 - assertVisible:
     id: "phone"
     text: '${S5}'
+- tapOn:
+    id: "phone"
 - inputText: "${D6}"
+- hideKeyboard
 - assertVisible:
     id: "phone"
     text: '${S6}'
+- tapOn:
+    id: "phone"
 - inputText: "${D7}"
+- hideKeyboard
 - assertVisible:
     id: "phone"
     text: '${S7}'
+- tapOn:
+    id: "phone"
 - inputText: "${D8}"
+- hideKeyboard
 - assertVisible:
     id: "phone"
     text: '${S8}'
+- tapOn:
+    id: "phone"
 - inputText: "${D9}"
+- hideKeyboard
 - assertVisible:
     id: "phone"
     text: '${S9}'
+- tapOn:
+    id: "phone"
 - inputText: "${D10}"
+- hideKeyboard
 - assertVisible:
     id: "phone"
     text: '${S10}'
-- hideKeyboard
 - takeScreenshot: docs/screenshots/customer/r39-2-app-${MARKET}
 # another country: the same digits in its grouping
 - repeat:
