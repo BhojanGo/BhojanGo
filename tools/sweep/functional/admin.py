@@ -12,7 +12,7 @@ import uuid
 from datetime import date, timedelta
 from decimal import Decimal
 
-from framework import (ADMIN, MARKET, Fail, T, amounts, amounts_backed, api, dates_backed, down_state, fn, money, na, ok,
+from framework import (ADMIN, MARKET, Fail, T, amounts, amounts_backed, api, dates_backed, down_state, fn, money, na, ok, sql,
                        sql, token)
 
 A = "admin"
@@ -177,8 +177,8 @@ na(A, F, "empty", "every level always has values (inherited from the country at 
 P = "/pricing"
 
 
-@fn(A, P, "offer-budget", kind="form", action="Promotions: set the city's monthly BhojanGo offer budget, approve an offer BhojanGo pays for, place an order with it",
-    expected="The budget row shows spent of budget; the order's offer is spent from it; removing the budget turns the offer off",
+@fn(A, P, "offer-budget", kind="form", action="Promotions: an offer BhojanGo pays for (approved: starts paused); set the city's monthly budget; resume the offer; quote an order",
+    expected="Paused, it takes nothing off; with a budget and resumed, the quote takes the offer off; the budget row shows the amount",
     verify="UI: budget row; API: GET /rules/offers/budgets, the order's quote discount")
 def _(t: T) -> str:
     city, cm, fin = CITY[t.user], CM[t.user], FIN[t.user]
@@ -189,6 +189,7 @@ def _(t: T) -> str:
     api("POST", f"/rules/{rule['id']}/submit", token(cm))
     api("POST", f"/rules/{rule['id']}/approve", token(fin), {})
     try:
+        live = api("GET", f"/rules/{rule['id']}", token(fin))
         p = t.open(f"{P}?scope={city}&tab=promotion", who=cm)
         budgets = p.get_by_role("region", name="BhojanGo offer budgets")
         name = "Boise" if t.user == "us" else "Hyderabad"
@@ -197,6 +198,10 @@ def _(t: T) -> str:
         budgets.get_by_test_id(f"budget-{city}").get_by_role("button", name="Save").click()
         row = budgets.get_by_test_id(f"budget-{city}")
         row.get_by_text(re.compile(r"of [$₹]")).first.wait_for(timeout=15000)
+        if live.get("paused_at"):
+            ok(sum(1 for ln in quote(t.user)["lines"] if ln["code"] == "promotion" and "R42" in (ln.get("label") or "")) == 0,
+               "the paused offer took money off")
+            api("POST", f"/rules/{rule['id']}/resume", token(fin))
         q = quote(t.user)
         off = -sum((Decimal(str(ln["amount"])) for ln in q["lines"] if Decimal(str(ln["amount"])) < 0), Decimal(0))
         ok(off == amount, f"the quote's offer is {off}, the offer {amount}")
@@ -324,8 +329,11 @@ def _(t: T) -> str:
     tz = "America/Boise" if cc == "US" else "Asia/Kolkata"
     extra = {date.fromisoformat(x["end"]) - timedelta(days=1) for x in w["weeks"]} | {date.fromisoformat(x["end"]) for x in w["weeks"]}
     extra |= {date.fromisoformat(w["weeks"][0]["end"]) + timedelta(days=6)}
+    # "Not in this payout yet": restaurants + riders of the reconciliation's not_in_run, both shown next to it
+    sums = [(Decimal(str(x["not_in_run"].get("restaurants") or 0)) + Decimal(str(x["not_in_run"].get("riders") or 0))) / 100
+            for x in [rec, *t.seen()] if isinstance(x, dict) and isinstance(x.get("not_in_run"), dict)]
     a = amounts_backed(t.text(), runs, rec, con, *[api("GET", f"/finance/payout-runs/{r['id']}", token(fin)) for r in runs[:3]],
-                       api("GET", f"/finance/disputes?country={cc}", token(fin)), *t.seen())
+                       api("GET", f"/finance/disputes?country={cc}", token(fin)), *t.seen(), also=tuple(sums))
     d = dates_backed(t.text(), tz, w, runs, extra=extra)
     deliv = int(re.sub(r"\D", "", p.get_by_test_id("recon-delivered").inner_text()) or 0)
     ok(deliv == rec["orders"]["delivered"], f"{deliv} delivered shown, the API {rec['orders']['delivered']}")
@@ -515,10 +523,12 @@ def _(t: T) -> str:
     p.get_by_label("Role").select_option(label="Viewer")
     p.get_by_placeholder(re.compile("IN, IN-TG")).fill("XX-NOPE")
     p.get_by_role("button", name="Grant").click()
-    p.wait_for_timeout(1000)
-    ok(p.get_by_role("alert").count() or re.search(r"not a|unknown|invalid", t.text(), re.I), "a bad scope was accepted")
+    p.wait_for_timeout(1500)
     t.shot("bad-scope")
-    return "bad scope refused"
+    stored = sql("SELECT count(*) FROM admin_role_assignments WHERE scope = 'XX-NOPE'")[0][0]
+    ok(stored == 0, "a role at XX-NOPE (no such place) was stored")
+    ok(re.search(r"isn.t a country, state or city|unknown|invalid", t.text(), re.I), "no message about the scope")
+    return "XX-NOPE refused with a message; nothing stored"
 
 
 @fn(A, SE, "viewer-refused", kind="permission", action="Open Settings as a viewer", expected="No Grant / Remove; the API refuses a grant",
@@ -707,25 +717,38 @@ def _(t: T) -> str:
 INC = "/incidents"
 
 
-@fn(A, INC, "pause-and-resume", kind="form", action="Pause ordering in the city with a note until a time; Preview; then end the pause",
-    expected="The pause is listed and the website shows the note; ending it lists none", verify="UI: pauses list; API: GET /incidents/pauses")
+@fn(A, INC, "pause-and-resume", kind="form",
+    action="Pause ordering in the city with a note: Pause ordering…, try Yes with no reason, give a reason, Yes; then Resume ordering with a reason",
+    expected="No reason: Yes stays disabled; paused: listed with the note and the website's city page shows it; resumed: 'Ordering is open'",
+    verify="UI: confirm box, pause-row, no-pauses; website: the city page; API: the pause and its end")
 def _(t: T) -> str:
     p = t.open(f"{INC}?scope={CITY[t.user]}")
-    p.get_by_label("Note for customers").fill("R42 test pause, back soon")
+    note = f"R42 back soon {t.user}"
+    p.get_by_label("Note for customers").fill(note)
+    p.get_by_role("button", name="Pause ordering…").click()
+    box = p.get_by_test_id("confirm-pause-ordering")
+    yes = box.get_by_role("button", name="Yes, pause ordering")
+    ok(yes.is_disabled(), "Yes is enabled with no reason")
+    box.get_by_label("Reason").fill("R42 functional test")
     t.shot("before")
-    p.get_by_role("button", name=re.compile("Pause ordering")).click()
-    confirm = p.get_by_role("dialog").or_(p.get_by_role("alertdialog"))
-    if confirm.count():
-        confirm.get_by_role("button", name=re.compile("^(Pause|Yes|Confirm)")).last.click()
-    p.wait_for_timeout(1500)
+    yes.click()
+    row = p.get_by_test_id("pause-row").filter(has_text=note)
+    row.wait_for(timeout=15000)
     t.shot("paused")
-    body = t.text()
-    ok("R42 test pause" in body, "the pause isn't listed")
-    end = p.get_by_role("button", name=re.compile("End|Resume"))
-    end.first.click()
-    p.wait_for_timeout(1500)
+    started, shown = time.time(), False
+    while time.time() - started < 90 and not shown:  # the website reads pauses with a short cache
+        shown = note in p.request.get(f"http://localhost:3000{MARKET[t.user]['path']}").text()
+        if not shown:
+            p.wait_for_timeout(5000)
+    seconds = round(time.time() - started)
+    row.get_by_role("button", name="Resume ordering").click()
+    rbox = p.get_by_test_id("confirm-resume-ordering")
+    rbox.get_by_label("Reason").fill("R42 functional test done")
+    rbox.get_by_role("button", name="Yes, resume ordering").click()
+    p.get_by_test_id("no-pauses").wait_for(timeout=15000)
     t.shot("after")
-    return "paused (listed), ended"
+    ok(shown, "the website's city page didn't show the pause note within 90 s")
+    return f"Yes disabled without a reason; paused with '{note}' (the website showed it after {seconds} s); resumed: ordering open"
 
 
 @fn(A, INC, "message-preview", kind="form", action="Pick a message and audience; Preview", expected="The text customers will get, with how many",

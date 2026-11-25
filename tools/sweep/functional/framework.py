@@ -204,7 +204,14 @@ def amounts_backed(text: str, *docs: Any, also: tuple = ()) -> str:
     shown = amounts(text)
     have = api_numbers(*docs) | {Decimal(str(a)).quantize(Decimal("0.01")) for a in also}
     missing = sorted({str(a) for a in shown if a.quantize(Decimal("0.01")) not in have})
-    ok(not missing, f"shown but not in the API's answer: {missing[:8]} (of {len(shown)} amounts)")
+    if missing:
+        flat = " ".join((text or "").split())
+        where = []
+        for a in missing[:4]:
+            i = flat.find(f"{int(Decimal(a)):,}" if Decimal(a) == int(Decimal(a)) else a)
+            i = i if i >= 0 else flat.find(a.split(".")[0])
+            where.append(f"{a} in '…{flat[max(0, i - 50):i + 20]}…'" if i >= 0 else a)
+        raise Fail(f"shown but not in the API's answer: {'; '.join(where)} (of {len(shown)} amounts)")
     return f"{len(shown)} amounts shown, each equal to the API's"
 
 
@@ -286,7 +293,8 @@ class T:
             self.page.on("pageerror", lambda e: self.vars["_errors"].append(str(e)[:160]))
 
             def seen(resp):  # type: ignore[no-untyped-def]
-                if ":8001/api/" in resp.url and resp.ok and "json" in (resp.headers.get("content-type") or ""):
+                # core-api, or the admin console's own /api proxy to it
+                if "/api/" in resp.url and resp.ok and "json" in (resp.headers.get("content-type") or ""):
                     try:
                         self.vars["_seen"].append(resp.json())
                     except Exception:  # noqa: BLE001

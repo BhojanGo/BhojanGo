@@ -9,9 +9,9 @@
     "us",
     "in"
    ],
-   "action": "Pause ordering in the city with a note until a time; Preview; then end the pause",
-   "expected": "The pause is listed and the website shows the note; ending it lists none",
-   "verify": "UI: pauses list; API: GET /incidents/pauses",
+   "action": "Pause ordering in the city with a note: Pause ordering…, try Yes with no reason, give a reason, Yes; then Resume ordering with a reason",
+   "expected": "No reason: Yes stays disabled; paused: listed with the note and the website's city page shows it; resumed: 'Ordering is open'",
+   "verify": "UI: confirm box, pause-row, no-pauses; website: the city page; API: the pause and its end",
    "run": "playwright + API: tools/sweep/functional/run_web.py",
    "test": "admin/incidents#pause-and-resume"
   },

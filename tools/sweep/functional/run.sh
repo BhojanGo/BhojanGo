@@ -29,7 +29,7 @@ if [ "${1:-all}" != "up" ]; then
   $COMPOSE stop core-api >/dev/null
   run down || status=1
   $COMPOSE start core-api >/dev/null
-  $COMPOSE up -d --wait core-api >/dev/null 2>&1
+  $COMPOSE up -d --wait --no-recreate core-api >/dev/null 2>&1  # the same container: never re-pointed at another database
 fi
-python "$ROOT/tools/mobile/hours.py" close >/dev/null 2>&1
+[ "${KEEP_HOURS:-0}" = 1 ] || python "$ROOT/tools/mobile/hours.py" close >/dev/null 2>&1  # KEEP_HOURS=1: another run (Maestro) still needs them open
 exit $status

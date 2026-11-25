@@ -1,7 +1,8 @@
 // R42 (Maestro runScript, on the host): the amounts the customer app should show, from the API, so the flow can
 // assert each one is on screen (numbers checked against the API, not "by other tests").
 //   STEP=bill     the quote for the cart the flow builds (DISH x1 at REST, to the customer's default address, the
-//                 city's default tip): output.l1..l8 (each non-zero line, formatted as the app does), output.total
+//                 city's default tip): output.l1..l8 (each non-zero line, formatted as the app does, as a text
+//                 regex: "[$]14[.]50"), output.total
 //   STEP=receipt  the customer's newest past order: output.paid (what the receipt says was paid), output.code
 // MARKET=us|in (customer1.boi / customer1.hyd: the phones the flows sign in with). Local stack only.
 var API = "http://localhost:8001/api/v1";
@@ -51,7 +52,7 @@ if (STEP === "bill") {
   var k = 1;
   for (var j = 0; j < q.lines.length && k <= 8; j++) {
     if (Number(q.lines[j].amount) === 0) continue;
-    output["l" + k] = fmt(q.lines[j].amount, cur);
+    output["l" + k] = re(fmt(q.lines[j].amount, cur));  // as a Maestro text regex
     k++;
   }
   for (; k <= 8; k++) output["l" + k] = "";

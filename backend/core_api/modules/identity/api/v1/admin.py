@@ -60,6 +60,16 @@ async def list_assignments(
         "full_name": users[r.user_id].full_name if r.user_id in users else None}) for r in out]
 
 
+async def _scope_exists(db: AsyncSession, scope: str) -> bool:
+    """The scope is a country (US), a state (US-ID) or a city (US-ID-BOI) that Markets has."""
+    from sqlalchemy import select
+
+    from core_api.modules.markets.models import City, Country, Region
+
+    model = {1: Country, 2: Region}.get(scope.count("-") + 1, City)
+    return (await db.execute(select(model.id).where(model.code == scope).limit(1))).first() is not None
+
+
 @router.post("/role-assignments", response_model=RoleAssignmentResponse, status_code=status.HTTP_201_CREATED)
 async def grant_role(
     data: RoleAssignmentCreate,
@@ -72,6 +82,10 @@ async def grant_role(
         authz.validate_assignment(data.role, data.scope)
     except authz.ScopeError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail={"code": "INVALID_ROLE", "message": str(e)})
+    if data.scope != authz.GLOBAL and not await _scope_exists(db, data.scope):
+        # R42: a well-formed code that isn't a place in Markets (XX-NOPE) was stored and gave nothing; refuse it
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail={
+            "code": "UNKNOWN_SCOPE", "message": f"{data.scope} isn't a country, state or city in Markets"})
     if not authz.can_grant(admin.assignments, data.role, data.scope):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

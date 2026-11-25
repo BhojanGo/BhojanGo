@@ -8,5 +8,5 @@ appId: com.bhojango.app
       PHONE: "2085550101"
       COUNTRY: "US"
       REST: "boise-bowl-co-hyde-park"
-      DISH: "Teriyaki Chicken Bowl"
+      DISH: "Salmon Poke Bowl"  # $16: over Boise Bowl's $15 minimum
       NAME: "Boise Bowl Co."

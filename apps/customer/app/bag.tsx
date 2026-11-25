@@ -30,6 +30,7 @@ export default function Bag() {
   // The city's tip buttons: from the quote, or from a refusal that knows them (a bag
   // under the minimum still tips by the city's tip_presets rule); kept while re-pricing.
   const [presets, setPresets] = useState<CoreSchemas["TipPresetsOut"] | null>(null);
+  const [tipTouched, setTipTouched] = useState(false);
   const [paying, setPaying] = useState(false);
   const [sheet, setSheet] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -169,6 +170,13 @@ export default function Bag() {
 
   // Tip choices are the city's (its tip_presets rule), as on the website.
   const tips = [0, ...new Set((presets?.amounts ?? []).map(Number).filter((n) => Number.isFinite(n) && n > 0))];
+  // R42: the city's suggested tip (the rule's default_index) until the customer picks one, as the website does
+  const setTip = bag.setTip;
+  useEffect(() => {
+    if (tipTouched || !presets || bag.tip !== 0 || presets.default_index == null) return;
+    const n = Number(presets.amounts[presets.default_index]);
+    if (Number.isFinite(n) && n > 0) setTip(n);
+  }, [presets, tipTouched, bag.tip, setTip]);
   // Under the minimum: worded in the app's language, the amount in the country's format (no ".00").
   const shownError =
     refusal?.code === "MIN_ORDER" && refusal.zone && refusal.amount
@@ -315,7 +323,7 @@ export default function Bag() {
           <Segmented
             label={t("checkout.tip_title")}
             value={String(bag.tip)}
-            onChange={(v) => bag.setTip(Number(v))}
+            onChange={(v) => { setTipTouched(true); bag.setTip(Number(v)); }}
             options={tips.map((n) => ({ value: String(n), label: n === 0 ? t("checkout.tip_none") : money(n, currency) }))}
           />
         </View>}

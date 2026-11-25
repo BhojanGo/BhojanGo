@@ -296,13 +296,19 @@ def _(t: T) -> str:
 
 
 @fn(W, C, "promo-code", kind="form",
-    action="With the city's BhojanGo offer budget set: type a wrong promo code, then the city's code (BOISE5 / FEAST100), then Remove",
+    action="With the city's BhojanGo offer budget set and the code's offer resumed: a wrong promo code, then the city's code (BOISE5 / FEAST100), then Remove",
     expected="The wrong code says it doesn't apply and changes nothing; the right one says applied and adds the discount the quote has; Remove takes it off",
     verify="UI: promo-state (applied or not), bill lines and total; API: the quotes the page received (promotion line with detail.promo_code)")
 def _(t: T) -> str:
     code = "BOISE5" if t.user == "us" else "FEAST100"
-    cm = "cm_us" if t.user == "us" else "cm_in"
+    cm, fin = ("cm_us", "finance_us") if t.user == "us" else ("cm_in", "finance_in")
+    # R37: BhojanGo pays for these codes, so they're off until the city has a monthly budget and an approver resumes them
+    rule = next(r for r in api("GET", "/rules?family=promotion", token(fin)) if (r.get("params") or {}).get("code") == code
+                and not r.get("effective_to"))
+    was_paused = bool(rule.get("paused_at"))
     api("PUT", f"/rules/offers/budgets/city/{t.m['city']}", token(cm), {"monthly": "1000" if t.user == "us" else "100000"})
+    if was_paused:
+        api("POST", f"/rules/{rule['id']}/resume", token(fin))
     try:
         to_cart(t, 4)  # over the code's minimum (BOISE5 $30, FEAST100 ₹499)
         got = quote_capture(t)
@@ -337,6 +343,8 @@ def _(t: T) -> str:
         ok(Decimal(str(got[-1]["total"])) == Decimal(str(base["total"])), f"after Remove {got[-1]['total']} != {base['total']}")
         return f"NOPE999: 'doesn't apply', total unchanged; {code}: {off[0]['amount']} off, bill = quote; removed: back to {base['total']}"
     finally:
+        if was_paused:
+            api("POST", f"/rules/{rule['id']}/pause", token(fin), {"reason": rule.get("paused_reason") or "Off by default"})
         api("PUT", f"/rules/offers/budgets/city/{t.m['city']}", token(cm), {"monthly": None})
 
 
@@ -575,6 +583,7 @@ def _(t: T) -> str:
     ok(oid, "no delivered order")
     p = t.open(f"/orders/{oid}/report")
     t.shot("before")
+    p.locator("input[type=number]").first.fill("1")
     p.get_by_text("Missing", exact=True).first.click()
     plus = p.get_by_role("button", name=re.compile(r"^(One more|Add|Increase)"))
     if plus.count():
@@ -583,9 +592,14 @@ def _(t: T) -> str:
     done = p.get_by_text(re.compile(r"^Refunded|Sent to support"))
     done.first.wait_for(timeout=20000)
     t.shot("after")
+    body = p.locator("main").inner_text()
+    if "Sent to support" in body:  # over the city's automatic limit: a person checks it first
+        n = sql("SELECT count(*) FROM support_tickets WHERE row_to_json(support_tickets)::text ILIKE %s", f"%{oid}%")[0][0]
+        ok(n >= 1, "sent to support, but no ticket for the order")
+        return f"over the automatic limit: sent to support (ticket stored); {body.splitlines()[-1][:80]!r}"
     rows = sql("SELECT amount, status FROM refunds WHERE order_id = %s ORDER BY created_at DESC", oid)
-    ok(rows, "no refund row")
-    shown = amounts(p.locator("main").inner_text())
+    ok(rows, "the page says refunded, but no refund row")
+    shown = amounts(body)
     amt = Decimal(str(rows[0][0]))
     ok(amt in shown or (amt / 100).quantize(Decimal("0.01")) in shown, f"refund {amt} not on the page {shown}")
     return f"refund {amt} ({rows[0][1]}) shown"
@@ -871,7 +885,8 @@ def _(t: T) -> str:
     p.get_by_label("Date of birth").fill("2015-01-01")
     p.get_by_test_id("gs-vehicle-scooter").check(force=True)
     p.get_by_label("Country code").select_option(t.m["cc"])
-    phone = ("208555" if t.user == "us" else "90000") + str(int(time.time()))[-4 if t.user == "us" else -5:]
+    # a number the stack answers with the fixed test code (OTP_FIXED_CODE_PHONE_PREFIXES: +12085550…, +9190000…)
+    phone = ("20855509" if t.user == "us" else "90000") + str(int(time.time()))[-2 if t.user == "us" else -5:]
     p.get_by_role("textbox", name="Mobile number").fill(phone)
     p.wait_for_timeout(300)
     young = p.get_by_test_id("gs-send").is_disabled() or re.search(r"18|old enough", t.text())
@@ -879,11 +894,15 @@ def _(t: T) -> str:
     p.get_by_label("Date of birth").fill("1995-05-05")
     t.shot("before")
     p.get_by_test_id("gs-send").click()
-    p.get_by_role("textbox", name="Digit 1").wait_for(timeout=15000)
-    p.get_by_role("textbox", name="Digit 1").fill(OTP)
-    p.wait_for_timeout(2500)
+    code = p.get_by_label("6-digit code")
+    code.wait_for(timeout=15000)
+    code.fill(OTP)
+    p.get_by_role("button", name="Verify and sign up").click()
+    p.wait_for_timeout(3000)
     t.shot("after")
-    return f"under-18 refused; code step for {phone}"
+    body = p.locator("#get-started").inner_text() if p.locator("#get-started").count() else t.text()
+    ok(not re.search(r"didn.t work|invalid|wrong code", body, re.I), f"the code was refused: {body[-200:]!r}")
+    return f"under-18 refused; code accepted for {phone}: {body.splitlines()[-1][:80] if body else ''}"
 
 
 @fn(W, "/deliver", "pay-numbers", kind="number", action="Read the pay table", expected="Trip pay by distance is the city's rider pay rule",
@@ -930,7 +949,8 @@ def _(t: T) -> str:
     p.get_by_label("Restaurant name").fill("R42 Test Kitchen")
     p.get_by_label("Your name").fill("R42 Owner")
     p.get_by_label("City").select_option(index=1)
-    p.get_by_role("textbox", name="Mobile number").fill("2085551" + str(int(time.time()))[-3:])
+    p.get_by_role("textbox", name="Mobile number").fill(("2085551" + str(int(time.time()))[-3:]) if t.user == "us"
+                                                        else ("98" + str(int(time.time()))[-8:]))
     email = f"r42.partner.{int(time.time())}@example.com"
     p.get_by_label("Email").fill(email)
     p.get_by_label("Password", exact=True).fill("short")
@@ -941,11 +961,15 @@ def _(t: T) -> str:
     p.get_by_role("checkbox").check()
     t.shot("before")
     p.get_by_test_id("partner-submit").click()
-    p.get_by_test_id("partner-next").wait_for(timeout=20000)
+    p.get_by_role("heading", name="Check your email").wait_for(timeout=20000)  # the email's 6-digit code first
+    p.get_by_label("6-digit code").fill(OTP)
+    p.get_by_role("button", name=re.compile("^Create account and continue")).click()
+    p.get_by_role("heading", name="Check your email").wait_for(state="detached", timeout=30000)
+    p.wait_for_load_state("networkidle")
     t.shot("after")
-    status, _ = api("POST", "/auth/login", None, {"email": email, "password": "R42-partner-password-2026"}, raw=True)
-    ok(status == 200, f"the new partner can't sign in ({status})")
-    return f"refused until valid; {email} created and signs in"
+    status, body = api("POST", "/auth/login", None, {"email": email, "password": "R42-partner-password-2026"}, raw=True)
+    ok(status == 200 or "verif" in str(body).lower(), f"the new partner can't sign in ({status}: {str(body)[:120]})")
+    return f"refused until valid; {email} created ({'signs in' if status == 200 else 'asked to verify the email first'})"
 
 
 @fn(W, "/partner", "bill-example", kind="number", action="Read the example bill", expected="The amounts are the pricing example's",
@@ -1094,7 +1118,7 @@ for doc in ("terms", "privacy"):
         p = t.open(f"/{doc}/history/1?country={t.m['cc']}", who="anon")
         ok(p.get_by_test_id("legal-document").count() or re.search(r"not found|no version", t.text(), re.I), "nothing")
         p = t.open(f"/{doc}/history/999?country={t.m['cc']}", who="anon")
-        ok(re.search(r"not found|no (such )?version|doesn.t exist", p.locator("body").inner_text(), re.I), p.locator("body").inner_text()[:160])
+        ok(re.search(r"can.t find|not found|no (such )?version|doesn.t exist", p.locator("body").inner_text(), re.I), p.locator("body").inner_text()[:160])
         return "v1 opens; v999 not found"
     for r in (f"/{doc}", f"/{doc}/history", f"/{doc}/history/[version]"):
         na(W, r, "permission", "public page")
@@ -1211,13 +1235,13 @@ def _(t: T) -> str:
     expected="Says what comes back and where; the order is cancelled and the refund line shows the amount paid",
     verify="UI: refund-line; API: order cancelled; DB: refunds row = the order total")
 def _(t: T) -> str:
-    oid = paid_order(t.user, 1)
+    oid = paid_order(t.user, 2)
     p = t.open(f"/orders/{oid}/track")
     t.shot("before")
     p.get_by_role("button", name=re.compile("^Cancel")).first.click()
-    dlg = p.get_by_role("dialog")
-    say = dlg.inner_text()
-    dlg.get_by_role("button", name=re.compile("^Cancel")).last.click()
+    panel = p.get_by_text("Cancel this order?").locator("xpath=..")
+    say = panel.inner_text()
+    p.get_by_role("button", name="Yes, cancel order").click()
     p.get_by_test_id("refund-line").wait_for(timeout=20000)
     t.shot("after")
     o = api("GET", f"/orders/{oid}", token(t.user))

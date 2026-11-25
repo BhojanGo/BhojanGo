@@ -35,7 +35,7 @@
     "us",
     "in"
    ],
-   "action": "With the city's BhojanGo offer budget set: type a wrong promo code, then the city's code (BOISE5 / FEAST100), then Remove",
+   "action": "With the city's BhojanGo offer budget set and the code's offer resumed: a wrong promo code, then the city's code (BOISE5 / FEAST100), then Remove",
    "expected": "The wrong code says it doesn't apply and changes nothing; the right one says applied and adds the discount the quote has; Remove takes it off",
    "verify": "UI: promo-state (applied or not), bill lines and total; API: the quotes the page received (promotion line with detail.promo_code)",
    "run": "playwright + API: tools/sweep/functional/run_web.py",

@@ -7,6 +7,6 @@ appId: com.bhojango.app
     commands:
       - scrollUntilVisible:
           element:
-            text: ".*${AMOUNT.replace('$', '[$]').replace('.', '[.]')}.*"
+            text: ".*${AMOUNT}.*"  # already a regex (scripts/r42_numbers.js)
           direction: DOWN
           timeout: 10000

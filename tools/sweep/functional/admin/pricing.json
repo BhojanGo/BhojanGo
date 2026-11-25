@@ -9,8 +9,8 @@
     "us",
     "in"
    ],
-   "action": "Promotions: set the city's monthly BhojanGo offer budget, approve an offer BhojanGo pays for, place an order with it",
-   "expected": "The budget row shows spent of budget; the order's offer is spent from it; removing the budget turns the offer off",
+   "action": "Promotions: an offer BhojanGo pays for (approved: starts paused); set the city's monthly budget; resume the offer; quote an order",
+   "expected": "Paused, it takes nothing off; with a budget and resumed, the quote takes the offer off; the budget row shows the amount",
    "verify": "UI: budget row; API: GET /rules/offers/budgets, the order's quote discount",
    "run": "playwright + API: tools/sweep/functional/run_web.py",
    "test": "admin/pricing#offer-budget"
