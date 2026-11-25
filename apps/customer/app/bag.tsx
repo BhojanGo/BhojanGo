@@ -120,7 +120,7 @@ export default function Bag() {
         const q = unwrap(r);
         setQuote(q);
         // R43: a price the restaurant changed since the dish went in the cart: the cart takes the quote's
-        // price and says so above Pay ("Price changed: Paneer Tikka ₹250 → ₹280")
+        // price and says so above Pay ("Price changed: <dish> <old> → <new>")
         const found = priceChanges(lines, q.items);
         if (found.length) {
           setChanges((was) => [...was.filter((c) => !found.some((x) => x.key === c.key)),

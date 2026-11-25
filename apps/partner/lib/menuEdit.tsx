@@ -1,8 +1,8 @@
-// R43: menu editing on the tablet. The dish editor (name, description, price, photo, category, veg or non-veg in
-// India, spice, on the menu, sold out today, when it's served, its option groups), option groups (prices, required
+// R43: menu editing on the tablet. The dish editor (name, description, price, photo, category, veg or non-veg
+// (where the country's food licence asks for it), spice, on the menu, sold out today, when it's served, its option groups), option groups (prices, required
 // or optional, at least / at most), categories (add, rename, hide, when they're served, drag to reorder) and the
 // menu's history (who, when, old -> new). Prices follow the API's rules before saving: more than 0, cents at most,
-// whole rupees in India; a change of more than 50% asks first (the API answers 409 PRICE_CONFIRM otherwise).
+// whole units where the currency has no cents in use; a change of more than 50% asks first (the API answers 409 PRICE_CONFIRM otherwise).
 import { api, ApiError, errorMessage, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Animated, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -18,7 +18,7 @@ export type ManageItem = { id: string; name: string; description: string; price:
   sold_out_today: boolean; available_from: string | null; available_until: string | null; sort_order: number; option_group_ids: string[] };
 export type ManageOption = { id?: string; name: string; price: string; is_default: boolean; is_available: boolean };
 export type ManageGroup = { id: string; name: string; min_picks: number; max_picks: number; options: ManageOption[] };
-export type Manage = { restaurant_id: string; currency: string; country: string; whole_units: boolean;
+export type Manage = { restaurant_id: string; currency: string; country: string; whole_units: boolean; veg_marks: boolean;
   categories: ManageCategory[]; items: ManageItem[]; option_groups: ManageGroup[] };
 export type Change = { id: string; at: string; who: string; actor_kind: string; entity: string; entity_id: string | null;
   name: string; action: string; changes: { field: string; old: unknown; new: unknown }[] };
@@ -93,7 +93,7 @@ export function DishEditor({ data, dish, onClose, onSaved, onPhoto, onHistory }:
   const { tr } = useTr();
   const { cash } = useFormat();
   const rid = data.restaurant_id;
-  const india = data.country === "IN";
+  const vegMarks = data.veg_marks;
   const [name, setName] = useState(dish?.name ?? "");
   const [description, setDescription] = useState(dish?.description ?? "");
   const [price, setPrice] = useState(dish ? (data.whole_units ? String(Math.round(Number(dish.price))) : dish.price) : "");
@@ -212,7 +212,7 @@ export function DishEditor({ data, dish, onClose, onSaved, onPhoto, onHistory }:
           })}
         </View>
       </Field>
-      {india ? (
+      {vegMarks ? (
         <Field label={tr("partner.edit.food_type")}>
           <Segmented label={tr("partner.edit.food_type")} value={veg ? "veg" : "non"} onChange={(v) => setVeg(v === "veg")}
             options={[{ value: "veg", label: tr("partner.edit.veg") }, { value: "non", label: tr("partner.edit.non_veg") }]} />

@@ -87,6 +87,8 @@ async def manage_menu(restaurant_id: uuid.UUID, user: User, db: DB) -> dict:
     return {
         "restaurant_id": str(r.id), "currency": r.currency, "country": r.country,
         "whole_units": r.currency.upper() in edit.WHOLE_UNIT_CURRENCIES,
+        # veg / non-veg marks where the country's food licence asks for them (Markets: FSSAI in India)
+        "veg_marks": bool((await svc.restaurant_market(db, r))[3]),
         "categories": [_category_out(c) for c in cats],
         "items": [{
             "id": str(i.id), "name": i.name, "description": i.description, "price": f"{i.price:.2f}",
