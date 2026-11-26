@@ -53,6 +53,19 @@
    "maestro": "r43-propagation-{user}"
   },
   {
+   "id": "category-gone",
+   "kind": "number",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "The restaurant deletes an empty category; the customer opens the restaurant",
+   "expected": "Its heading is gone within 60 s (measured from the delete)",
+   "verify": "UI vs GET /restaurants/{id}/menu (scripts/r43_customer.js)",
+   "run": "maestro: apps/customer/.maestro/r45-category-gone-{user}.yaml",
+   "maestro": "r45-category-gone-{user}"
+  },
+  {
    "id": "na-permission",
    "kind": "permission",
    "na": "the way in: anyone may open it"

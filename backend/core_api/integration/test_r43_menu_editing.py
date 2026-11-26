@@ -231,6 +231,7 @@ async def test_categories_add_rename_reorder_hide_and_schedule(client: AsyncClie
     # R44 delete: refused while a dish is in it; once empty it goes (the deleted dish keeps the name for past orders)
     r = await client.delete(f"{base}/categories/{a['id']}", headers=partner)
     assert r.status_code == 409 and r.json()["detail"]["code"] == "CATEGORY_NOT_EMPTY"
+    assert r.json()["detail"]["dishes"] == 1  # R45: the tablet shows this count ("1 dish · Move or delete its dish first")
     assert (await client.delete(f"{base}/categories/{a['id']}", headers=cust)).status_code == 403
     await client.delete(f"{base}/menu-items/{dish['id']}", headers=partner)
     assert (await client.delete(f"{base}/categories/{a['id']}", headers=partner)).status_code == 204

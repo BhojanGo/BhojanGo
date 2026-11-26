@@ -1,0 +1,45 @@
+# R45: a deleted category leaves the customer app within 60 s (MARKET). The restaurant adds an empty category (API, as
+# the tablet does); the app shows its heading; the restaurant deletes it (the tablet's Delete category API); the
+# customer reopens the restaurant until the heading is gone: the time from the delete is measured (R43_SECONDS, limit
+# 60 s). The website never shows an empty category (its check is in the tablet flow, r45-category-delete).
+appId: com.bhojango.app
+---
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: catsetup, MARKET: "${MARKET}" }
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: ${PHONE}
+      COUNTRY: ${COUNTRY}
+- openLink: bhojango://restaurant/${output.rid}
+- scrollUntilVisible:
+    element: ${output.cat}
+    direction: DOWN
+    timeout: 40000
+- takeScreenshot: docs/screenshots/customer/r45-category-${MARKET}-before
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: catdelete, MARKET: "${MARKET}", CAT_ID: "${output.catId}" }
+- repeat:
+    while:
+      visible: ${output.cat}
+    times: 30
+    commands:
+      # leave the restaurant and open it again (the screen loads its menu when it opens), then look at the end
+      - openLink: bhojango://search
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - openLink: bhojango://restaurant/${output.rid}
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - scrollUntilVisible:
+          element: ${output.cat}
+          direction: DOWN
+          timeout: 15000
+          optional: true
+- assertNotVisible: ${output.cat}
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: elapsed, MARKET: "${MARKET}", T0: "${output.t0}" }
+- takeScreenshot: docs/screenshots/customer/r45-category-${MARKET}-after

@@ -1,0 +1,12 @@
+# R45: Delete category on the tablet (in). See r45/category-delete.yaml.
+appId: com.bhojango.partner
+env:
+  MARKET: "in"
+  EMAIL: "partner.hyd@example.com"
+  REST: "Spice Route Kitchen"
+onFlowComplete:  # R44: pass or fail, nothing a test made stays
+  - runScript:
+      file: scripts/r43_menu.js
+      env: { STEP: tidy, MARKET: "in" }
+---
+- runFlow: r45/category-delete.yaml

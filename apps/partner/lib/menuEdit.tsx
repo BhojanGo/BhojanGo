@@ -400,6 +400,15 @@ export function CategoriesEditor({ data, onClose, onChanged }: { data: Manage; o
   const put = (c: ManageCategory, body: Record<string, unknown>) => call(async () =>
     unwrap(await api.core.PUT("/api/v1/restaurants/{restaurant_id}/categories/{category_id}", { params: { path: { restaurant_id: rid, category_id: c.id } }, body })));
 
+  // R45: a category with no dishes can be deleted (after a confirmation); one with dishes says how many and why not.
+  const dishes = (c: ManageCategory) => data.items.filter((x) => x.category_id === c.id).length;
+  function remove(c: ManageCategory) {
+    Alert.alert(tr("partner.edit.delete_title", { name: c.name }), tr("partner.edit.delete_category_body"), [
+      { text: tr("partner.edit.keep"), style: "cancel" },
+      { text: tr("partner.edit.delete_category"), style: "destructive", onPress: () => void call(async () =>
+        unwrap(await api.core.DELETE("/api/v1/restaurants/{restaurant_id}/categories/{category_id}", { params: { path: { restaurant_id: rid, category_id: c.id } } }))) }]);
+  }
+
   async function move(from: number, to: number) {
     if (to < 0 || to >= cats.length || to === from) return;
     const next = [...cats];
@@ -415,6 +424,7 @@ export function CategoriesEditor({ data, onClose, onChanged }: { data: Manage; o
       <View>
         {cats.map((c, i) => (
           <CategoryRow key={c.id} c={c} i={i} count={cats.length} dragging={drag?.id === c.id} dy={drag?.id === c.id ? drag.dy : null}
+            dishes={dishes(c)} onDelete={() => remove(c)}
             name={names[c.id] ?? c.name} onName={(v) => setNames({ ...names, [c.id]: v })}
             onRename={() => (names[c.id] ?? c.name).trim() && (names[c.id] ?? c.name).trim() !== c.name ? void put(c, { name: (names[c.id] ?? c.name).trim() }) : undefined}
             onToggle={() => void put(c, { is_active: !c.is_active })}
@@ -436,8 +446,8 @@ export function CategoriesEditor({ data, onClose, onChanged }: { data: Manage; o
   );
 }
 
-function CategoryRow({ c, i, count, dragging, dy, name, onName, onRename, onToggle, onSchedule, onDragStart, onDragEnd, onMove }: {
-  c: ManageCategory; i: number; count: number; dragging: boolean; dy: Animated.Value | null; name: string; onName: (v: string) => void;
+function CategoryRow({ c, i, count, dishes, onDelete, dragging, dy, name, onName, onRename, onToggle, onSchedule, onDragStart, onDragEnd, onMove }: {
+  c: ManageCategory; i: number; count: number; dishes: number; onDelete: () => void; dragging: boolean; dy: Animated.Value | null; name: string; onName: (v: string) => void;
   onRename: () => void; onToggle: () => void; onSchedule: (from: string | null, until: string | null) => void;
   onDragStart: (dy: Animated.Value) => void; onDragEnd: (steps: number) => void; onMove: (d: number) => void;
 }) {
@@ -479,6 +489,11 @@ function CategoryRow({ c, i, count, dragging, dy, name, onName, onRename, onTogg
             onPress={() => onSchedule(from.trim() || null, until.trim() || null)} />
           {i > 0 ? <Btn testID={`category-up-${i}`} title="↑" label={tr("partner.edit.move_up", { name: c.name })} onPress={() => onMove(-1)} /> : null}
           {i < count - 1 ? <Btn testID={`category-down-${i}`} title="↓" label={tr("partner.edit.move_down", { name: c.name })} onPress={() => onMove(1)} /> : null}
+        </View>
+        <View style={[s.row, { flexWrap: "wrap" }]}>
+          <Btn testID={`category-delete-${i}`} title={tr("partner.edit.delete_category")} kind="danger" disabled={dishes > 0} onPress={onDelete}
+            label={dishes > 0 ? `${tr("partner.edit.delete_category")}. ${tr("partner.edit.category_has_dishes", { count: dishes })}` : tr("partner.edit.delete_category")} />
+          {dishes > 0 ? <Text testID={`category-delete-note-${i}`} style={t.muted}>{tr("partner.edit.category_has_dishes", { count: dishes })}</Text> : null}
         </View>
       </View>
     </Animated.View>
@@ -524,7 +539,7 @@ export function HistorySheet({ rid, currency, item, onClose }: { rid: string; cu
       {(rows ?? []).map((c, n) => (
         <View key={c.id} testID={`history-${n}`} style={s.hist}>
           <Text style={type.label}>
-            {c.name} · {tr(`partner.edit.action_${c.action}`)}
+            {c.entity === "category" ? `${tr("partner.edit.category")} ` : ""}{c.name} · {tr(`partner.edit.action_${c.action}`)}
           </Text>
           <Text style={[t.muted, num]}>
             {date(c.at)} {time(c.at)} · {c.who === "you" ? tr("partner.edit.who_you") : c.who === "bhojango" ? tr("partner.edit.who_bhojango") : c.who}
