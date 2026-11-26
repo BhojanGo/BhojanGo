@@ -1,0 +1,64 @@
+# R44 (brief item 1): the dish editor's price message on the tablet (MARKET). The bug: "New dish", a price that breaks
+# the rule, Save (the message shows), then a valid price: the old message stayed (it was set on Save only). Now it
+# follows the field from the first Save: gone as soon as the value is valid, back when it isn't. Nothing is saved: the
+# editor is closed with Cancel, so the flow makes nothing (scripts/r43_menu.js tidy runs afterwards anyway).
+appId: com.bhojango.partner
+---
+- runFlow: ../r43/open-menu.yaml
+- tapOn:
+    id: "add-dish"
+- extendedWaitUntil:
+    visible:
+      id: "dish-editor"
+    timeout: 15000
+- tapOn:
+    id: "dish-name"
+- inputText: "R44 Price check"
+- pressKey: Enter
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "120.50"
+- pressKey: Enter
+- tapOn:
+    id: "dish-save"
+- assertVisible: 'Prices in rupees are whole numbers.*'
+- takeScreenshot: docs/screenshots/partner/r44-price-${MARKET}-before
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "120"
+- pressKey: Enter
+# 120: valid, so no message (it goes as the value becomes valid, without saving)
+- assertNotVisible:
+    id: "dish-editor-error"
+- takeScreenshot: docs/screenshots/partner/r44-price-${MARKET}-valid-120
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "120.50"
+- pressKey: Enter
+# 120.50: invalid, the message follows the field
+- assertVisible: 'Prices in rupees are whole numbers.*'
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "0"
+- pressKey: Enter
+# 0: invalid, the message follows the field
+- assertVisible: 'Enter a price more than 0'
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "120"
+- pressKey: Enter
+# 120: valid, so no message (it goes as the value becomes valid, without saving)
+- assertNotVisible:
+    id: "dish-editor-error"
+- takeScreenshot: docs/screenshots/partner/r44-price-${MARKET}-after
+- tapOn:
+    id: "dish-editor-close"
+- extendedWaitUntil:
+    notVisible:
+      id: "dish-editor"
+    timeout: 10000

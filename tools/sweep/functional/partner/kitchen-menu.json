@@ -66,6 +66,19 @@
    "maestro": "r43-menu-edit-{user}"
   },
   {
+   "id": "price-message",
+   "kind": "error",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "New dish: 12.505 and Save, then 12.50, 12.5, 12, 0.99, then 12.505, 0, -1, empty (US); 120.50 and Save, then 120, 120.50, 0, 120 (India)",
+   "expected": "The rule's message for each invalid price; none for a valid one, as soon as it is typed (no stale message)",
+   "verify": "UI (dish-editor-error); the same rule unit-tested (packages/mobile-core/test/price-rule.test.ts)",
+   "run": "maestro: apps/partner/.maestro/r44-price-rule-{user}.yaml",
+   "maestro": "r44-price-rule-{user}"
+  },
+  {
    "id": "categories",
    "kind": "button",
    "users": [

@@ -28482,6 +28482,56 @@
       }
     },
     "/api/v1/restaurants/{restaurant_id}/categories/{category_id}": {
+      "delete": {
+        "description": "R44: remove a category with no dishes left (deleted dishes keep their category's name for past orders).",
+        "operationId": "delete_category_api_v1_restaurants__restaurant_id__categories__category_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "restaurant_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Restaurant Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "category_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Category Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "summary": "Delete Category",
+        "tags": [
+          "Menu editing"
+        ]
+      },
       "put": {
         "description": "Rename (its dishes follow), hide or show, or set a schedule (both times) or clear it (both null).",
         "operationId": "change_category_api_v1_restaurants__restaurant_id__categories__category_id__put",

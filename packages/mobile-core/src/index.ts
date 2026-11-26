@@ -34,6 +34,7 @@ export { REFRESH_TIMEOUT_MS, RefreshTimeoutError, singleFlight } from "./refresh
 export { LoadError, loadErrorText, UnreachableScreen, useFirstLoad } from "./ui/load-error";
 export type { LoadErrorProps } from "./ui/load-error";
 export { cartItems, defaultPicks, priceChanges, useBag } from "./bag";
+export { priceRule, type PriceRuleProblem } from "./price-rule";
 // B2: quick messages between the customer and the rider during an order.
 export { QuickChat, useQuickMessages } from "./chat";
 // R19: Account -> Legal and Delete account in the Kitchen and Delivery apps.

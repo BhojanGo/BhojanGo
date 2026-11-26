@@ -1,10 +1,10 @@
 // R43 (Maestro runScript, on the host), customer app checks against the API (MARKET=us|in). Local stack only.
 //   phone    a brand-new phone number in the range the local stack answers with code 123456 (a new customer)
-//   empty    that new customer (PHONE) has no orders, addresses or favourites in the API
+//   empty    that new customer (PHONE) has no orders, addresses or favourites in the API; then the account is deleted
 //   setup    on the market's restaurant (as its partner): dish A at BASE, dish B served only at other hours, spice Medium
 //   change   dish A's price -> NEW; output.t0 = when (the flow then reopens the restaurant until NEW shows)
 //   elapsed  seconds from the change until the app showed it (must be <= 60); printed as R43_SECONDS=<s>
-//   cleanup  both dishes deleted
+//   cleanup  every test dish ("R4x …") deleted, pass or fail
 var API = "http://localhost:8001/api/v1";
 var M = (typeof MARKET !== "undefined" && MARKET) || "in";
 var P = M === "us" ? { partner: "partner.boi@example.com", rest: "Boise Bowl Co.", cur: "\\$", base: "12.57", next: "13.79", cc: "+1" }
@@ -40,12 +40,14 @@ if (STEP === "empty") {
   must(call("GET", API + "/me/addresses", tok).body.length === 0, "addresses");
   var f = call("GET", API + "/me/favourites", tok).body;
   must(f.restaurants.length === 0 && f.items.length === 0, "favourites " + JSON.stringify(f).slice(0, 100));
+  // R44: the test account goes again (the app's own Delete account), so a run leaves no test accounts
+  must(call("DELETE", API + "/users/me", tok).status === 200, "deleting the test account");
 }
 var ptok = call("POST", API + "/auth/login", null, { email: P.partner, password: "BhojanGo123" }).body.access_token;
 var rid = call("GET", API + "/restaurants?limit=100").body.items.filter(function (r) { return r.name === P.rest; })[0].id;
 if (STEP === "setup") {
   var manage = call("GET", API + "/restaurants/" + rid + "/menu/manage", ptok).body;
-  manage.items.forEach(function (i) { if (i.name.indexOf("R43 ") === 0) call("DELETE", API + "/restaurants/" + rid + "/menu-items/" + i.id, ptok); });
+  manage.items.forEach(function (i) { if (/^R4\d( |$)/.test(i.name)) call("DELETE", API + "/restaurants/" + rid + "/menu-items/" + i.id, ptok); });
   var tag = String(Math.floor(1000 + Math.random() * 8999));
   var h0 = Number(call("GET", API + "/restaurants/" + rid + "/availability").body.local_time.slice(11, 13));
   var pad = function (n) { return (n < 10 ? "0" : "") + n + ":00"; };
@@ -67,6 +69,8 @@ if (STEP === "elapsed") {
   output.seconds = s.toFixed(1);
   must(s <= 60, "the app showed the new price " + s.toFixed(1) + " s after the change (limit 60 s)");
 }
-if (STEP === "cleanup") {
-  [AID, BID].forEach(function (id) { call("DELETE", API + "/restaurants/" + rid + "/menu-items/" + id, ptok); });
+if (STEP === "cleanup") {  // R44: every test dish on the restaurant ("R4x …"), pass or fail (the flows' onFlowComplete)
+  call("GET", API + "/restaurants/" + rid + "/menu/manage", ptok).body.items.forEach(function (i) {
+    if (/^R4\d( |$)/.test(i.name)) must(call("DELETE", API + "/restaurants/" + rid + "/menu-items/" + i.id, ptok).status === 204, "delete " + i.name);
+  });
 }

@@ -29,6 +29,22 @@ SCREEN_SHOTS = {(app, sc["screen"]): sc["shots"] for app, screens in json.load(o
     os.path.join(os.path.dirname(HERE), "apps.json"), encoding="utf-8")).items() if not app.startswith("_") for sc in screens}
 
 
+CARRIED = re.compile(r"round \d+ run\b", re.I)
+
+
+def leftover_lines(out: str) -> list[str]:
+    """R44: leftovers.py's check after the run (nothing the run made still live, no test-named rows)."""
+    p = os.path.join(out, "leftovers.json")
+    if not os.path.exists(p):
+        return ["Leftovers check: not run", ""]
+    found = json.load(open(p, encoding="utf-8"))["found"]
+    if not found:
+        return ["**Leftovers after the run: none** (no dish, category, option group, offer, account, restaurant or help article the "
+                "run made is still live; nothing with a test name) — `leftovers.json`", ""]
+    return [f"**Leftovers after the run: {len(found)} (FAIL)** — `leftovers.json`", "",
+            *[f"- {cell(f['kind'])}: {cell(f['label'])} ({f['why']})" for f in found[:50]], ""]
+
+
 def cell(v: object) -> str:
     return str(v).replace("|", "\\|").replace("\n", " ")
 
@@ -76,12 +92,15 @@ def main() -> int:
                          "result": "PASS" if res.startswith("PASS") else ("FAIL" if res.startswith("FAIL") else "NOT RUN"),
                          "screenshots": [f"apps/{f.app}/{s}" for s in shots[:2]]})
     total = Counter(r["result"] for r in rows)
+    # R44: a row whose result is an earlier round's ("round 42 run") isn't a fresh run; the summary counts them
+    carried = sum(1 for r in rows if CARRIED.search(r.get("actual", "")))
     pages = {(r["app"], r["page"]) for r in rows}
     numbers = sum(1 for r in rows if r["kind"] in MONEY_KINDS)
     lines = [f"# Functional validation (round {os.environ.get('ROUND', '43')})", "",
              f"{len(pages)} pages and screens · {len({(r['app'], r['page'], r['function']) for r in rows})} functions · "
              f"{len(rows)} rows (function × user) · {numbers} number checks", "",
-             f"**{total.get('PASS', 0)} PASS** · **{total.get('FAIL', 0)} FAIL** · {total.get('NOT RUN', 0)} NOT RUN", "",
+             f"**{total.get('PASS', 0)} PASS** · **{total.get('FAIL', 0)} FAIL** · {total.get('NOT RUN', 0)} NOT RUN · "
+             f"{carried} rows carried from an earlier round", "", *leftover_lines(out),
              "Specs: `tools/sweep/functional/<app>/<route>.json` (action → expected → how it's verified). Website and admin: "
              "`run_web.py` (Playwright, API and database on a test stack; then every page with core-api stopped). Apps: the "
              "Maestro flow named in the spec. Screenshots before and after each action that changes data.", "",
@@ -92,7 +111,7 @@ def main() -> int:
         lines.append("| " + " | ".join(cell(c) for c in (APP[r["app"]], r["page"], r["function"], r["user"].upper(), r["expected"],
                                                           r["actual"], r["result"], shots)) + " |")
     open(os.path.join(out, "index.md"), "w", encoding="utf-8").write("\n".join(lines) + "\n")
-    print(f"{len(rows)} rows, {len(pages)} pages", dict(total), f"{numbers} number checks")
+    print(f"{len(rows)} rows, {len(pages)} pages", dict(total), f"{numbers} number checks", f"{carried} carried")
     return 0
 
 

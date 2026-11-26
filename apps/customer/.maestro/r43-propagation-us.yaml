@@ -4,5 +4,9 @@ env:
   MARKET: "us"
   PHONE: "2085550101"
   COUNTRY: "US"
+onFlowComplete:  # R44: pass or fail, the test dishes go
+  - runScript:
+      file: scripts/r43_customer.js
+      env: { STEP: cleanup, MARKET: "us" }
 ---
 - runFlow: r43/propagation.yaml

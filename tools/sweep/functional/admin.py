@@ -996,7 +996,9 @@ def _(t: T) -> str:
     t.shot("saved")
     st = p.request.get(f"http://localhost:3000/help/a/{slug}").status
     ok(st == 404, f"a draft is public ({st})")
-    return f"{slug} saved as draft; website 404"
+    n = sql("DELETE FROM help_articles WHERE slug = %s RETURNING id", slug)  # R44: no delete in the product for a draft
+    ok(len(n) == 1, f"clean-up: the draft {slug} wasn't removed")
+    return f"{slug} saved as draft; website 404 (draft removed afterwards)"
 
 
 @fn(A, CN, "required", kind="error", action="Save with no title", expected="Save stays disabled", verify="UI", users=("in",))

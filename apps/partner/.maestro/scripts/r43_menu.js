@@ -9,8 +9,10 @@
 //   cats       the categories: output.last = the new category's index (it's added last), output.count
 //   cat        the category CAT has NAME2, hours FROM-UNTIL, is hidden, and is first in the order (after the drag)
 //   catback    the categories in their order before the run; the new one stays hidden
+//   tidy       (R44; each flow's onFlowComplete, pass or fail, and before setup) everything a test made on the market's
+//              restaurant goes: dishes, option groups and categories named "R4x …" (a test name), so a run leaves none
 //   optdish    a dish of this run's own (over the API) for the options flow
-//   options    the dish has the group "Size" (required, 1..1) with its prices and the hours FROM-UNTIL; the quote refuses it
+//   options    the dish has the group "R43 Size" (required, 1..1) with its prices and the hours FROM-UNTIL; the quote refuses it
 //              outside them, and (hours cleared) adds the Full option's price; then the dish and group are deleted
 var API = "http://localhost:8001/api/v1";
 var M = (typeof MARKET !== "undefined" && MARKET) || "in";
@@ -43,10 +45,16 @@ var rid = call("GET", API + "/restaurants?limit=100").body.items.filter(function
 var manage = function () { return call("GET", API + "/restaurants/" + rid + "/menu/manage", tok).body; };
 var dishOf = function (name) { return manage().items.filter(function (i) { return i.name === name; })[0]; };
 
+var TEST = /^R4\d( |$)/;  // a test's name: "R43 Dish 1234", "R44 Size"
+function tidy() {
+  var m = manage();
+  m.items.forEach(function (i) { if (TEST.test(i.name) || TEST.test(i.category || "")) must(call("DELETE", API + "/restaurants/" + rid + "/menu-items/" + i.id, tok).status === 204, "delete dish " + i.name); });
+  m.option_groups.forEach(function (g) { if (TEST.test(g.name)) must(call("DELETE", API + "/restaurants/" + rid + "/option-groups/" + g.id, tok).status === 204, "delete group " + g.name); });
+  m.categories.forEach(function (c) { if (TEST.test(c.name)) must(call("DELETE", API + "/restaurants/" + rid + "/categories/" + c.id, tok).status === 204, "delete category " + c.name); });
+}
+if (STEP === "tidy") tidy();
 if (STEP === "setup") {
-  manage().items.forEach(function (i) { if (i.name.indexOf("R43 ") === 0) call("DELETE", API + "/restaurants/" + rid + "/menu-items/" + i.id, tok); });
-  // categories an earlier run left: hidden from customers
-  manage().categories.forEach(function (c) { if (c.name.indexOf("R43 ") === 0 && c.is_active) call("PUT", API + "/restaurants/" + rid + "/categories/" + c.id, tok, { is_active: false }); });
+  tidy();
   var tag = String(Math.floor(1000 + Math.random() * 8999));
   output.name = "R43 Dish " + tag;
   output.renamed = "R43 Special " + tag;
@@ -112,7 +120,7 @@ if (STEP === "catback") {
   must(call("PUT", API + "/restaurants/" + rid + "/categories-order", tok, { category_ids: before.concat(rest) }).status === 200, "order back");
 }
 if (STEP === "optdish") {
-  manage().items.forEach(function (i) { if (i.name.indexOf("R43 ") === 0) call("DELETE", API + "/restaurants/" + rid + "/menu-items/" + i.id, tok); });
+  tidy();
   var name = "R43 Opt " + String(Math.floor(1000 + Math.random() * 8999));
   must(call("POST", API + "/restaurants/" + rid + "/menu-items", tok, { name: name, price: P.base, category: "R43" }).status === 201, "dish");
   output.name = name; output.full = P.full;
@@ -125,7 +133,7 @@ if (STEP === "options") {
   var d4 = dishOf(NAME);
   var groups = manage().option_groups;
   var g = groups.filter(function (x) { return d4.option_group_ids.indexOf(x.id) >= 0; })[0];
-  must(g && g.name === "Size" && g.min_picks === 1 && g.max_picks === 1, "group " + JSON.stringify(g));
+  must(g && g.name === "R43 Size" && g.min_picks === 1 && g.max_picks === 1, "group " + JSON.stringify(g));
   var full = g.options.filter(function (o) { return o.name === "Full"; })[0], half = g.options.filter(function (o) { return o.name === "Half"; })[0];
   must(full && Number(full.price) === Number(P.full) && half && Number(half.price) === 0, "option prices " + JSON.stringify(g.options));
   must(d4.available_from === FROM && d4.available_until === UNTIL, "hours " + d4.available_from + "-" + d4.available_until);

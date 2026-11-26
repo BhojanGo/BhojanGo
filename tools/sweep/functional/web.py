@@ -8,7 +8,7 @@ import re
 import time
 from decimal import Decimal
 
-from framework import (MARKET, OTP, Fail, T, amounts, amounts_backed, api, dates_backed, down_state, fn, render_ms, money, na, ok,
+from framework import (MARKET, OTP, Fail, T, amounts, amounts_backed, api, dates_backed, down_state, fn, forget, render_ms, money, na, ok,
                        sessions, sql, token)
 
 W = "web"
@@ -917,7 +917,8 @@ def _(t: T) -> str:
     t.shot("after")
     body = p.locator("#get-started").inner_text() if p.locator("#get-started").count() else t.text()
     ok(not re.search(r"didn.t work|invalid|wrong code", body, re.I), f"the code was refused: {body[-200:]!r}")
-    return f"under-18 refused; code accepted for {phone}: {body.splitlines()[-1][:80] if body else ''}"
+    forget(phone=phone, country=t.m["cc"])  # R44: the new delivery partner's account goes again
+    return f"under-18 refused; code accepted for {phone} (account deleted afterwards): {body.splitlines()[-1][:80] if body else ''}"
 
 
 @fn(W, "/deliver", "pay-numbers", kind="number", action="Read the pay table", expected="Trip pay by distance is the city's rider pay rule",
@@ -983,8 +984,9 @@ def _(t: T) -> str:
     p.wait_for_load_state("networkidle")
     t.shot("after")
     status, body = api("POST", "/auth/login", None, {"email": email, "password": "R42-partner-password-2026"}, raw=True)
-    ok(status == 200 or "verif" in str(body).lower(), f"the new partner can't sign in ({status}: {str(body)[:120]})")
-    return f"refused until valid; {email} created ({'signs in' if status == 200 else 'asked to verify the email first'})"
+    ok(status == 200, f"the new partner can't sign in ({status}: {str(body)[:120]})")
+    forget(token=body["access_token"])  # R44: the account and its restaurant go again (off every listing)
+    return f"refused until valid; {email} created and signs in (account deleted afterwards)"
 
 
 @fn(W, "/partner", "bill-example", kind="number", action="Read the example bill", expected="The amounts are the pricing example's",

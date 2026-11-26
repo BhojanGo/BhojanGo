@@ -1,0 +1,103 @@
+# R44 (brief item 1): the dish editor's price message on the tablet (MARKET). The bug: "New dish", a price that breaks
+# the rule, Save (the message shows), then a valid price: the old message stayed (it was set on Save only). Now it
+# follows the field from the first Save: gone as soon as the value is valid, back when it isn't. Nothing is saved: the
+# editor is closed with Cancel, so the flow makes nothing (scripts/r43_menu.js tidy runs afterwards anyway).
+appId: com.bhojango.partner
+---
+- runFlow: ../r43/open-menu.yaml
+- tapOn:
+    id: "add-dish"
+- extendedWaitUntil:
+    visible:
+      id: "dish-editor"
+    timeout: 15000
+- tapOn:
+    id: "dish-name"
+- inputText: "R44 Price check"
+- pressKey: Enter
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "12.505"
+- pressKey: Enter
+# the user's case: a price with 3 decimals, Save -> the message
+- tapOn:
+    id: "dish-save"
+- assertVisible: '.*at most 2 decimals.*'
+- takeScreenshot: docs/screenshots/partner/r44-price-${MARKET}-before
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "12.50"
+- pressKey: Enter
+# 12.50: valid, so no message (it goes as the value becomes valid, without saving)
+- assertNotVisible:
+    id: "dish-editor-error"
+- takeScreenshot: docs/screenshots/partner/r44-price-${MARKET}-valid-12.50
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "12.5"
+- pressKey: Enter
+# 12.5: valid, so no message (it goes as the value becomes valid, without saving)
+- assertNotVisible:
+    id: "dish-editor-error"
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "12"
+- pressKey: Enter
+# 12: valid, so no message (it goes as the value becomes valid, without saving)
+- assertNotVisible:
+    id: "dish-editor-error"
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "0.99"
+- pressKey: Enter
+# 0.99: valid, so no message (it goes as the value becomes valid, without saving)
+- assertNotVisible:
+    id: "dish-editor-error"
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "12.505"
+- pressKey: Enter
+# 12.505: invalid, the message follows the field
+- assertVisible: '.*at most 2 decimals.*'
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "0"
+- pressKey: Enter
+# 0: invalid, the message follows the field
+- assertVisible: 'Enter a price more than 0'
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "-1"
+- pressKey: Enter
+# -1: invalid, the message follows the field
+- assertVisible: 'Enter a price more than 0'
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- pressKey: Enter
+# (empty): invalid, the message follows the field
+- assertVisible: 'Enter a price more than 0'
+- takeScreenshot: docs/screenshots/partner/r44-price-${MARKET}-invalid-empty
+- tapOn:
+    id: "dish-price"
+- eraseText: 12
+- inputText: "12.50"
+- pressKey: Enter
+# 12.50: valid, so no message (it goes as the value becomes valid, without saving)
+- assertNotVisible:
+    id: "dish-editor-error"
+- takeScreenshot: docs/screenshots/partner/r44-price-${MARKET}-after
+- tapOn:
+    id: "dish-editor-close"
+- extendedWaitUntil:
+    notVisible:
+      id: "dish-editor"
+    timeout: 10000

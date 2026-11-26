@@ -1,0 +1,12 @@
+# R44: the price message clears as soon as the price is valid (us). See r44/price-rule-us.yaml.
+appId: com.bhojango.partner
+env:
+  MARKET: "us"
+  EMAIL: "partner.boi@example.com"
+  REST: "Boise Bowl Co."
+onFlowComplete:  # R44: pass or fail, nothing a test made stays
+  - runScript:
+      file: scripts/r43_menu.js
+      env: { STEP: tidy, MARKET: "us" }
+---
+- runFlow: r44/price-rule-us.yaml

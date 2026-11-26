@@ -114,6 +114,24 @@ def api(method: str, path: str, token: str | None = None, body: Any = None, *, r
     return out
 
 
+def forget(*, token: str | None = None, phone: str | None = None, country: str = "US") -> None:
+    """R44: delete a test account the function made (the product's own Delete account, DELETE /users/me), so a run
+    leaves no accounts. By its token, or by its phone (national digits) with the stack's fixed code; the sign-up just
+    used that number's code, so a fresh one is sent after the 30 s per-number wait."""
+    if token is None and phone:
+        full = ("+1" if country == "US" else "+91") + phone
+        st, body = api("POST", "/auth/phone", None, {"phone": full, "otp": OTP, "country": country}, raw=True)
+        if st != 200:
+            time.sleep(31)
+            api("POST", "/auth/send-otp", None, {"phone": full, "country": country}, raw=True)
+            st, body = api("POST", "/auth/phone", None, {"phone": full, "otp": OTP, "country": country}, raw=True)
+        ok(st == 200, f"clean-up: can't sign in as {full} ({st})")
+        token = body["access_token"]
+    ok(token, "clean-up: no account to delete")
+    st, body = api("DELETE", "/users/me", token, raw=True)
+    ok(st == 200, f"clean-up: deleting the test account -> {st}: {str(body)[:120]}")
+
+
 _tokens: dict[str, tuple[float, str]] = {}
 
 

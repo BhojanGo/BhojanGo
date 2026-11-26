@@ -3884,7 +3884,11 @@ export interface paths {
          */
         put: operations["change_category_api_v1_restaurants__restaurant_id__categories__category_id__put"];
         post?: never;
-        delete?: never;
+        /**
+         * Delete Category
+         * @description R44: remove a category with no dishes left (deleted dishes keep their category's name for past orders).
+         */
+        delete: operations["delete_category_api_v1_restaurants__restaurant_id__categories__category_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -18307,6 +18311,36 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_category_api_v1_restaurants__restaurant_id__categories__category_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                restaurant_id: string;
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

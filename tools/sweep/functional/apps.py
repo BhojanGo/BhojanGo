@@ -140,6 +140,10 @@ screen(P, "(kitchen)/menu", ("stock-to-web", "toggle", "Mark a dish sold out, th
         "Refused with the rule in words; the big change asks 'Change the price by N%?' and saves only on Change price", "UI; API price unchanged until confirmed",
         "r43-menu-edit-{user}"),
        ("photo", "button", "Open a dish's photo from the editor (camera or gallery)", "The photo screen with the preview", "UI", "r43-menu-edit-{user}"),
+       # R44: the price message follows the field (it used to stay after the price was fixed)
+       ("price-message", "error", "New dish: 12.505 and Save, then 12.50, 12.5, 12, 0.99, then 12.505, 0, -1, empty (US); 120.50 and Save, "
+        "then 120, 120.50, 0, 120 (India)", "The rule's message for each invalid price; none for a valid one, as soon as it is typed (no stale message)",
+        "UI (dish-editor-error); the same rule unit-tested (packages/mobile-core/test/price-rule.test.ts)", "r44-price-rule-{user}"),
        ("categories", "button", "Add a category, rename it, set its hours, hide it, drag it to the top", "Each saved; the order customers see follows",
         "UI; API GET /menu/manage, /menu (order, names, hidden)", "r43-categories-{user}"),
        ("options", "form", "A new option group (required, at least 1 / at most 1, priced options) on a dish", "Saved; the quote adds the option's price",

@@ -3,7 +3,7 @@
 // or optional, at least / at most), categories (add, rename, hide, when they're served, drag to reorder) and the
 // menu's history (who, when, old -> new). Prices follow the API's rules before saving: more than 0, cents at most,
 // whole units where the currency has no cents in use; a change of more than 50% asks first (the API answers 409 PRICE_CONFIRM otherwise).
-import { api, ApiError, errorMessage, num, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
+import { api, ApiError, errorMessage, num, priceRule, type Translate, type, unwrap, useI18n } from "@bhojango/mobile-core";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, Animated, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -31,11 +31,20 @@ export async function loadManage(rid: string): Promise<Manage> {
 
 /** Why a price can't be saved (the API's rules), in the tablet's language; null when fine. */
 export function priceProblem(text: string, whole: boolean, tr: Translate, allowZero = false): string | null {
-  const v = text.trim().replace(",", ".");
-  if (!/^\d+(\.\d+)?$/.test(v) || (!allowZero && Number(v) <= 0)) return tr("partner.edit.price_required");
-  if (whole && Number(v) !== Math.trunc(Number(v))) return tr("partner.edit.price_whole");
-  if (!whole && (v.split(".")[1] ?? "").replace(/0+$/, "").length > 2) return tr("partner.edit.price_cents");
-  return null;
+  const p = priceRule(text, whole, allowZero);
+  return p === "required" ? tr("partner.edit.price_required") : p === "whole" ? tr("partner.edit.price_whole")
+    : p === "cents" ? tr("partner.edit.price_cents") : null;
+}
+
+/** R44: a form's message. A rule problem shows after the first Save and follows the fields live (gone the moment the value is
+ * valid); the server's answer to a save is dropped as soon as anything is edited. Before, the message was set on Save only and
+ * stayed after the field was fixed: "12.505", Save, then "12.50" still said "at most 2 decimals". */
+function useFormMsg(problem: string | null, fields: unknown[]) {
+  const [tried, setTried] = useState(false);
+  const [server, setServerAt] = useState<{ msg: string; at: string } | null>(null);
+  const key = JSON.stringify(fields);
+  const setServer = (msg: string | null) => setServerAt(msg ? { msg, at: key } : null);
+  return { msg: (tried ? problem : null) ?? (server?.at === key ? server.msg : null), setServer, check: () => { setTried(true); return problem; } };
 }
 
 const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -113,14 +122,14 @@ export function DishEditor({ data, dish, onClose, onSaved, onPhoto, onHistory }:
   const [group, setGroup] = useState<ManageGroup | "new" | null>(null);
   const [allGroups, setAllGroups] = useState(data.option_groups);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
 
   const problem = name.trim().length < 2 ? tr("partner.edit.name_required")
     : priceProblem(price, data.whole_units, tr)
     ?? (timed === "set" && (!okTime(from) || !okTime(until) || from === until) ? tr("partner.edit.time_invalid") : null);
+  const { msg, setServer: setMsg, check } = useFormMsg(problem, [name, description, price, categoryId, veg, spice, onMenu, soldOut, timed, from, until, groups]);
 
   async function save(confirmed = false): Promise<void> {
-    if (problem) return setMsg(problem);
+    if (check()) return;
     setBusy(true);
     setMsg(null);
     const cat = data.categories.find((c) => c.id === categoryId);
@@ -289,16 +298,16 @@ function GroupEditor({ data, group, onClose, onSaved }: {
   const [options, setOptions] = useState<ManageOption[]>(group?.options.map((o) => ({ ...o, price: data.whole_units ? String(Math.round(Number(o.price))) : o.price }))
     ?? [{ name: "", price: "0", is_default: false, is_available: true }]);
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
   const set = (i: number, patch: Partial<ManageOption>) => setOptions(options.map((o, n) => (n === i ? { ...o, ...patch } : o)));
 
   const problem = !name.trim() ? tr("partner.edit.name_required")
     : options.some((o) => !o.name.trim()) ? tr("partner.edit.option_name_required")
     : options.map((o) => priceProblem(o.price, data.whole_units, tr, true)).find(Boolean)
     ?? (min > max || min > options.length ? tr("partner.edit.group_rule") : null);
+  const { msg, setServer: setMsg, check } = useFormMsg(problem, [name, min, max, options]);
 
   async function save() {
-    if (problem) return setMsg(problem);
+    if (check()) return;
     setBusy(true);
     setMsg(null);
     const body = { name: name.trim(), min_picks: min, max_picks: max,
