@@ -29,7 +29,7 @@ SCREEN_SHOTS = {(app, sc["screen"]): sc["shots"] for app, screens in json.load(o
     os.path.join(os.path.dirname(HERE), "apps.json"), encoding="utf-8")).items() if not app.startswith("_") for sc in screens}
 
 
-CARRIED = re.compile(r"round \d+ run\b", re.I)
+CARRIED = re.compile(r"round (\d+) run\b", re.I)  # "round 42 run": that round's result, not this run's
 
 
 def leftover_lines(out: str) -> list[str]:
@@ -93,7 +93,8 @@ def main() -> int:
                          "screenshots": [f"apps/{f.app}/{s}" for s in shots[:2]]})
     total = Counter(r["result"] for r in rows)
     # R44: a row whose result is an earlier round's ("round 42 run") isn't a fresh run; the summary counts them
-    carried = sum(1 for r in rows if CARRIED.search(r.get("actual", "")))
+    this_round = os.environ.get("ROUND", "43")
+    carried = sum(1 for r in rows if any(n != this_round for n in CARRIED.findall(r.get("actual", ""))))
     pages = {(r["app"], r["page"]) for r in rows}
     numbers = sum(1 for r in rows if r["kind"] in MONEY_KINDS)
     lines = [f"# Functional validation (round {os.environ.get('ROUND', '43')})", "",
