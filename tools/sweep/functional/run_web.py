@@ -74,6 +74,12 @@ def main() -> int:
                              "result": result, "screenshots": t.shots, "seconds": round(time.time() - started, 1)})
                 print(result, f.app, f.route, f.id, user, str(actual)[:160], flush=True)
         if PHASE == "up":
+            if fw.sessions.fresh_email:  # R44: the new customer the "new account" functions shared goes again
+                st, body = fw.api("POST", "/auth/login", None, {"email": fw.sessions.fresh_email, "password": fw.FRESH_PASSWORD}, raw=True)
+                if st == 200:
+                    fw.forget(token=body["access_token"])
+                print(f"clean-up: the new customer {fw.sessions.fresh_email} " + ("deleted" if st == 200 else f"NOT deleted (sign-in {st})"), flush=True)
+                fw.sessions.states.pop(("web", "fresh"), None)
             json.dump({"|".join(k): v for k, v in fw.sessions.states.items()}, open(saved, "w", encoding="utf-8"))
         browser.close()
     json.dump(rows, open(f"{OUT}/functional-{PHASE}.json", "w", encoding="utf-8"), indent=1, ensure_ascii=False)

@@ -29,6 +29,7 @@ REGISTRY: list["Fn"] = []
 NA: list[dict] = []  # {"app", "route", "kind", "na": why}
 WEB, ADMIN, CORE = "http://localhost:3000", "http://localhost:3001", "http://localhost:8001"
 OTP = "123456"
+FRESH_PASSWORD = "R42-fresh-password-2026"  # the run's one new customer (deleted when the up phase ends)
 PASSWORD, ADMIN_PASSWORD = "BhojanGo123", "BhojanGoAdmin1"
 MARKET = {  # the customer, their city and a restaurant with a dish that has no choices to make
     "us": {"email": "customer1.boi@example.com", "phone": "2085550105", "cc": "US", "city": "US-ID-BOI", "path": "/us/boise",
@@ -381,7 +382,7 @@ class Sessions:
             self.fresh_email = self.fresh_email or f"r42.fresh.{uuid.uuid4().hex[:8]}@example.com"
             page.goto(f"{WEB}/signin?way=email&mode=create", wait_until="networkidle")
             page.get_by_role("textbox", name="Email").fill(self.fresh_email)
-            page.locator("input[name=new-password]").fill("R42-fresh-password-2026")
+            page.locator("input[name=new-password]").fill(FRESH_PASSWORD)
             page.get_by_role("button", name="Create account").click()
             page.get_by_role("textbox", name="Digit 1").fill(OTP)
             page.get_by_role("button", name="Continue").click()
