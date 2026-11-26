@@ -293,7 +293,8 @@ class T:
     def m(self) -> dict:
         return MARKET[self.user] if self.user in MARKET else MARKET["us" if self.user.endswith("us") or "boi" in self.user else "in"]
 
-    def open(self, path: str, *, who: str | None = None, width: int = 1440, app: str | None = None) -> Any:
+    def open(self, path: str, *, who: str | None = None, width: int = 1440, app: str | None = None,
+             wait: str = "networkidle") -> Any:
         """A page as a user: who = "us"/"in" customer, an ADMINS role, "anon", "fresh" (a new customer, nothing yet)."""
         app = app or self.fn.app
         who = who or self.user
@@ -321,7 +322,7 @@ class T:
             self.page.on("response", seen)
         self.page.set_viewport_size({"width": width, "height": 900 if width > 500 else 844})
         base = WEB if app == "web" else ADMIN
-        self.page.goto(base + path, wait_until="networkidle", timeout=45000)
+        self.page.goto(base + path, wait_until=wait, timeout=45000)
         self.page.wait_for_timeout(300)
         return self.page
 
@@ -419,17 +420,25 @@ def down_state(t: T, path: str, who: str | None = None, cached_ok: bool = False)
     """With core-api stopped: the page still renders (no crash, no blank) and says it couldn't load. A website page the
     server renders may instead show its last good copy (Next.js keeps serving it): cached_ok accepts that when the page
     has its heading and real content, not an empty shell."""
-    p = t.open(path, who=who)
+    # R44: not "network idle": with core-api stopped its Docker DNS name is gone, so each call the admin console
+    # proxies fails only after a slow, variable lookup (ENOTFOUND); a page with many calls could stay busy past 45 s
+    # (admin /incidents, round 44's run). The page is checked as it renders, then given up to 30 s to say so.
+    p = t.open(path, who=who, wait="domcontentloaded")
     # R43: with core-api down a page renders fast (the website's server-side calls give up after 2.5 s): the page's
     # own navigation timing, from the request to the page shown (DOMContentLoaded), under 4 s
     ms = render_ms(p)
+    said_re = re.compile(r"couldn.t|could not|try again|unavailable|can.t (load|reach)|something went wrong|not available|offline|"
+                         r"no connection|isn.t loading|didn.t load|reach", re.I)
     p.wait_for_timeout(1500)  # a client page's first calls fail, then it says so
+    for _ in range(28):
+        if said_re.search(p.locator("body").inner_text()):
+            break
+        p.wait_for_timeout(1000)
     body = p.locator("body").inner_text()
     ok(len(body.strip()) > 40, "a blank page")
     ok(not re.search(r"Application error|Unhandled Runtime Error|Internal Server Error|This page could not be found", body),
        f"a crash page: {body[:120]!r}")
-    said = re.search(r"couldn.t|could not|try again|unavailable|can.t (load|reach)|something went wrong|not available|offline|"
-                     r"no connection|isn.t loading|didn.t load|reach", body, re.I)
+    said = said_re.search(body)
     t.shot("api-down")
     if said:
         return f"renders in {ms / 1000:.1f} s with: {said.group(0)!r}"
