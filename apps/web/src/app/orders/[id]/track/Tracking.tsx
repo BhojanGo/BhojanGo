@@ -5,6 +5,7 @@
 // slow poll as a safety net. The map is MapLibre GL over OpenFreeMap's free
 // tiles (LiveMap, loaded in the browser only).
 import { ApiError, unwrap, type CoreSchemas } from "@bhojango/api-client";
+import { nextLiveStatus, shownStatus } from "@bhojango/ui/order-status";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -90,7 +91,7 @@ export function Tracking({ id }: { id: string }) {
             const loc = p.location as { lat: number; lng: number } | null;
             return {
               ...s, at,
-              status: (p.status as string) ?? s.status,
+              status: nextLiveStatus(s.status, p.status as string | undefined),
               pickup: (p.pickup as Pt) ?? null,
               dropoff: (p.dropoff as Pt) ?? null,
               rider: loc ? [loc.lat, loc.lng] : null,
@@ -112,7 +113,7 @@ export function Tracking({ id }: { id: string }) {
             return { ...s, at, rider: pt, trail: [...s.trail, pt].slice(-200), ...fresh };
           }
           case "status_change":
-            return { ...s, at, status: (p.status as string) ?? s.status };
+            return { ...s, at, status: nextLiveStatus(s.status, p.status as string | undefined) };
           case "eta_update": // the ETA again after a status change (e.g. picked up), from the rider's last fix
             return p.eta ? { ...s, at, eta: p.eta as Eta, etaAt: at } : s;
           default:
@@ -151,7 +152,8 @@ export function Tracking({ id }: { id: string }) {
   }
   if (!order) return <div className="container-page py-14 text-muted">{t("track.loading")}</div>;
 
-  const status = order.status === "delivered" || order.status === "cancelled" || !live.status ? order.status : live.status;
+  // R44: the later of the order's status and the socket's (a late message for an earlier step never takes it back)
+  const status = shownStatus(order.status, live.status);
   const cancelled = status === "cancelled";
   const delivered = status === "delivered";
   const isPickup = order.fulfillment === "pickup";

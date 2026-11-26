@@ -10,6 +10,7 @@ export { DENSE_FONT_SCALE, face, field, FLUID, fontAuditEnabled, MIN_READABLE, n
 export type { Script, TypeRole } from "./ui/type";
 export { FontAudit } from "./ui/font-audit";
 export { billTotal, receiptRefunds } from "@bhojango/ui/bill";
+export { nextLiveStatus, shownStatus } from "@bhojango/ui/order-status"; // R44: an order's status never goes backwards
 export { reorderToBag } from "@bhojango/ui/reorder";
 // R24: what a kitchen statement below zero says (this week; still from earlier weeks), shared with admin.
 export { belowZeroLines, type BelowZeroLine } from "@bhojango/ui/statement";

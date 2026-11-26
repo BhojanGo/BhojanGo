@@ -29,7 +29,10 @@ LIVE = {
     "category": "SELECT c.id::text, r.name || ': ' || c.name FROM menu_categories c JOIN restaurants r ON r.id = c.restaurant_id",
     "option group": "SELECT g.id::text, r.name || ': ' || g.name FROM option_groups g JOIN restaurants r ON r.id = g.restaurant_id",
     "option": "SELECT o.id::text, g.name || ': ' || o.name FROM options o JOIN option_groups g ON g.id = o.group_id",
-    "offer or rule": "SELECT id::text, family || ' ' || coalesce(name, key, '') FROM rules WHERE status IN ('draft', 'pending_approval') "
+    # a rule by what it is and says, not its row: a change through maker-checker publishes a new version (a new row), so
+    # a test that turns a rule on and back off (batching) leaves the same rule with the same settings
+    "offer or rule": "SELECT concat_ws('|', family, key, slot, scope_level, scope_id, status, params::text), "
+                     "family || ' ' || coalesce(name, key, '') || ' ' || params::text FROM rules WHERE status IN ('draft', 'pending_approval') "
                      "OR (status = 'published' AND (effective_to IS NULL OR effective_to > now()))",
     "account": "SELECT id::text, coalesce(email, phone, '') || ' (' || coalesce(full_name, '') || ', ' || role::text || ')' FROM users "
                "WHERE is_active",

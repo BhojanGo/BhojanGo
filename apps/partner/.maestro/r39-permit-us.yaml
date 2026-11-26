@@ -2,6 +2,10 @@
 # (number, expiry date, a photo of it) in the application; it then waits for an admin's review.
 # Before the run: adb push a small permit.png to /sdcard/Download (the runner does it).
 appId: com.bhojango.partner
+onFlowComplete:  # R44: pass or fail, the restaurant account this flow made is deleted (it leaves every listing)
+  - runScript:
+      file: ../../../tools/mobile/maestro/forget.js
+      env: { PHONE: "${output.phone}", COUNTRY: "US" }
 ---
 - runScript: scripts/new_us_phone.js
 - runFlow:
@@ -55,6 +59,17 @@ appId: com.bhojango.partner
     id: "permit-upload"
 # Android's file picker: the pushed file isn't in Recent (Android 14 doesn't index it), so browse the device's
 # storage: Show roots > the device > Download
+# R44: the picker's Recent list loads after the picker opens; decide only once it has settled (round 44's run: the
+# file was already in Recent from the India flow, but "not visible" was read before the list showed it)
+- extendedWaitUntil:
+    visible: "Recent|Show roots|Downloads?"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 3000
+- extendedWaitUntil:
+    visible: "permit.png"
+    timeout: 4000
+    optional: true
 - runFlow:
     when:
       notVisible: "permit.png"
