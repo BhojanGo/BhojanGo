@@ -4,5 +4,9 @@ env:
   MARKET: "us"
   EMAIL: "partner.boi@example.com"
   REST: "Boise Bowl Co."
+onFlowComplete:  # R44: pass or fail, what the flow made goes
+  - runScript:
+      file: scripts/r43_menu.js
+      env: { STEP: tidy, MARKET: "us" }
 ---
 - runFlow: r43/categories.yaml

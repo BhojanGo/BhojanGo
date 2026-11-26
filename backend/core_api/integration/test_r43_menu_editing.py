@@ -228,7 +228,17 @@ async def test_categories_add_rename_reorder_hide_and_schedule(client: AsyncClie
     assert (await quote(client, cust, rid, [{"menu_item_id": dish["id"], "quantity": 1}])).status_code == 422
     manage = (await client.get(f"{base}/menu/manage", headers=partner)).json()
     assert any(i["name"] == f"Upma {tag}" for i in manage["items"]) and any(c["id"] == a["id"] and not c["is_active"] for c in manage["categories"])
+    # R44 delete: refused while a dish is in it; once empty it goes (the deleted dish keeps the name for past orders)
+    r = await client.delete(f"{base}/categories/{a['id']}", headers=partner)
+    assert r.status_code == 409 and r.json()["detail"]["code"] == "CATEGORY_NOT_EMPTY"
+    assert (await client.delete(f"{base}/categories/{a['id']}", headers=cust)).status_code == 403
     await client.delete(f"{base}/menu-items/{dish['id']}", headers=partner)
+    assert (await client.delete(f"{base}/categories/{a['id']}", headers=partner)).status_code == 204
+    manage = (await client.get(f"{base}/menu/manage", headers=partner)).json()
+    assert all(c["id"] != a["id"] for c in manage["categories"])
+    hist = (await client.get(f"{base}/menu/history", headers=partner, params={"limit": 3})).json()["changes"]
+    assert hist[0]["action"] == "deleted" and hist[0]["entity"] == "category" and hist[0]["name"] == f"Morning {tag}"
+    assert (await client.delete(f"{base}/categories/{a['id']}", headers=partner)).status_code == 404
 
 
 async def test_options_with_prices_required_and_limits(client: AsyncClient) -> None:

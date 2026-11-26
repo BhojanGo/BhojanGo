@@ -3,7 +3,7 @@
 // Live from realtime's /ws/track/{order}: a snapshot, then rider assigned,
 // location + ETA and status changes (a slow poll as a safety net). The map is
 // MapLibre over OpenFreeMap's free tiles (components/LiveMap.tsx).
-import { api, color, inZone, LoadError, loadFailure, QuickChat, radius, space, StatusPill, Txt, type, unwrap, useI18n, liveSocket } from "@bhojango/mobile-core";
+import { api, color, inZone, LoadError, loadFailure, QuickChat, radius, space, StatusPill, Txt, type, unwrap, useI18n, liveSocket, nextLiveStatus, shownStatus } from "@bhojango/mobile-core";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
@@ -77,7 +77,7 @@ export default function Tracking() {
           case "connected": {
             const loc = p.location as { lat: number; lng: number } | null;
             return {
-              ...s, status: (p.status as string) ?? s.status, pickup: (p.pickup as Pt) ?? null, dropoff: (p.dropoff as Pt) ?? null,
+              ...s, status: nextLiveStatus(s.status, p.status as string | undefined), pickup: (p.pickup as Pt) ?? null, dropoff: (p.dropoff as Pt) ?? null,
               rider: loc ? [loc.lat, loc.lng] : null, eta: (p.eta as Eta) ?? null,
               trail: ((p.trail as [number, number, string][]) ?? []).map((x) => [x[0], x[1]] as Pt),
               slow: !!p.searching_slow,
@@ -94,9 +94,9 @@ export default function Tracking() {
             return { ...s, rider: pt, trail: [...s.trail, pt].slice(-200), eta: (p.eta as Eta) ?? s.eta };
           }
           case "status_change":
-            return { ...s, status: (p.status as string) ?? s.status };
+            return { ...s, status: nextLiveStatus(s.status, p.status as string | undefined) };
           case "eta_update": // realtime recomputes the ETA from the rider's last fix on a status change
-            return { ...s, status: (p.status as string) ?? s.status, eta: (p.eta as Eta) ?? s.eta };
+            return { ...s, status: nextLiveStatus(s.status, p.status as string | undefined), eta: (p.eta as Eta) ?? s.eta };
           default:
             return s;
         }
@@ -130,7 +130,8 @@ export default function Tracking() {
     );
   }
 
-  const status = order?.status === "delivered" || order?.status === "cancelled" || !live.status ? (order?.status ?? "placed") : live.status;
+  // R44: the later of the order's status and the socket's (a late message for an earlier step never takes it back)
+  const status = shownStatus(order?.status, live.status);
   const delivered = status === "delivered";
   const cancelled = status === "cancelled";
   const finished = delivered || cancelled;

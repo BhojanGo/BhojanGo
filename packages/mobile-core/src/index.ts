@@ -10,6 +10,7 @@ export { DENSE_FONT_SCALE, face, field, FLUID, fontAuditEnabled, MIN_READABLE, n
 export type { Script, TypeRole } from "./ui/type";
 export { FontAudit } from "./ui/font-audit";
 export { billTotal, receiptRefunds } from "@bhojango/ui/bill";
+export { nextLiveStatus, shownStatus } from "@bhojango/ui/order-status"; // R44: an order's status never goes backwards
 export { reorderToBag } from "@bhojango/ui/reorder";
 // R24: what a kitchen statement below zero says (this week; still from earlier weeks), shared with admin.
 export { belowZeroLines, type BelowZeroLine } from "@bhojango/ui/statement";
@@ -34,6 +35,7 @@ export { REFRESH_TIMEOUT_MS, RefreshTimeoutError, singleFlight } from "./refresh
 export { LoadError, loadErrorText, UnreachableScreen, useFirstLoad } from "./ui/load-error";
 export type { LoadErrorProps } from "./ui/load-error";
 export { cartItems, defaultPicks, priceChanges, useBag } from "./bag";
+export { priceRule, type PriceRuleProblem } from "./price-rule";
 // B2: quick messages between the customer and the rider during an order.
 export { QuickChat, useQuickMessages } from "./chat";
 // R19: Account -> Legal and Delete account in the Kitchen and Delivery apps.

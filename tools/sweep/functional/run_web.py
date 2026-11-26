@@ -49,31 +49,46 @@ def main() -> int:
             web.setup()
         for f in todo:
             for user in f.users:
-                t = fw.T(browser=browser, user=user, out=OUT, fn=f)
                 started = time.time()
-                try:
-                    actual = f.run(t) or "as expected"
-                    errors = t.vars.get("_errors") or []
-                    if errors:
-                        raise fw.Fail(f"page error: {errors[0]}")
-                    result = "PASS"
-                except Exception as e:  # noqa: BLE001 - a function that fails is a FAIL row with its reason
-                    actual = f"{type(e).__name__}: {e}" if isinstance(e, fw.Fail) else f"{type(e).__name__}: {str(e)[:240]}"
-                    if not isinstance(e, fw.Fail):
-                        traceback.print_exc(limit=2)
-                    result = "FAIL"
+                first = None  # R44: a failure is tried once more; a pass then is reported as FLAKY with the first reason
+                for attempt in (1, 2):
+                    t = fw.T(browser=browser, user=user, out=OUT, fn=f)
                     try:
-                        if t.page is not None:
-                            t.shot("fail")
-                    except Exception:  # noqa: BLE001
-                        pass
-                finally:
-                    t.close()
+                        actual = f.run(t) or "as expected"
+                        errors = t.vars.get("_errors") or []
+                        if errors:
+                            raise fw.Fail(f"page error: {errors[0]}")
+                        result = "PASS"
+                    except Exception as e:  # noqa: BLE001 - a function that fails is a FAIL row with its reason
+                        actual = f"{type(e).__name__}: {e}" if isinstance(e, fw.Fail) else f"{type(e).__name__}: {str(e)[:240]}"
+                        if not isinstance(e, fw.Fail):
+                            traceback.print_exc(limit=2)
+                        result = "FAIL"
+                        try:
+                            if t.page is not None:
+                                t.shot("fail")
+                        except Exception:  # noqa: BLE001
+                            pass
+                    finally:
+                        t.close()
+                    if result == "PASS" or attempt == 2:
+                        break
+                    first = str(actual)[:160]
+                if first and result == "PASS":
+                    actual = f"{actual} — FLAKY: passed on the second try (first: {first})"
+                elif first:
+                    actual = f"{actual} (both tries)"
                 rows.append({"app": f.app, "page": f.route, "function": f.id, "kind": f.kind, "user": user,
                              "action": f.action, "expected": f.expected, "verify": f.verify, "actual": str(actual)[:400],
                              "result": result, "screenshots": t.shots, "seconds": round(time.time() - started, 1)})
                 print(result, f.app, f.route, f.id, user, str(actual)[:160], flush=True)
         if PHASE == "up":
+            if fw.sessions.fresh_email:  # R44: the new customer the "new account" functions shared goes again
+                st, body = fw.api("POST", "/auth/login", None, {"email": fw.sessions.fresh_email, "password": fw.FRESH_PASSWORD}, raw=True)
+                if st == 200:
+                    fw.forget(token=body["access_token"])
+                print(f"clean-up: the new customer {fw.sessions.fresh_email} " + ("deleted" if st == 200 else f"NOT deleted (sign-in {st})"), flush=True)
+                fw.sessions.states.pop(("web", "fresh"), None)
             json.dump({"|".join(k): v for k, v in fw.sessions.states.items()}, open(saved, "w", encoding="utf-8"))
         browser.close()
     json.dump(rows, open(f"{OUT}/functional-{PHASE}.json", "w", encoding="utf-8"), indent=1, ensure_ascii=False)

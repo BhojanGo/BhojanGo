@@ -4,6 +4,7 @@
                                         not deleted (unavailable ones too), option groups, currency and country.
 * POST /restaurants/{id}/categories      add a category.
 * PUT  /restaurants/{id}/categories/{c}  rename, hide or show, set or clear a schedule.
+* DELETE /restaurants/{id}/categories/{c}  remove an empty category (R44; one with dishes: 409 CATEGORY_NOT_EMPTY).
 * PUT  /restaurants/{id}/categories-order  the categories in this order (drag to reorder).
 * GET  /restaurants/{id}/menu/history    the menu's history (who, when, old -> new), newest first.
 
@@ -152,6 +153,23 @@ async def change_category(restaurant_id: uuid.UUID, category_id: uuid.UUID, data
     await edit.record(db, r, user, entity="category", entity_id=c.id, name=c.name, action="changed",
                       changes=edit.diff(before, edit.snapshot(c, edit.CATEGORY_FIELDS)))
     return _category_out(c)
+
+
+@router.delete("/{restaurant_id}/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_category(restaurant_id: uuid.UUID, category_id: uuid.UUID, user: User, db: DB) -> None:
+    """R44: remove a category with no dishes left (deleted dishes keep their category's name for past orders)."""
+    r = await access.manage(db, user, restaurant_id)
+    c = await _category(db, r.id, category_id)
+    left = (await db.execute(select(func.count()).select_from(MenuItem).where(
+        MenuItem.category_id == c.id, MenuItem.deleted_at.is_(None)))).scalar_one()
+    if left:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail={
+            "code": "CATEGORY_NOT_EMPTY", "message": f"{c.name} still has {left} dish(es): move or delete them first", "dishes": left})
+    await db.execute(update(MenuItem).where(MenuItem.category_id == c.id).values(category_id=None))
+    await edit.record(db, r, user, entity="category", entity_id=c.id, name=c.name, action="deleted",
+                      changes=None)
+    await db.delete(c)
+    await db.flush()
 
 
 @router.put("/{restaurant_id}/categories-order")

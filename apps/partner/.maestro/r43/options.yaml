@@ -1,4 +1,4 @@
-# R43: options and hours on the tablet (MARKET): on this run's own dish, a new option group "Size" (customers must
+# R43: options and hours on the tablet (MARKET): on this run's own dish, a new option group "R43 Size" (customers must
 # choose, at least 1 / at most 1: Half +0, Full +price) and hours that aren't now. The API has them; the quote
 # refuses the dish outside its hours and, with the hours cleared, adds Full's price (scripts/r43_menu.js).
 appId: com.bhojango.partner
@@ -32,7 +32,7 @@ appId: com.bhojango.partner
     timeout: 10000
 - tapOn:
     id: "group-name"
-- inputText: "Size"
+- inputText: "R43 Size"
 - hideKeyboard
 - tapOn: "Choice Customers must choose"
 - tapOn:

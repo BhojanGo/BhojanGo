@@ -341,6 +341,7 @@ POLICY: dict[tuple[str, str], Policy] = {
     ("GET", f"{R}/menu/history"): user("customer", "rider", "other_partner", "ops_boi"),
     ("POST", f"{R}/categories"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"name": "Sweep"}),
     ("PUT", f"{R}/categories/{{category_id}}"): user("customer", "rider", "other_partner", "ops_boi", body=lambda c: {"name": "Sweep"}),
+    ("DELETE", f"{R}/categories/{{category_id}}"): user("customer", "rider", "other_partner", "ops_boi"),
     ("PUT", f"{R}/categories-order"): user("customer", "rider", "other_partner", "ops_boi",
                                          body=lambda c: {"category_ids": [c.category]}),
     ("POST", f"{R}/reviews"): user("other_customer", "partner", "rider",

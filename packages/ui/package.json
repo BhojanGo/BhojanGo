@@ -44,6 +44,10 @@
     "./reorder": {
       "types": "./reorder.d.ts",
       "default": "./reorder.js"
+    },
+    "./order-status": {
+      "types": "./order-status.d.ts",
+      "default": "./order-status.js"
     }
   },
   "scripts": {
@@ -52,7 +56,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo 'no eslint config — skipping'",
     "clean": "rm -rf dist",
-    "test": "node --test test/bill.test.js test/environment.test.js test/type.test.js test/markdown.test.js test/legal-markdown.test.js test/security-headers.test.js test/statement.test.js test/reorder.test.js test/billSum.test.js"
+    "test": "node --test test/bill.test.js test/environment.test.js test/type.test.js test/markdown.test.js test/legal-markdown.test.js test/security-headers.test.js test/statement.test.js test/reorder.test.js test/billSum.test.js test/order-status.test.js"
   },
   "peerDependencies": {
     "react": "^19.3.0",
@@ -90,6 +94,8 @@
     "statement.js",
     "statement.d.ts",
     "reorder.js",
-    "reorder.d.ts"
+    "reorder.d.ts",
+    "order-status.js",
+    "order-status.d.ts"
   ]
 }

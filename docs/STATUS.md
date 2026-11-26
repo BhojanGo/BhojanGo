@@ -765,6 +765,26 @@ Migration `0055_menu_editing` (adds columns and a table; changes no row).
   (`apps/web/src/lib/coreFetch.ts`); a full US path on real Stripe test mode (`tools/stripe_e2e/test_r43_full_path.py`).
 - Report: qa-artifacts/r43/functional/index.md. New strings in 8 languages (packages/i18n/REVIEW.md, round 43).
 
+## Fixes, clean tests and one full fresh run (round 44, 2026-11-26)
+
+No migration.
+
+- **Price message on the tablet:** after one refused Save (12.505), a valid 12.50 still said "A price has at most
+  2 decimals (12.99)": the editor set its message on Save only. Now the message follows the fields from the first
+  Save and a save's server answer goes on any edit. The rule is `priceRule` in mobile-core (unit-tested: 12.50, 12.5,
+  12, 0.99 valid; 12.505, 0, -1, empty not; India 120 valid, 120.50 not); Maestro `r44-price-rule-us/-in`.
+- **Order status never goes backwards** (app order screen, website tracking; `packages/ui/order-status.js`): a late
+  `eta_update` for "preparing" after "ready" made a ready pickup order say "Ready in about 20 min" and Cooking next to
+  its pickup code, until the next socket message. Found by the full run (customer/pickup failed once).
+- **Tests clean up:** `DELETE /restaurants/{id}/categories/{c}` (empty categories only, in the history); Maestro
+  flows remove their test dishes, option groups and categories on `onFlowComplete` (pass or fail); sign-up flows and
+  web functions delete the accounts they make (`tools/mobile/maestro/forget.js`, `framework.forget`); the admin help
+  draft is removed. `tools/sweep/functional/leftovers.py` snapshots the stack before a run and fails it if anything the
+  run made is still live or any row has a test name ("R4x …"); in `run.sh`, so CI's functional job runs it.
+- **One full fresh run:** 553 rows (98 pages and screens, 326 functions, US and India), 553 PASS, 0 FAIL, 0 not run,
+  none carried from an earlier round, no flaky rows, no leftovers; 2 h 41 min on a fresh local stack. Failed web
+  functions and Maestro flows are tried once more and reported FLAKY. Report: qa-artifacts/r44/functional/index.md.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.

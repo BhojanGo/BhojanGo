@@ -1,0 +1,12 @@
+# R44: the price message clears as soon as the price is valid (in). See r44/price-rule-in.yaml.
+appId: com.bhojango.partner
+env:
+  MARKET: "in"
+  EMAIL: "partner.hyd@example.com"
+  REST: "Spice Route Kitchen"
+onFlowComplete:  # R44: pass or fail, nothing a test made stays
+  - runScript:
+      file: scripts/r43_menu.js
+      env: { STEP: tidy, MARKET: "in" }
+---
+- runFlow: r44/price-rule-in.yaml

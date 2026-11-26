@@ -58,3 +58,7 @@ appId: com.bhojango.rider
     timeout: 30000
 - assertVisible: "1 of 5"
 - takeScreenshot: docs/screenshots/rider/15-signup-checklist
+# R44: the account this flow made is deleted again (no test accounts after a run)
+- runScript:
+    file: ../../../tools/mobile/maestro/forget.js
+    env: { PHONE: "${output.phone}", COUNTRY: "IN" }

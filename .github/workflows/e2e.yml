@@ -163,7 +163,7 @@ jobs:
           $COMPOSE exec -T core-api python /srv/tools/seed/seed.py >/dev/null
           $COMPOSE exec -T core-api python /srv/tools/seed/demo.py >/dev/null
 
-      - name: Every page's functions, then every page with core-api stopped
+      - name: Every page's functions, then every page with core-api stopped, then nothing left behind (R44)
         run: OUT="$PWD/qa-artifacts/r42/functional" sh tools/sweep/functional/run.sh
 
       - name: Report (index.md)
