@@ -898,7 +898,10 @@ def _(t: T) -> str:
     p = t.open("/deliver", who="anon")
     p.get_by_label("Your full name").fill("R42 Rider")
     p.get_by_label("Date of birth").fill("2015-01-01")
-    p.get_by_test_id("gs-vehicle-scooter").check(force=True)
+    # R45: click the visible label, as a person does (a forced click on the visually hidden radio once landed elsewhere)
+    p.locator("label").filter(has=p.get_by_test_id("gs-vehicle-scooter")).click()
+    from playwright.sync_api import expect  # here: specs.py imports this module without Playwright
+    expect(p.get_by_test_id("gs-vehicle-scooter")).to_be_checked()
     p.get_by_label("Country code").select_option(t.m["cc"])
     # a number the stack answers with the fixed test code (OTP_FIXED_CODE_PHONE_PREFIXES: +12085550…, +9190000…)
     phone = ("20855509" if t.user == "us" else "90000") + str(int(time.time()))[-2 if t.user == "us" else -5:]
