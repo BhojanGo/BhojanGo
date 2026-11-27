@@ -785,6 +785,23 @@ No migration.
   none carried from an earlier round, no flaky rows, no leftovers; 2 h 41 min on a fresh local stack. Failed web
   functions and Maestro flows are tried once more and reported FLAKY. Report: qa-artifacts/r44/functional/index.md.
 
+## Delete category on the tablet (round 45, 2026-11-26)
+
+No migration.
+
+- **Delete category** (restaurant tablet, Categories): for a category with no dishes, after "Delete <name>?" (Keep /
+  Delete category); uses `DELETE /restaurants/{id}/categories/{c}` (round 44) and shows in History as "Category <name>
+  · deleted". A category with dishes keeps the button off and says "N dishes · Move or delete its dishes first".
+  New strings in 8 languages (packages/i18n/REVIEW.md, round 45).
+- **Tests:** Maestro `r45-category-delete-us/-in` (refused with a dish; the dish deleted; Keep; Delete; gone from the
+  API, customers' menu and the website page within 60 s; History) and customer app `r45-category-gone-us/-in` (an
+  empty category's heading leaves the app within 60 s of the delete, measured). The website never shows an empty
+  category; the app shows its heading until it's deleted.
+- **Test fixes from the first full run:** `tools/mobile/hours.py` opens every restaurant (country manager's token; the
+  demo order stopped at Hyderabad night), the categories and language flows scroll to what they check, re-offer
+  waits by time, the /deliver vehicle choice is clicked by its label (its hidden radio now stays inside the label).
+- **Full fresh run:** __TOTALS__ Report: qa-artifacts/r45/functional/index.md.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.
