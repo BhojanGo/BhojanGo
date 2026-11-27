@@ -104,8 +104,10 @@ appId: com.bhojango.app
     timeout: 5000
 - tapOn:
     id: "language-option-en"
-- extendedWaitUntil:
-    visible:
+# R45: the switch re-renders the page and can leave the pill just under the test banner: scroll to it, then check
+- scrollUntilVisible:
+    element:
       id: "language-pill-code"
       text: "EN"
-    timeout: 10000
+    direction: UP
+    timeout: 15000

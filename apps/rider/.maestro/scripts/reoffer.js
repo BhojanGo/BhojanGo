@@ -126,7 +126,9 @@ if (STEP === "setup") {
 
 if (STEP === "check") {
   var offered = null;
-  for (var i = 0; i < 300 && !offered; i++) {
+  // R45: by time, not by request count: up to 70 s (two 30 s offer timeouts, if the next rider is busy with another offer)
+  var until = Date.now() + 70000;
+  while (Date.now() < until && !offered) {
     var me = call("GET", RT + "/riders/me", rider2).body;
     if (me && me.offer && me.offer.order_id === output.orderId) offered = me.offer;
   }
