@@ -59,11 +59,24 @@
     "us",
     "in"
    ],
-   "action": "The restaurant deletes an empty category; the customer opens the restaurant",
+   "action": "The restaurant deletes a category's dish, then the category; the customer opens the restaurant",
    "expected": "Its heading is gone within 60 s (measured from the delete)",
    "verify": "UI vs GET /restaurants/{id}/menu (scripts/r43_customer.js)",
    "run": "maestro: apps/customer/.maestro/r45-category-gone-{user}.yaml",
    "maestro": "r45-category-gone-{user}"
+  },
+  {
+   "id": "category-hours",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Categories: one with hours that aren't now, one all day, one with no dishes; then the first one's hours become the hour around now",
+   "expected": "Only the all-day one shows; the empty one never; inside its hours the first one shows (within 60 s, measured)",
+   "verify": "UI vs GET /restaurants/{id}/menu; the website page (scripts/r43_customer.js)",
+   "run": "maestro: apps/customer/.maestro/r46-category-hours-{user}.yaml",
+   "maestro": "r46-category-hours-{user}"
   },
   {
    "id": "na-permission",

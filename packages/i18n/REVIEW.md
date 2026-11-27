@@ -644,3 +644,5 @@ Look at these first:
 - `checkout.price_changed`: word order around `{name} {was} → {now}`.
 - `partner.edit.delete_category`, `delete_category_body`, `category_has_dishes` (R45, machine-translated 2026-11-26): Hindi
   keeps "डिश" for both plural forms; "move" means move the dishes to another category.
+- `partner.edit.clear_all_day`, `served_all_day`, `served_between` (R46, machine-translated 2026-11-27): a category's
+  serving hours on the tablet; "Clear" removes the hours (the category is then served all day).

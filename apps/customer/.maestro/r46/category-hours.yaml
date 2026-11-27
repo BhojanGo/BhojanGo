@@ -1,0 +1,45 @@
+# R46: category hours where customers see them (MARKET). The restaurant has three test categories (API, as the tablet
+# does): "R46 Breakfast" with a dish and hours that aren't now (the restaurant's clock: Boise or Hyderabad), "R46 Mains"
+# with a dish and no hours (all day), "R46 Empty" with no dishes. The app and the website show only Mains. Breakfast's
+# hours then become the hour around now: it shows (website: R46_WEB_SECONDS; app: R43_SECONDS, limit 60 s).
+appId: com.bhojango.app
+---
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: hrsetup, MARKET: "${MARKET}" }
+- runFlow:
+    file: ../sign-in.yaml
+    env:
+      PHONE: ${PHONE}
+      COUNTRY: ${COUNTRY}
+- openLink: bhojango://restaurant/${output.rid}
+- scrollUntilVisible:
+    element: ${output.mains}
+    direction: DOWN
+    timeout: 40000
+# Breakfast (made just before Mains) would sit right above it, Empty right below: neither shows
+- assertNotVisible: ${output.bf}
+- assertNotVisible: ${output.empty}
+- takeScreenshot: docs/screenshots/customer/r46-cathours-${MARKET}-outside
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: hrnow, MARKET: "${MARKET}", BF_ID: "${output.bfId}", BF: "${output.bf}" }
+- repeat:
+    while:
+      notVisible: ${output.bf}
+    times: 30
+    commands:
+      - openLink: bhojango://search
+      - waitForAnimationToEnd:
+          timeout: 3000
+      - openLink: bhojango://restaurant/${output.rid}
+      - scrollUntilVisible:
+          element: ${output.mains}
+          direction: DOWN
+          timeout: 20000
+- assertVisible: ${output.bf}
+- assertNotVisible: ${output.empty}
+- runScript:
+    file: ../scripts/r43_customer.js
+    env: { STEP: elapsed, MARKET: "${MARKET}", T0: "${output.t0}" }
+- takeScreenshot: docs/screenshots/customer/r46-cathours-${MARKET}-inside

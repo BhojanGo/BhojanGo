@@ -240,7 +240,8 @@ async def _menu(db: AsyncSession, restaurant_id: uuid.UUID, viewer: uuid.UUID | 
 
 async def _menu_out(db: AsyncSession, restaurant, local=None) -> RestaurantMenuResponse:  # type: ignore[no-untyped-def]
     """Customers' menu: shown categories in order, each one's available dishes (R43: never a deleted one;
-    a dish outside its schedule is listed with available_now False)."""
+    a dish outside its schedule is listed with available_now False). R46: a category with hours is listed only
+    inside them (the restaurant's clock); "All day" categories always. The cache ends at the next edge."""
     from datetime import UTC, datetime
 
     from core_api.modules.catalog.schemas.restaurant import MenuCategoryResponse
@@ -248,6 +249,7 @@ async def _menu_out(db: AsyncSession, restaurant, local=None) -> RestaurantMenuR
     if local is None:
         local = datetime.now(UTC).astimezone((await menu_svc.restaurant_market(db, restaurant))[1])
     live = [i for i in restaurant.menu_items if i.deleted_at is None]
+    now_t = local.time().replace(tzinfo=None)
     groups = await menu_svc.groups_for_items(db, [i.id for i in live])
     by_id = {c.id: c for c in restaurant.categories}
     order = lambda i: (i.sort_order, i.name)  # noqa: E731
@@ -265,7 +267,7 @@ async def _menu_out(db: AsyncSession, restaurant, local=None) -> RestaurantMenuR
                    for item in sorted(cat.items, key=order) if item.is_available and item.deleted_at is None],
         )
         for cat in sorted(restaurant.categories, key=lambda c: (c.sort_order, c.name))
-        if cat.is_active
+        if cat.is_active and edit.in_window(cat.available_from, cat.available_until, now_t)
     ]
 
     uncategorized = [

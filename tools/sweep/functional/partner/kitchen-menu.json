@@ -105,6 +105,19 @@
    "maestro": "r45-category-delete-{user}"
   },
   {
+   "id": "category-hours",
+   "kind": "form",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Categories: a seed category; then a test category's hours 07:00-11:00; then Clear (all day)",
+   "expected": "No hours: '✓ All day', empty time fields (no example times), no Clear; with hours: '07:00 – 11:00' and 'Clear (all day)'; cleared: All day again",
+   "verify": "UI; API /menu/manage hours, /menu lists it only inside them (scripts/r43_menu.js)",
+   "run": "maestro: apps/partner/.maestro/r46-category-hours-{user}.yaml",
+   "maestro": "r46-category-hours-{user}"
+  },
+  {
    "id": "options",
    "kind": "form",
    "users": [

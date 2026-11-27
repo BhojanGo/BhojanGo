@@ -76,7 +76,8 @@ export async function loadMenu(id: string): Promise<Menu> {
   const menu: Menu = {
     restaurant: m.restaurant,
     // Dishes outside a section go last, under the website's "More" heading (kitchen.more).
-    categories: [...m.categories, ...(m.uncategorized_items.length ? [{ name: "", items: m.uncategorized_items }] : [])],
+    // R46: a category with no dishes isn't shown (an empty heading), the same as the website.
+    categories: [...m.categories.filter((c) => c.items.length > 0), ...(m.uncategorized_items.length ? [{ name: "", items: m.uncategorized_items }] : [])],
   };
   menus.set(id, menu);
   return menu;

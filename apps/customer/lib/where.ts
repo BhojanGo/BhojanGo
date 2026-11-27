@@ -48,7 +48,13 @@ function fromAddress(a: CoreSchemas["AddressResponse"]): DropPoint {
 async function here(): Promise<DropPoint> {
   const perm = await Location.requestForegroundPermissionsAsync();
   if (perm.status !== "granted") throw new Error("location");
-  const pos = await Location.getCurrentPositionAsync({});
+  // R46: a recent fix at once; else ask for one, but never wait more than 15 s (without a fix the request never
+  // settled, so "Use my current location" spun with no message). Giving up shows "couldn't find you" (Retry).
+  const last = await Location.getLastKnownPositionAsync({ maxAge: 2 * 60_000 }).catch(() => null);
+  const pos = last ?? await Promise.race([
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("location timeout")), 15_000)),
+  ]);
   const geo = (await Location.reverseGeocodeAsync(pos.coords).catch(() => []))[0];
   return {
     label: geo?.city || geo?.district || "", addressId: null,
