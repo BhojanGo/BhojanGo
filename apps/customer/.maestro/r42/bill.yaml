@@ -88,11 +88,18 @@ appId: com.bhojango.app
       MARKET: ${MARKET}
 - launchApp
 - tapOn: "Orders"
+# R45: wait for the list, then scroll in small steps (on a slow emulator a swipe started before the list loaded flung
+# past the first past order)
+- extendedWaitUntil:
+    visible:
+      id: "(active|past)-order-0"
+    timeout: 30000
 - scrollUntilVisible:
     element:
       id: "past-order-0"
     direction: DOWN
-    timeout: 30000
+    speed: 20
+    timeout: 60000
 - tapOn:
     id: "past-order-0"
 - extendedWaitUntil:

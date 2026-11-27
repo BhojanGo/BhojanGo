@@ -94,7 +94,7 @@ export function HowSwitch({ restaurantId, deliveryLabel, pickupLabel, lockPickup
     const off = v === "delivery" && lockPickup;
     return (
       <button key={v} type="button" role="radio" aria-checked={on} disabled={off} data-testid={`how-${v}`} onClick={() => setHow(v)}
-        className={`flex h-10 min-w-0 flex-1 items-center justify-center truncate rounded-full px-4 text-label ${on ? "bg-white text-[#111418] shadow-[0_2px_8px_rgba(17,20,24,0.12)]" : "text-muted"} disabled:cursor-not-allowed disabled:opacity-45`}>
+        className={`flex h-10 min-w-0 flex-1 items-center justify-center truncate rounded-full px-2 text-label sm:px-4 ${on ? "bg-white text-[#111418] shadow-[0_2px_8px_rgba(17,20,24,0.12)]" : "text-muted"} disabled:cursor-not-allowed disabled:opacity-45`}>
         {label}
       </button>
     );

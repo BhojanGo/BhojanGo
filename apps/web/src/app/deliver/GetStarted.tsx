@@ -220,7 +220,7 @@ export function GetStarted({ countries, country, cities, city, apps, rules }: { 
             <legend className="block p-0 text-label">{t("deliver_page.gs_vehicle")}</legend>
             <div className="mt-2 flex flex-wrap gap-2">
               {rules.vehicles.map((v) => (
-                <label key={v} className={`inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-4 text-label has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-kesar-bright/60 ${vehicle === v ? "border-kesar-bright bg-[#2A2414] text-white" : "border-[#3A4D50] bg-[#14201F] text-[#C4D0D2] hover:border-[#5C7275]"}`}>
+                <label key={v} className={`relative inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-4 text-label has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-kesar-bright/60 ${vehicle === v ? "border-kesar-bright bg-[#2A2414] text-white" : "border-[#3A4D50] bg-[#14201F] text-[#C4D0D2] hover:border-[#5C7275]"}`}>
                   <input type="radio" name={ids.vehicle} value={v} checked={vehicle === v} onChange={() => setVehicle(v)} data-testid={`gs-vehicle-${v}`} className="sr-only" />
                   <span aria-hidden="true" className={`flex h-4 w-4 items-center justify-center rounded-full border-2 ${vehicle === v ? "border-kesar-bright" : "border-[#5C7275]"}`}>
                     {vehicle === v && <span className="h-2 w-2 rounded-full bg-kesar-bright" />}

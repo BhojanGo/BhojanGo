@@ -11,15 +11,20 @@
 //   catback    the categories in their order before the run; the new one stays hidden
 //   tidy       (R44; each flow's onFlowComplete, pass or fail, and before setup) everything a test made on the market's
 //              restaurant goes: dishes, option groups and categories named "R4x …" (a test name), so a run leaves none
+//   catdel     (R45) a category "R45 Lunch …" with one dish (over the API); output.ai = its row, the website shows it
+//   catkept    the category CAT_ID is still there (refused, or "Keep"); with NAME, that dish is still in it
+//   catgone    the category CAT_ID is gone: the editor's menu, customers' menu, the website page (polled, at most 60 s from
+//              the delete: R45_WEB_SECONDS), and the newest history row is "category NAME deleted" by you
 //   optdish    a dish of this run's own (over the API) for the options flow
 //   options    the dish has the group "R43 Size" (required, 1..1) with its prices and the hours FROM-UNTIL; the quote refuses it
 //              outside them, and (hours cleared) adds the Full option's price; then the dish and group are deleted
 var API = "http://localhost:8001/api/v1";
+var WEB = "http://localhost:3000";
 var M = (typeof MARKET !== "undefined" && MARKET) || "in";
 var P = M === "us" ? { email: "partner.boi@example.com", rest: "Boise Bowl Co.", cur: "$", base: "12.50", bad: "12.999", big: "30.00",
-                       full: "3.50", lat: 43.6150, lng: -116.2023, customer: "customer1.boi@example.com", tz: "America/Boise" }
+                       full: "3.50", page: "/us/boise/boise-bowl-co-hyde-park", lat: 43.6150, lng: -116.2023, customer: "customer1.boi@example.com", tz: "America/Boise" }
                    : { email: "partner.hyd@example.com", rest: "Spice Route Kitchen", cur: "₹", base: "120", bad: "120.50", big: "300",
-                       full: "60", lat: 17.4483, lng: 78.3915, customer: "customer1.hyd@example.com", tz: "Asia/Kolkata" };
+                       full: "60", page: "/in/hyderabad/spice-route-kitchen-madhapur", lat: 17.4483, lng: 78.3915, customer: "customer1.hyd@example.com", tz: "Asia/Kolkata" };
 
 function call(method, url, token, body) {
   var headers = { "Content-Type": "application/json" };
@@ -148,4 +153,50 @@ if (STEP === "options") {
   must(Number(food) === (Number(P.base) + Number(P.full)) * 4, "food " + food + " != (" + P.base + " + " + P.full + ") x 4");
   call("DELETE", API + "/restaurants/" + rid + "/menu-items/" + d4.id, tok);
   call("DELETE", API + "/restaurants/" + rid + "/option-groups/" + g.id, tok);
+}
+
+// R45: Delete category
+function webShows(name) {  // the restaurant's website page (server-rendered, no-store menu) names it
+  var r = http.request(WEB + P.page, { method: "GET" });
+  must(r.status === 200, "website " + P.page + " -> " + r.status);
+  return r.body.indexOf(name) >= 0;
+}
+function waitWeb(name, shown, seconds) {
+  var until = Date.now() + seconds * 1000;
+  while (webShows(name) !== shown) {
+    must(Date.now() < until, "the website still " + (shown ? "doesn't show " : "shows ") + name + " after " + seconds + " s");
+    var t = Date.now() + 2000; while (Date.now() < t) { /* wait */ }
+  }
+}
+if (STEP === "catdel") {
+  tidy();
+  var tg = String(Math.floor(1000 + Math.random() * 8999));
+  var cn = "R45 Lunch " + tg, dn = "R45 Dish " + tg;
+  var cr = call("POST", API + "/restaurants/" + rid + "/categories", tok, { name: cn });
+  must(cr.status === 201, "category " + cr.status);
+  var dr = call("POST", API + "/restaurants/" + rid + "/menu-items", tok, { name: dn, price: P.base, category: cn, category_id: cr.body.id });
+  must(dr.status === 201 && dr.body.category_id === cr.body.id, "dish " + dr.status);
+  var ids = manage().categories.map(function (x) { return x.id; });
+  output.cat = cn; output.catId = cr.body.id; output.dish = dn; output.ai = String(ids.indexOf(cr.body.id));
+  waitWeb(cn, true, 30);  // before: customers see it on the website
+}
+if (STEP === "catkept") {
+  var mk = manage();
+  must(mk.categories.some(function (x) { return x.id === CAT_ID; }), "the category went (it should stay)");
+  if (typeof NAME !== "undefined" && NAME) {
+    var dk = mk.items.filter(function (i) { return i.name === NAME; })[0];
+    must(dk && dk.category_id === CAT_ID, NAME + " left the category");
+  }
+}
+if (STEP === "catgone") {
+  must(!manage().categories.some(function (x) { return x.id === CAT_ID; }), NAME + " still in the editor's menu");
+  var pm = call("GET", API + "/restaurants/" + rid + "/menu").body;
+  must(!pm.categories.some(function (x) { return x.id === CAT_ID; }), NAME + " still on customers' menu");
+  var hr = call("GET", API + "/restaurants/" + rid + "/menu/history?limit=5", tok).body.changes[0];
+  must(hr.entity === "category" && hr.action === "deleted" && hr.name === NAME && hr.who === "you" && hr.entity_id === CAT_ID,
+       "newest history row " + JSON.stringify(hr).slice(0, 200));
+  waitWeb(NAME, false, 60);
+  var sec = (Date.now() - Date.parse(hr.at)) / 1000;
+  console.log("R45_WEB_SECONDS=" + sec.toFixed(1));
+  must(sec <= 60, "the website dropped " + NAME + " " + sec.toFixed(1) + " s after the delete (limit 60 s)");
 }

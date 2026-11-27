@@ -1,0 +1,131 @@
+# R45: Delete category on the tablet (MARKET). A category with a dish: the button is off and says how many dishes and
+# "Move or delete … first"; tapping it does nothing (the API still has it). Its dish is deleted on the tablet; now the
+# button works, asks first (Keep leaves it), Delete removes it: gone from the editor, the API and customers' menu, the
+# website page within 60 s (scripts/r43_menu.js catgone, R45_WEB_SECONDS), and History shows "Category … · deleted".
+appId: com.bhojango.partner
+---
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: catdel, MARKET: "${MARKET}" }
+- runFlow: ../r43/open-menu.yaml
+- tapOn:
+    id: "manage-categories"
+- extendedWaitUntil:
+    visible:
+      id: "categories-editor"
+    timeout: 15000
+# with a dish: no delete, the count and why
+- scrollUntilVisible:
+    element:
+      id: "category-delete-note-${output.ai}"
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: "category-delete-note-${output.ai}"
+    text: '1 dish . Move or delete its dish first'
+- assertVisible:
+    id: "category-delete-${output.ai}"
+    enabled: false
+- takeScreenshot: docs/screenshots/partner/r45-catdel-${MARKET}-has-dish
+- tapOn:
+    id: "category-delete-${output.ai}"
+- assertNotVisible: 'Delete ${output.cat}\?'
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: catkept, MARKET: "${MARKET}", CAT_ID: "${output.catId}", NAME: "${output.dish}" }
+- tapOn:
+    id: "categories-editor-close"
+- extendedWaitUntil:
+    notVisible:
+      id: "categories-editor"
+    timeout: 10000
+# empty it: delete its one dish on the tablet
+- tapOn:
+    id: "menu-search"
+- inputText: ${output.dish}
+- pressKey: Enter
+- tapOn:
+    id: "menu-item-0"  # the one row the search leaves
+- extendedWaitUntil:
+    visible:
+      id: "dish-editor"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "dish-delete"
+    direction: DOWN
+- tapOn:
+    id: "dish-delete"
+- extendedWaitUntil:
+    visible: 'Delete ${output.dish}\?'
+    timeout: 10000
+- tapOn:
+    id: "android:id/button1"
+- extendedWaitUntil:
+    notVisible:
+      id: "dish-editor"
+    timeout: 20000
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: gone, MARKET: "${MARKET}", NAME: "${output.dish}" }
+# now empty: the button works and asks first
+- tapOn:
+    id: "manage-categories"
+- extendedWaitUntil:
+    visible:
+      id: "categories-editor"
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: "category-delete-${output.ai}"
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: "category-delete-${output.ai}"
+    enabled: true
+- assertNotVisible:
+    id: "category-delete-note-${output.ai}"
+- takeScreenshot: docs/screenshots/partner/r45-catdel-${MARKET}-empty
+- tapOn:
+    id: "category-delete-${output.ai}"
+- extendedWaitUntil:
+    visible: 'Delete ${output.cat}\?'
+    timeout: 10000
+- takeScreenshot: docs/screenshots/partner/r45-catdel-${MARKET}-confirm
+- tapOn:
+    id: "android:id/button2"  # Keep
+- extendedWaitUntil:
+    notVisible: 'Delete ${output.cat}\?'
+    timeout: 10000
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: catkept, MARKET: "${MARKET}", CAT_ID: "${output.catId}" }
+- tapOn:
+    id: "category-delete-${output.ai}"
+- extendedWaitUntil:
+    visible: 'Delete ${output.cat}\?'
+    timeout: 10000
+- tapOn:
+    id: "android:id/button1"  # Delete category
+- extendedWaitUntil:
+    notVisible: ${output.cat}
+    timeout: 20000
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: catgone, MARKET: "${MARKET}", CAT_ID: "${output.catId}", NAME: "${output.cat}" }
+- takeScreenshot: docs/screenshots/partner/r45-catdel-${MARKET}-deleted
+- tapOn:
+    id: "categories-editor-close"
+- extendedWaitUntil:
+    notVisible:
+      id: "categories-editor"
+    timeout: 10000
+# History: the delete, by you
+- tapOn:
+    id: "menu-history"
+- extendedWaitUntil:
+    visible:
+      id: "history-0"
+    timeout: 15000
+- assertVisible: 'Category ${output.cat} . deleted'  # the newest row (history-0); the API's row is checked in catgone
+- takeScreenshot: docs/screenshots/partner/r45-catdel-${MARKET}-history

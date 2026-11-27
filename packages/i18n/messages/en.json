@@ -1953,6 +1953,12 @@
       "remove": "Remove",
       "add_option": "+ Add option",
       "delete_group": "Delete group",
+      "delete_category": "Delete category",
+      "delete_category_body": "It leaves the menu at once. The menu history keeps a record of it.",
+      "category_has_dishes": {
+        "one": "{count} dish · Move or delete its dish first",
+        "other": "{count} dishes · Move or delete its dishes first"
+      },
       "group_rule": "“At least” can't be more than “At most”, or than the number of options.",
       "categories_title": "Categories",
       "categories_note": "Drag ☰ to change the order customers see. Hidden categories and their dishes aren't shown to customers.",

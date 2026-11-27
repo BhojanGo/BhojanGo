@@ -97,9 +97,9 @@ appId: com.bhojango.partner
 - runScript:
     file: ../scripts/r43_menu.js
     env: { STEP: cat, MARKET: "${MARKET}", NAME2: "${output.cat2}", FROM: "07:00", UNTIL: "11:00" }
-- scrollUntilVisible:
+- scrollUntilVisible:  # R45: the name field, not the row (rows got taller: row 0 "visible" left its name above the screen)
     element:
-      id: "category-row-0"
+      id: "category-name-0"
     direction: UP
 - assertVisible:
     id: "category-name-0"

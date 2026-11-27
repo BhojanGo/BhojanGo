@@ -46,18 +46,20 @@ def login(email, pw):
 
 listed = c.get(f"{API}/restaurants", params={"limit": 100}).json()["items"]
 for code, name, tz, cm_email, partner_email, usual in CITIES:
-    cm, partner = login(cm_email, "BhojanGoAdmin1"), login(partner_email, "BhojanGo123")
+    cm = login(cm_email, "BhojanGoAdmin1")
     today = datetime.now(zone(tz)).date()  # each city's own day
     ids = [r["id"] for r in listed if r["city"] == name]
     if sys.argv[1] == "open":
         c.patch(f"{API}/markets/cities/{code}", headers=cm, json={"service_hours": {"open": "00:00", "close": "00:00"}})
         for d in (today, today + timedelta(days=1)):
             for rid in ids:
-                c.put(f"{API}/restaurants/{rid}/hours/overrides/{d}", headers=partner,
+                # R45: the country manager's token, so every restaurant opens (the partner's opened only its own:
+                # at Hyderabad night the demo customer's past restaurants stayed closed and the demo order stopped)
+                c.put(f"{API}/restaurants/{rid}/hours/overrides/{d}", headers=cm,
                       json={"closed": False, "opens": "00:00", "closes": "00:00", "note": "E2E"})
     else:
         for d in (today, today + timedelta(days=1)):
             for rid in ids:
-                c.delete(f"{API}/restaurants/{rid}/hours/overrides/{d}", headers=partner)
+                c.delete(f"{API}/restaurants/{rid}/hours/overrides/{d}", headers=cm)
         c.patch(f"{API}/markets/cities/{code}", headers=cm, json={"service_hours": usual})
     print(sys.argv[1], name, len(ids), "restaurants")

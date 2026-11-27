@@ -39,7 +39,7 @@ appId: com.bhojango.app
     element:
       text: "Government"  # the tax line's payee (R38; was "Tax", before R8 "GOVT")
     direction: DOWN
-    timeout: 10000
+    timeout: 30000  # R45: the bill's lines come with the quote; one swipe on a busy emulator took 13 s
 - assertVisible: "RESTAURANT"
 - takeScreenshot: docs/screenshots/customer/06-bag-fair-bill
 - tapOn:

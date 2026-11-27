@@ -642,3 +642,5 @@ Look at these first:
 - `partner.edit.spice_*` and `kitchen.spice_*`: Indian languages use the everyday word for "spicy" (तीखा, కారం, காரம்,
   ಖಾರ, तिखट, ঝাল); "Hot" must not read as temperature.
 - `checkout.price_changed`: word order around `{name} {was} → {now}`.
+- `partner.edit.delete_category`, `delete_category_body`, `category_has_dishes` (R45, machine-translated 2026-11-26): Hindi
+  keeps "डिश" for both plural forms; "move" means move the dishes to another category.

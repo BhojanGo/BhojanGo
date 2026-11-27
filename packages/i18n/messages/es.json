@@ -1953,6 +1953,12 @@
       "remove": "Quitar",
       "add_option": "+ Añadir opción",
       "delete_group": "Eliminar grupo",
+      "delete_category": "Eliminar categoría",
+      "delete_category_body": "Sale del menú de inmediato. El historial del menú guarda un registro.",
+      "category_has_dishes": {
+        "one": "{count} plato · Mueve o elimina su plato primero",
+        "other": "{count} platos · Mueve o elimina sus platos primero"
+      },
       "group_rule": "El mínimo no puede ser mayor que el máximo ni que el número de opciones.",
       "categories_title": "Categorías",
       "categories_note": "Arrastra ☰ para cambiar el orden que ven los clientes. Las categorías ocultas y sus platos no se muestran.",

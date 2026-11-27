@@ -92,6 +92,19 @@
    "maestro": "r43-categories-{user}"
   },
   {
+   "id": "category-delete",
+   "kind": "button",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Delete category: on one with a dish, then (its dish deleted) Keep, then Delete",
+   "expected": "With a dish: off, '1 dish · Move or delete its dish first', nothing deleted; empty: asks 'Delete …?', Keep leaves it, Delete removes it; gone from the website within 60 s; History 'Category … · deleted'",
+   "verify": "UI; API /menu/manage, /menu, /menu/history; the website page (scripts/r43_menu.js)",
+   "run": "maestro: apps/partner/.maestro/r45-category-delete-{user}.yaml",
+   "maestro": "r45-category-delete-{user}"
+  },
+  {
    "id": "options",
    "kind": "form",
    "users": [

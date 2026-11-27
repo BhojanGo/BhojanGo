@@ -105,6 +105,10 @@ screen(C, "restaurant/[id]", ("menu", "button", "Add, customise", "In the cart",
         "The new price shows within 60 s (measured from the change)", "UI vs GET /restaurants/{id}/menu (scripts/r43_menu.js)", "r43-propagation-{user}"),
        ("dish-hours", "display", "A dish served only at other hours, spice Medium", "'Served … – …', no Add; '🌶🌶 Medium'", "UI vs the menu API",
         "r43-propagation-{user}"),
+       # R45: a category the restaurant deletes leaves the app (measured)
+       ("category-gone", "number", "The restaurant deletes an empty category; the customer opens the restaurant",
+        "Its heading is gone within 60 s (measured from the delete)", "UI vs GET /restaurants/{id}/menu (scripts/r43_customer.js)",
+        "r45-category-gone-{user}"),
        nas=(PUBLIC, ("empty", "a menu always has dishes (a closed one: see closed)"), ("error", "API down: r42-api-down")))
 screen(C, "where", ("set-location", "form", "Choose a city and address", "Home for that place", "UI", "r41-sweep-us"),
        nas=(PUBLIC, ("empty", "a picker"), ("error", "API down: r42-api-down")))
@@ -146,6 +150,11 @@ screen(P, "(kitchen)/menu", ("stock-to-web", "toggle", "Mark a dish sold out, th
         "UI (dish-editor-error); the same rule unit-tested (packages/mobile-core/test/price-rule.test.ts)", "r44-price-rule-{user}"),
        ("categories", "button", "Add a category, rename it, set its hours, hide it, drag it to the top", "Each saved; the order customers see follows",
         "UI; API GET /menu/manage, /menu (order, names, hidden)", "r43-categories-{user}"),
+       # R45: Delete category (empty only, asks first, in the history)
+       ("category-delete", "button", "Delete category: on one with a dish, then (its dish deleted) Keep, then Delete",
+        "With a dish: off, '1 dish · Move or delete its dish first', nothing deleted; empty: asks 'Delete …?', Keep leaves it, "
+        "Delete removes it; gone from the website within 60 s; History 'Category … · deleted'",
+        "UI; API /menu/manage, /menu, /menu/history; the website page (scripts/r43_menu.js)", "r45-category-delete-{user}"),
        ("options", "form", "A new option group (required, at least 1 / at most 1, priced options) on a dish", "Saved; the quote adds the option's price",
         "UI; API POST /pricing/quote", "r43-options-{user}"),
        ("schedule", "form", "Serve a dish only at set hours", "Saved; customers see its hours and can't order it outside them", "UI; API menu available_now",

@@ -4,7 +4,9 @@
 //   setup    on the market's restaurant (as its partner): dish A at BASE, dish B served only at other hours, spice Medium
 //   change   dish A's price -> NEW; output.t0 = when (the flow then reopens the restaurant until NEW shows)
 //   elapsed  seconds from the change until the app showed it (must be <= 60); printed as R43_SECONDS=<s>
-//   cleanup  every test dish ("R4x …") deleted, pass or fail
+//   catsetup (R45) an empty category "R45 Brunch …" on the restaurant (customers' menu lists it; the app shows its heading)
+//   catdelete the restaurant deletes it (the tablet's API: empty only); output.t0 = when
+//   cleanup  every test dish and category ("R4x …") deleted, pass or fail
 var API = "http://localhost:8001/api/v1";
 var M = (typeof MARKET !== "undefined" && MARKET) || "in";
 var P = M === "us" ? { partner: "partner.boi@example.com", rest: "Boise Bowl Co.", cur: "\\$", base: "12.57", next: "13.79", cc: "+1" }
@@ -67,10 +69,25 @@ if (STEP === "elapsed") {
   var s = (Date.now() - Number(T0)) / 1000;
   console.log("R43_SECONDS=" + s.toFixed(1));
   output.seconds = s.toFixed(1);
-  must(s <= 60, "the app showed the new price " + s.toFixed(1) + " s after the change (limit 60 s)");
+  must(s <= 60, "the app showed the change " + s.toFixed(1) + " s after it was made (limit 60 s)");
 }
 if (STEP === "cleanup") {  // R44: every test dish on the restaurant ("R4x …"), pass or fail (the flows' onFlowComplete)
   call("GET", API + "/restaurants/" + rid + "/menu/manage", ptok).body.items.forEach(function (i) {
     if (/^R4\d( |$)/.test(i.name)) must(call("DELETE", API + "/restaurants/" + rid + "/menu-items/" + i.id, ptok).status === 204, "delete " + i.name);
   });
+  call("GET", API + "/restaurants/" + rid + "/menu/manage", ptok).body.categories.forEach(function (c) {
+    if (/^R4\d( |$)/.test(c.name)) must(call("DELETE", API + "/restaurants/" + rid + "/categories/" + c.id, ptok).status === 204, "delete " + c.name);
+  });
+}
+if (STEP === "catsetup") {
+  var cn = "R45 Brunch " + String(Math.floor(1000 + Math.random() * 8999));
+  var cr = call("POST", API + "/restaurants/" + rid + "/categories", ptok, { name: cn });
+  must(cr.status === 201, "category " + cr.status);
+  var pm = call("GET", API + "/restaurants/" + rid + "/menu").body;
+  must(pm.categories.some(function (c) { return c.id === cr.body.id && c.items.length === 0; }), "customers' menu doesn't list the empty category");
+  output.rid = rid; output.cat = cn; output.catId = cr.body.id;
+}
+if (STEP === "catdelete") {
+  must(call("DELETE", API + "/restaurants/" + rid + "/categories/" + CAT_ID, ptok).status === 204, "delete category");
+  output.t0 = String(Date.now());
 }
