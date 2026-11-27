@@ -496,10 +496,10 @@ function CategoryRow({ c, i, count, dishes, onDelete, dragging, dy, name, onName
           <Btn testID={`category-hours-${i}`} title={tr("partner.edit.set_hours")} disabled={!canSet} onPress={() => onSchedule(from.trim(), until.trim())} />
           {has ? <Btn testID={`category-clear-${i}`} title={tr("partner.edit.clear_all_day")}
             onPress={() => { setFrom(""); setUntil(""); onSchedule(null, null); }} /> : null}
-          {i > 0 ? <Btn testID={`category-up-${i}`} title="↑" label={tr("partner.edit.move_up", { name: c.name })} onPress={() => onMove(-1)} /> : null}
-          {i < count - 1 ? <Btn testID={`category-down-${i}`} title="↓" label={tr("partner.edit.move_down", { name: c.name })} onPress={() => onMove(1)} /> : null}
         </View>
         <View style={[s.row, { flexWrap: "wrap" }]}>
+          {i > 0 ? <Btn testID={`category-up-${i}`} title="↑" label={tr("partner.edit.move_up", { name: c.name })} onPress={() => onMove(-1)} /> : null}
+          {i < count - 1 ? <Btn testID={`category-down-${i}`} title="↓" label={tr("partner.edit.move_down", { name: c.name })} onPress={() => onMove(1)} /> : null}
           <Btn testID={`category-delete-${i}`} title={tr("partner.edit.delete_category")} kind="danger" disabled={dishes > 0} onPress={onDelete}
             label={dishes > 0 ? `${tr("partner.edit.delete_category")}. ${tr("partner.edit.category_has_dishes", { count: dishes })}` : tr("partner.edit.delete_category")} />
           {dishes > 0 ? <Text testID={`category-delete-note-${i}`} style={t.muted}>{tr("partner.edit.category_has_dishes", { count: dishes })}</Text> : null}
