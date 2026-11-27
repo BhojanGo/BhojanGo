@@ -807,6 +807,26 @@ No migration.
   found the restaurant page's delivery/pickup switch clipped at 360 px (fixed). Report:
   qa-artifacts/r45/functional/index.md, notes in qa-artifacts/r45/notes.md.
 
+## Category hours and empty categories (round 46, 2026-11-27)
+
+No migration, no data change.
+
+- **The "07:00 – 11:00" on every category was placeholder text** in the tablet's time fields, not data: no category
+  had hours (QA public menus: 0 of 133; a fresh seed with demo data: 0 of 133). Now a category without hours shows
+  "✓ All day" chosen and empty fields ("--:--"); with hours, "07:00 – 11:00" and "Clear (all day)". Strings in 8
+  languages (packages/i18n/REVIEW.md, round 46).
+- **Customers:** a category with hours is on the menu only inside them, on the restaurant's clock (it used to be listed
+  with its dishes "later"); all-day categories always. Dish-level hours are unchanged (listed, "Served …", no Add).
+- **Customer app:** empty categories are hidden, as on the website.
+- **Tests:** integration (Boise and Hyderabad clocks), Maestro `r46-category-hours-us/-in` on the tablet and in the
+  customer app, website function `category-hours`; the round 45 app flow empties its category before deleting it.
+- **"Use my current location" no longer spins forever:** the customer app used to ask for a GPS fix with no time limit;
+  now a fix from the last 2 minutes is used at once, otherwise it waits at most 15 s and says it couldn't find you
+  (found as the run's one flaky row; after the fix the flow passed 3 of 3).
+- **Full fresh run:** 563 rows (98 pages and screens, 331 functions, US and India), 563 PASS, 0 FAIL, 0 not run, none
+  carried from an earlier round, 1 flaky (the location wait above), no leftovers; 3 h 11 min. Report:
+  qa-artifacts/r46/functional/index.md, notes in qa-artifacts/r46/notes.md.
+
 ## What's left before the pilot
 
 In order. Items 1–4 are Srini's; the rest follow from them.
