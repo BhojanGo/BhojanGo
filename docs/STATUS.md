@@ -797,10 +797,15 @@ No migration.
   API, customers' menu and the website page within 60 s; History) and customer app `r45-category-gone-us/-in` (an
   empty category's heading leaves the app within 60 s of the delete, measured). The website never shows an empty
   category; the app shows its heading until it's deleted.
-- **Test fixes from the first full run:** `tools/mobile/hours.py` opens every restaurant (country manager's token; the
+- **Test fixes from the first two full runs:** `tools/mobile/hours.py` opens every restaurant (country manager's token; the
   demo order stopped at Hyderabad night), the categories and language flows scroll to what they check, re-offer
-  waits by time, the /deliver vehicle choice is clicked by its label (its hidden radio now stays inside the label).
-- **Full fresh run:** __TOTALS__ Report: qa-artifacts/r45/functional/index.md.
+  waits by time, the /deliver vehicle choice is clicked by its label (its hidden radio now stays inside the label),
+  the cart and order-list flows wait longer on a slow emulator.
+- **Full fresh run** (the third; runs 1 and 2 found the test problems above): 557 rows (98 pages and screens, 328
+  functions, US and India), 557 PASS, 0 FAIL, 0 not run, none carried from an earlier round, no flaky rows, no
+  leftovers; 2 h 47 min. A deleted category left the website in 2-2.5 s and the app in 19-24 s. CI's layout check
+  found the restaurant page's delivery/pickup switch clipped at 360 px (fixed). Report:
+  qa-artifacts/r45/functional/index.md, notes in qa-artifacts/r45/notes.md.
 
 ## What's left before the pilot
 
