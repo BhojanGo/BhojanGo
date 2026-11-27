@@ -1,5 +1,5 @@
 #!/bin/sh
-# R44, R45: every case also runs in a round's full fresh run (the functional report's Stripe rows come from this PR's run).
+# R44-R46: every case also runs in a round's full fresh run (the functional report's Stripe rows come from this PR's run).
 # Stripe test-mode end-to-end (QA_JOB=stripe-e2e on the Railway qa-runner; see
 # tools/railway/qa-job.sh). Real Stripe in TEST mode, never QA's data:
 #   1. a throwaway database on the QA Postgres server (bhojango_stripe_e2e_<time>),
