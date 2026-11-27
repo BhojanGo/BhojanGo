@@ -1,0 +1,73 @@
+# R46: category hours on the tablet (MARKET). Every seed category has no hours (scripts/r43_menu.js cathours), and
+# the Categories screen says so: "✓ All day" chosen, empty time fields (placeholder "--:--", no example times).
+# A test category gets 07:00-11:00: the row shows "07:00 – 11:00" and "Clear (all day)"; the API has them and
+# customers' menu lists the category only inside them. Clear: back to All day, no hours, always listed.
+appId: com.bhojango.partner
+---
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: cathours, MARKET: "${MARKET}" }
+- runFlow: ../r43/open-menu.yaml
+- tapOn:
+    id: "manage-categories"
+- extendedWaitUntil:
+    visible:
+      id: "categories-editor"
+    timeout: 15000
+# a seed category: All day, no clear button, no example times
+- assertVisible:
+    id: "category-when-0"
+    text: '(?i).*all day'
+- assertNotVisible:
+    id: "category-clear-0"
+- assertNotVisible: '07:00|11:00'
+- takeScreenshot: docs/screenshots/partner/r46-cathours-${MARKET}-all-day
+# the test category: set 07:00-11:00
+- scrollUntilVisible:
+    element:
+      id: "category-from-${output.ci}"
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    id: "category-when-${output.ci}"
+    text: '(?i).*all day'
+- tapOn:
+    id: "category-from-${output.ci}"
+- inputText: "07:00"
+- pressKey: Enter  # not hideKeyboard: with no keyboard up it presses Back, which closes the dialog
+- tapOn:
+    id: "category-until-${output.ci}"
+- inputText: "11:00"
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: "category-hours-${output.ci}"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: "category-hours-${output.ci}"
+- extendedWaitUntil:
+    visible:
+      id: "category-when-${output.ci}"
+      text: '.*07:00 . 11:00'
+    timeout: 15000
+- assertVisible:
+    id: "category-clear-${output.ci}"
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: cathrs, MARKET: "${MARKET}", CAT_ID: "${output.catId}", FROM: "07:00", UNTIL: "11:00" }
+- takeScreenshot: docs/screenshots/partner/r46-cathours-${MARKET}-set
+# Clear (all day)
+- tapOn:
+    id: "category-clear-${output.ci}"
+- extendedWaitUntil:
+    visible:
+      id: "category-when-${output.ci}"
+      text: '(?i).*all day'
+    timeout: 15000
+- assertNotVisible:
+    id: "category-clear-${output.ci}"
+- runScript:
+    file: ../scripts/r43_menu.js
+    env: { STEP: cathrs, MARKET: "${MARKET}", CAT_ID: "${output.catId}", FROM: "", UNTIL: "" }
+- takeScreenshot: docs/screenshots/partner/r46-cathours-${MARKET}-cleared

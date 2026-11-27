@@ -200,3 +200,32 @@ if (STEP === "catgone") {
   console.log("R45_WEB_SECONDS=" + sec.toFixed(1));
   must(sec <= 60, "the website dropped " + NAME + " " + sec.toFixed(1) + " s after the delete (limit 60 s)");
 }
+
+// R46: category hours on the tablet
+//   cathours  a category "R46 Breakfast …" with one dish (over the API), no hours; output.ci = its row; every category
+//             the run starts with (the seed's) has no hours
+//   cathrs    the category CAT_ID's hours are FROM-UNTIL ("" = none: All day); customers' menu agrees (listed only inside)
+if (STEP === "cathours") {
+  tidy();
+  var t6 = String(Math.floor(1000 + Math.random() * 8999));
+  var cn6 = "R46 Breakfast " + t6;
+  var c6 = call("POST", API + "/restaurants/" + rid + "/categories", tok, { name: cn6 });
+  must(c6.status === 201, "category " + c6.status);
+  must(call("POST", API + "/restaurants/" + rid + "/menu-items", tok, { name: "R46 Poha " + t6, price: P.base, category: cn6, category_id: c6.body.id }).status === 201, "dish");
+  var cs6 = manage().categories;
+  cs6.forEach(function (x) { if (x.id !== c6.body.id) must(!x.available_from && !x.available_until, x.name + " has hours " + x.available_from + "-" + x.available_until); });
+  output.cat = cn6; output.catId = c6.body.id; output.ci = String(cs6.map(function (x) { return x.id; }).indexOf(c6.body.id));
+}
+if (STEP === "cathrs") {
+  var m6 = manage().categories.filter(function (x) { return x.id === CAT_ID; })[0];
+  must(m6, "category gone");
+  must((m6.available_from || "") === FROM && (m6.available_until || "") === UNTIL, "hours " + m6.available_from + "-" + m6.available_until + " != " + FROM + "-" + UNTIL);
+  var pub6 = call("GET", API + "/restaurants/" + rid + "/menu").body;
+  var listed = pub6.categories.some(function (x) { return x.id === CAT_ID; });
+  if (!FROM) must(listed, "an all-day category isn't on customers' menu");
+  else {
+    var lt = call("GET", API + "/restaurants/" + rid + "/availability").body.local_time.slice(11, 16);
+    var inside = FROM < UNTIL ? (lt >= FROM && lt < UNTIL) : (lt >= FROM || lt < UNTIL);
+    must(listed === inside, "listed=" + listed + " at " + lt + " for hours " + FROM + "-" + UNTIL);
+  }
+}

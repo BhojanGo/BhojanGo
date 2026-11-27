@@ -1,0 +1,12 @@
+# R46: category hours and empty categories in the app (in). See r46/category-hours.yaml.
+appId: com.bhojango.app
+env:
+  MARKET: "in"
+  PHONE: "9000000101"
+  COUNTRY: "IN"
+onFlowComplete:  # R44: pass or fail, the test dishes and categories go
+  - runScript:
+      file: scripts/r43_customer.js
+      env: { STEP: cleanup, MARKET: "in" }
+---
+- runFlow: r46/category-hours.yaml

@@ -1,0 +1,12 @@
+# R46: category hours on the tablet (us). See r46/category-hours.yaml.
+appId: com.bhojango.partner
+env:
+  MARKET: "us"
+  EMAIL: "partner.boi@example.com"
+  REST: "Boise Bowl Co."
+onFlowComplete:  # R44: pass or fail, nothing a test made stays
+  - runScript:
+      file: scripts/r43_menu.js
+      env: { STEP: tidy, MARKET: "us" }
+---
+- runFlow: r46/category-hours.yaml

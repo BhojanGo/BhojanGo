@@ -4,8 +4,11 @@
 //   setup    on the market's restaurant (as its partner): dish A at BASE, dish B served only at other hours, spice Medium
 //   change   dish A's price -> NEW; output.t0 = when (the flow then reopens the restaurant until NEW shows)
 //   elapsed  seconds from the change until the app showed it (must be <= 60); printed as R43_SECONDS=<s>
-//   catsetup (R45) an empty category "R45 Brunch …" on the restaurant (customers' menu lists it; the app shows its heading)
-//   catdelete the restaurant deletes it (the tablet's API: empty only); output.t0 = when
+//   catsetup (R45) a category "R45 Brunch …" with one dish on the restaurant (the app shows its heading)
+//   catdelete the restaurant deletes the dish, then the (now empty) category, as on the tablet; output.t0 = the delete
+//   hrsetup  (R46) "R46 Breakfast …" (a dish; hours that aren't now, the restaurant's clock), "R46 Mains …" (a dish,
+//            all day) and "R46 Empty …" (no dishes); customers' menu and the website list only Mains
+//   hrnow    Breakfast's hours become the hour around now; output.t0; customers' menu and the website list it
 //   cleanup  every test dish and category ("R4x …") deleted, pass or fail
 var API = "http://localhost:8001/api/v1";
 var M = (typeof MARKET !== "undefined" && MARKET) || "in";
@@ -83,11 +86,50 @@ if (STEP === "catsetup") {
   var cn = "R45 Brunch " + String(Math.floor(1000 + Math.random() * 8999));
   var cr = call("POST", API + "/restaurants/" + rid + "/categories", ptok, { name: cn });
   must(cr.status === 201, "category " + cr.status);
-  var pm = call("GET", API + "/restaurants/" + rid + "/menu").body;
-  must(pm.categories.some(function (c) { return c.id === cr.body.id && c.items.length === 0; }), "customers' menu doesn't list the empty category");
-  output.rid = rid; output.cat = cn; output.catId = cr.body.id;
+  var dr = call("POST", API + "/restaurants/" + rid + "/menu-items", ptok, { name: "R45 Toast " + cn.slice(-4), price: P.base, category: cn, category_id: cr.body.id });
+  must(dr.status === 201, "dish " + dr.status);
+  output.rid = rid; output.cat = cn; output.catId = cr.body.id; output.dishId = dr.body.id;
 }
 if (STEP === "catdelete") {
+  must(call("DELETE", API + "/restaurants/" + rid + "/menu-items/" + DISH_ID, ptok).status === 204, "delete the dish");
   must(call("DELETE", API + "/restaurants/" + rid + "/categories/" + CAT_ID, ptok).status === 204, "delete category");
   output.t0 = String(Date.now());
+}
+
+// R46: category hours, on the restaurant's clock
+var WEB = "http://localhost:3000", PAGE = M === "us" ? "/us/boise/boise-bowl-co-hyde-park" : "/in/hyderabad/spice-route-kitchen-madhapur";
+function listed() {  // category names on customers' menu (the API the app and website read)
+  return call("GET", API + "/restaurants/" + rid + "/menu").body.categories.map(function (c) { return c.name; });
+}
+function onWeb() { var r = http.request(WEB + PAGE, { method: "GET" }); must(r.status === 200, "website " + r.status); return r.body; }
+function pad(n) { return (n < 10 ? "0" : "") + n + ":00"; }
+if (STEP === "hrsetup") {
+  var tg = String(Math.floor(1000 + Math.random() * 8999));
+  var h0 = Number(call("GET", API + "/restaurants/" + rid + "/availability").body.local_time.slice(11, 13));
+  var made = {};
+  [["Breakfast", { available_from: pad((h0 + 2) % 24), available_until: pad((h0 + 3) % 24) }, true], ["Mains", null, true], ["Empty", null, false]].forEach(function (k) {
+    var name = "R46 " + k[0] + " " + tg;
+    var c = call("POST", API + "/restaurants/" + rid + "/categories", ptok, { name: name });
+    must(c.status === 201, "category " + name);
+    if (k[1]) must(call("PUT", API + "/restaurants/" + rid + "/categories/" + c.body.id, ptok, k[1]).status === 200, "hours");
+    if (k[2]) must(call("POST", API + "/restaurants/" + rid + "/menu-items", ptok, { name: "R46 " + k[0] + " dish " + tg, price: P.base, category: name, category_id: c.body.id }).status === 201, "dish");
+    made[k[0]] = { name: name, id: c.body.id };
+  });
+  var names = listed(), page = onWeb();
+  must(names.indexOf(made.Mains.name) >= 0 && names.indexOf(made.Breakfast.name) < 0, "customers' menu: " + names.join(", "));
+  must(page.indexOf(made.Mains.name) >= 0, "the website doesn't show the all-day category");
+  must(page.indexOf(made.Breakfast.name) < 0, "the website shows the category outside its hours");
+  must(page.indexOf(made.Empty.name) < 0, "the website shows the empty category");
+  output.rid = rid; output.bf = made.Breakfast.name; output.bfId = made.Breakfast.id; output.mains = made.Mains.name; output.empty = made.Empty.name;
+  output.hours = pad((h0 + 2) % 24) + "-" + pad((h0 + 3) % 24);
+}
+if (STEP === "hrnow") {
+  var h1 = Number(call("GET", API + "/restaurants/" + rid + "/availability").body.local_time.slice(11, 13));
+  must(call("PUT", API + "/restaurants/" + rid + "/categories/" + BF_ID, ptok, { available_from: pad(h1), available_until: pad((h1 + 1) % 24) }).status === 200, "hours now");
+  output.t0 = String(Date.now());
+  output.hours = pad(h1) + "-" + pad((h1 + 1) % 24);
+  must(listed().indexOf(BF) >= 0, "customers' menu doesn't list it inside its hours");
+  var until = Date.now() + 60000;
+  while (onWeb().indexOf(BF) < 0) { must(Date.now() < until, "the website doesn't show it inside its hours after 60 s"); var w = Date.now() + 2000; while (Date.now() < w) { /* wait */ } }
+  console.log("R46_WEB_SECONDS=" + ((Date.now() - Number(output.t0)) / 1000).toFixed(1));
 }

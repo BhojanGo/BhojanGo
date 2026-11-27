@@ -1,7 +1,7 @@
-# R45: a deleted category leaves the customer app within 60 s (MARKET). The restaurant adds an empty category (API, as
-# the tablet does); the app shows its heading; the restaurant deletes it (the tablet's Delete category API); the
-# customer reopens the restaurant until the heading is gone: the time from the delete is measured (R43_SECONDS, limit
-# 60 s). The website never shows an empty category (its check is in the tablet flow, r45-category-delete).
+# R45: a deleted category leaves the customer app within 60 s (MARKET). The restaurant adds a category with one dish
+# (API, as the tablet does); the app shows its heading; the restaurant deletes the dish and then the category (the
+# tablet's Delete category API: empty only); the customer reopens the restaurant until the heading is gone: the time
+# from the delete is measured (R43_SECONDS, limit 60 s). R46: the app, like the website, never shows an empty category.
 appId: com.bhojango.app
 ---
 - runScript:
@@ -20,7 +20,7 @@ appId: com.bhojango.app
 - takeScreenshot: docs/screenshots/customer/r45-category-${MARKET}-before
 - runScript:
     file: ../scripts/r43_customer.js
-    env: { STEP: catdelete, MARKET: "${MARKET}", CAT_ID: "${output.catId}" }
+    env: { STEP: catdelete, MARKET: "${MARKET}", CAT_ID: "${output.catId}", DISH_ID: "${output.dishId}" }
 - repeat:
     while:
       visible: ${output.cat}

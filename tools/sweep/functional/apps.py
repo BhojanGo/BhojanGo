@@ -106,9 +106,14 @@ screen(C, "restaurant/[id]", ("menu", "button", "Add, customise", "In the cart",
        ("dish-hours", "display", "A dish served only at other hours, spice Medium", "'Served … – …', no Add; '🌶🌶 Medium'", "UI vs the menu API",
         "r43-propagation-{user}"),
        # R45: a category the restaurant deletes leaves the app (measured)
-       ("category-gone", "number", "The restaurant deletes an empty category; the customer opens the restaurant",
+       ("category-gone", "number", "The restaurant deletes a category's dish, then the category; the customer opens the restaurant",
         "Its heading is gone within 60 s (measured from the delete)", "UI vs GET /restaurants/{id}/menu (scripts/r43_customer.js)",
         "r45-category-gone-{user}"),
+       # R46: category hours on the restaurant's clock; empty categories hidden (as on the website)
+       ("category-hours", "display", "Categories: one with hours that aren't now, one all day, one with no dishes; then the "
+        "first one's hours become the hour around now", "Only the all-day one shows; the empty one never; inside its hours the "
+        "first one shows (within 60 s, measured)", "UI vs GET /restaurants/{id}/menu; the website page (scripts/r43_customer.js)",
+        "r46-category-hours-{user}"),
        nas=(PUBLIC, ("empty", "a menu always has dishes (a closed one: see closed)"), ("error", "API down: r42-api-down")))
 screen(C, "where", ("set-location", "form", "Choose a city and address", "Home for that place", "UI", "r41-sweep-us"),
        nas=(PUBLIC, ("empty", "a picker"), ("error", "API down: r42-api-down")))
@@ -155,6 +160,11 @@ screen(P, "(kitchen)/menu", ("stock-to-web", "toggle", "Mark a dish sold out, th
         "With a dish: off, '1 dish · Move or delete its dish first', nothing deleted; empty: asks 'Delete …?', Keep leaves it, "
         "Delete removes it; gone from the website within 60 s; History 'Category … · deleted'",
         "UI; API /menu/manage, /menu, /menu/history; the website page (scripts/r43_menu.js)", "r45-category-delete-{user}"),
+       # R46: a category's hours on the tablet
+       ("category-hours", "form", "Categories: a seed category; then a test category's hours 07:00-11:00; then Clear (all day)",
+        "No hours: '✓ All day', empty time fields (no example times), no Clear; with hours: '07:00 – 11:00' and 'Clear (all "
+        "day)'; cleared: All day again", "UI; API /menu/manage hours, /menu lists it only inside them (scripts/r43_menu.js)",
+        "r46-category-hours-{user}"),
        ("options", "form", "A new option group (required, at least 1 / at most 1, priced options) on a dish", "Saved; the quote adds the option's price",
         "UI; API POST /pricing/quote", "r43-options-{user}"),
        ("schedule", "form", "Serve a dish only at set hours", "Saved; customers see its hours and can't order it outside them", "UI; API menu available_now",

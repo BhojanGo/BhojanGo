@@ -131,6 +131,19 @@
    "test": "web/[country]/[city]/[kitchen]#dish-hours-and-spice"
   },
   {
+   "id": "category-hours",
+   "kind": "display",
+   "users": [
+    "us",
+    "in"
+   ],
+   "action": "Three categories of the restaurant: one with a dish and hours that aren't now (the restaurant's clock), one with a dish and no hours (all day), one with no dishes; then the first one's hours become the hour around now",
+   "expected": "Outside its hours the category isn't on the page; the all-day one is; the empty one never is; inside its hours it shows with its dish",
+   "verify": "UI: the page's category headings; API: the menu's categories at the restaurant's local time",
+   "run": "playwright + API: tools/sweep/functional/run_web.py",
+   "test": "web/[country]/[city]/[kitchen]#category-hours"
+  },
+  {
    "id": "na-permission",
    "kind": "permission",
    "na": "public page (paying needs sign-in: see /checkout signed-out)"

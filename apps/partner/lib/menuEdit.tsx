@@ -465,7 +465,9 @@ function CategoryRow({ c, i, count, dishes, onDelete, dragging, dy, name, onName
     onPanResponderRelease: (_, g) => { value.setValue(0); onDragEnd(Math.round(g.dy / ROW)); },
     onPanResponderTerminate: () => { value.setValue(0); onDragEnd(0); },
   }), [value, onDragStart, onDragEnd]);
-  const timesOk = (!from && !until) || (okTime(from) && okTime(until) && from !== until);
+  // R46: no hours = "All day" (shown as the chosen state; the fields stay empty, with no example times that look set)
+  const has = !!(c.available_from && c.available_until);
+  const canSet = okTime(from) && okTime(until) && from !== until && !(from === c.available_from && until === c.available_until);
   return (
     <Animated.View testID={`category-row-${i}`} style={[s.catRow, dragging && dy ? { transform: [{ translateY: dy }], zIndex: 2, elevation: 4, backgroundColor: color.white } : null]}>
       <View {...pan.panHandlers} testID={`category-drag-${i}`} accessible accessibilityRole="adjustable" accessibilityLabel={tr("partner.edit.drag", { name: c.name })}
@@ -482,11 +484,18 @@ function CategoryRow({ c, i, count, dishes, onDelete, dragging, dy, name, onName
         </View>
         <View style={[s.row, { flexWrap: "wrap" }]}>
           <Text style={t.muted}>{tr("partner.edit.schedule")}</Text>
-          <TextInput testID={`category-from-${i}`} disableFullscreenUI accessibilityLabel={`${c.name} ${tr("partner.edit.from")}`} placeholder="07:00" value={from} onChangeText={setFrom} maxLength={5} style={[s.input, num, { width: 96 }]} />
+          <View testID={`category-when-${i}`} accessible accessibilityRole="text" style={s.when}
+            accessibilityLabel={has ? tr("partner.edit.served_between", { from: c.available_from ?? "", until: c.available_until ?? "" }) : tr("partner.edit.served_all_day")}>
+            <Text style={[type.label, num, { color: color.peacockDeep }]}>{has ? `${c.available_from} – ${c.available_until}` : `✓ ${tr("partner.edit.all_day")}`}</Text>
+          </View>
+          <TextInput testID={`category-from-${i}`} disableFullscreenUI accessibilityLabel={`${c.name} ${tr("partner.edit.from")}`} placeholder="--:--"
+            placeholderTextColor={color.muted} value={from} onChangeText={setFrom} maxLength={5} style={[s.input, num, { width: 96 }]} />
           <Text style={t.body}>–</Text>
-          <TextInput testID={`category-until-${i}`} disableFullscreenUI accessibilityLabel={`${c.name} ${tr("partner.edit.until")}`} placeholder="11:00" value={until} onChangeText={setUntil} maxLength={5} style={[s.input, num, { width: 96 }]} />
-          <Btn testID={`category-hours-${i}`} title={from || until ? tr("partner.edit.set_hours") : tr("partner.edit.all_day")} disabled={!timesOk}
-            onPress={() => onSchedule(from.trim() || null, until.trim() || null)} />
+          <TextInput testID={`category-until-${i}`} disableFullscreenUI accessibilityLabel={`${c.name} ${tr("partner.edit.until")}`} placeholder="--:--"
+            placeholderTextColor={color.muted} value={until} onChangeText={setUntil} maxLength={5} style={[s.input, num, { width: 96 }]} />
+          <Btn testID={`category-hours-${i}`} title={tr("partner.edit.set_hours")} disabled={!canSet} onPress={() => onSchedule(from.trim(), until.trim())} />
+          {has ? <Btn testID={`category-clear-${i}`} title={tr("partner.edit.clear_all_day")}
+            onPress={() => { setFrom(""); setUntil(""); onSchedule(null, null); }} /> : null}
           {i > 0 ? <Btn testID={`category-up-${i}`} title="↑" label={tr("partner.edit.move_up", { name: c.name })} onPress={() => onMove(-1)} /> : null}
           {i < count - 1 ? <Btn testID={`category-down-${i}`} title="↓" label={tr("partner.edit.move_down", { name: c.name })} onPress={() => onMove(1)} /> : null}
         </View>
@@ -567,6 +576,7 @@ const s = StyleSheet.create({
   knob: { position: "absolute", top: 3, left: 3, width: 20, height: 20, borderRadius: 10, backgroundColor: color.white },
   catRow: { flexDirection: "row", gap: 12, alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: color.line, minHeight: ROW },
   handle: { width: 44, height: 56, alignItems: "center", justifyContent: "center" },
+  when: { borderRadius: 999, borderWidth: 1.5, borderColor: color.peacock, backgroundColor: color.peacockTint, paddingHorizontal: 14, minHeight: 40, justifyContent: "center" },
   hist: { gap: 2, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: color.line },
 });
 

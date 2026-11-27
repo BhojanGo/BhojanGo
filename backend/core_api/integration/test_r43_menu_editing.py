@@ -211,8 +211,9 @@ async def test_categories_add_rename_reorder_hide_and_schedule(client: AsyncClie
     assert (await client.put(f"{base}/categories/{a['id']}", headers=partner, json={"available_from": "07:00"})).status_code == 422
     r = await client.put(f"{base}/categories/{a['id']}", headers=partner, json=window)
     assert r.status_code == 200 and r.json()["available_from"] == window["available_from"]
-    item = (await public_items(client, rid))[f"Upma {tag}"]
-    assert item["available_now"] is False and item["schedule"] == {"from": window["available_from"], "until": window["available_until"]}
+    # R46: outside its hours the category isn't on customers' menu at all (it was listed with its dishes "later")
+    menu = (await client.get(f"{base}/menu")).json()
+    assert all(c["id"] != a["id"] for c in menu["categories"]) and f"Upma {tag}" not in await public_items(client, rid)
     r = await quote(client, cust, rid, [{"menu_item_id": dish["id"], "quantity": 1}])
     assert r.status_code == 422 and "is served" in r.text
     # a window around now: orderable

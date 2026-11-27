@@ -3,6 +3,7 @@
 * a menu change (price) reaches the restaurant page: measured, limit 60 s;
 * a new dish, then renamed, is found by the website's dish search; a deleted one isn't;
 * a dish outside its hours shows them and "Later" (no Add); spice marks;
+* R46: a category with hours is on the page only inside them (the restaurant's clock); all-day always; empty never;
 * the held price: the restaurant raises the price while the customer is at checkout; Pay charges the quoted price;
 * after the hold: "Get a fresh price" re-prices the cart and says "Price changed: <dish> <old> → <new>" above Pay;
 * admin: the restaurant's menu history equals the API's (who, when, old → new).
@@ -163,6 +164,54 @@ def _(t: T) -> str:
                                                          "deliver_to": t.m["to"]}, raw=True)
         ok(q[0] == 422 and "is served" in str(q[1]), f"the quote took a dish outside its hours: {q}")
         return f"'Served {frm}–{until}' + 'Later' (no Add), '🌶🌶 Medium'; the quote refuses it (422)"
+
+
+@fn(W, K, "category-hours", kind="display",
+    action="Three categories of the restaurant: one with a dish and hours that aren't now (the restaurant's clock), one "
+           "with a dish and no hours (all day), one with no dishes; then the first one's hours become the hour around now",
+    expected="Outside its hours the category isn't on the page; the all-day one is; the empty one never is; inside its "
+             "hours it shows with its dish",
+    verify="UI: the page's category headings; API: the menu's categories at the restaurant's local time")
+def _(t: T) -> str:
+    tok, rid = token(MARKET[t.user]["partner"]), restaurant(t.user)["id"]
+    tag, made = uuid.uuid4().hex[:4], {}
+    local = api("GET", f"/restaurants/{rid}/availability")["local_time"]
+    h = int(local[11:13])
+    try:
+        for kind, dish in (("Breakfast", True), ("Mains", True), ("Empty", False)):
+            c = api("POST", f"/restaurants/{rid}/categories", tok, {"name": f"R46 {kind} {tag}"})
+            made[kind] = c
+            if dish:
+                api("POST", f"/restaurants/{rid}/menu-items", tok, {"name": f"R46 {kind} dish {tag}", "category": c["name"],
+                                                                     "category_id": c["id"], "price": "9.00" if t.user == "us" else "150"})
+        api("PUT", f"/restaurants/{rid}/categories/{made['Breakfast']['id']}", tok,
+            {"available_from": f"{(h + 2) % 24:02d}:00", "available_until": f"{(h + 3) % 24:02d}:00"})
+        names = lambda: [c["name"] for c in api("GET", f"/restaurants/{rid}/menu")["categories"]]  # noqa: E731
+        ok(made["Mains"]["name"] in names() and made["Breakfast"]["name"] not in names(), f"the API lists {names()}")
+        p = open_kitchen(t)
+        heads = lambda: p.get_by_role("main").inner_text()  # noqa: E731
+        text = heads()
+        ok(made["Mains"]["name"] in text, "the all-day category isn't on the page")
+        ok(made["Breakfast"]["name"] not in text, "the category shows outside its hours")
+        ok(made["Empty"]["name"] not in text, "the empty category shows")
+        t.shot("outside")
+        api("PUT", f"/restaurants/{rid}/categories/{made['Breakfast']['id']}", tok,
+            {"available_from": f"{h:02d}:00", "available_until": f"{(h + 1) % 24:02d}:00"})
+        ok(made["Breakfast"]["name"] in names(), "the API doesn't list it inside its hours")
+        p.reload(wait_until="networkidle")
+        text = heads()
+        ok(made["Breakfast"]["name"] in text and f"R46 Breakfast dish {tag}" in text, "the category doesn't show inside its hours")
+        ok(made["Empty"]["name"] not in text, "the empty category shows")
+        t.shot("inside")
+        return (f"local {local[11:16]}: hours {(h + 2) % 24:02d}:00-{(h + 3) % 24:02d}:00 not shown, all-day shown, empty not shown; "
+                f"hours {h:02d}:00-{(h + 1) % 24:02d}:00 shown with its dish")
+    finally:
+        for kind, c in made.items():
+            menu = api("GET", f"/restaurants/{rid}/menu/manage", tok)
+            for i in menu["items"]:
+                if i.get("category_id") == c["id"]:
+                    api("DELETE", f"/restaurants/{rid}/menu-items/{i['id']}", tok, raw=True)
+            api("DELETE", f"/restaurants/{rid}/categories/{c['id']}", tok, raw=True)
 
 
 def cart_with(t: T, d: Dish, qty: int) -> object:
